@@ -1,0 +1,41 @@
+<svg width="208" height="208" viewBox="0 0 208 208" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g filter="url(#filter0_d_1_72)">
+<g clip-path="url(#clip0_1_72)">
+<path d="M104 156C132.719 156 156 134.51 156 108C156 81.4903 132.719 60 104 60C75.2812 60 52 81.4903 52 108C52 134.51 75.2812 156 104 156Z" fill="#49C9D5"/>
+<path d="M70 72L58 38L86 62L70 72Z" fill="#3797A0"/>
+<path d="M138 72L150 38L122 62L138 72Z" fill="#3797A0"/>
+<path opacity="0.5" d="M71 70L62 46L84 64L71 70Z" fill="#49C9D5"/>
+<path opacity="0.5" d="M137 70L146 46L124 64L137 70Z" fill="#49C9D5"/>
+<path d="M90 116C96.6274 116 102 110.627 102 104C102 97.3726 96.6274 92 90 92C83.3726 92 78 97.3726 78 104C78 110.627 83.3726 116 90 116Z" fill="#FAFBF6"/>
+<path d="M118 116C124.627 116 130 110.627 130 104C130 97.3726 124.627 92 118 92C111.373 92 106 97.3726 106 104C106 110.627 111.373 116 118 116Z" fill="#FAFBF6"/>
+<path d="M92 111C95.3137 111 98 108.314 98 105C98 101.686 95.3137 99 92 99C88.6863 99 86 101.686 86 105C86 108.314 88.6863 111 92 111Z" fill="#1F1E1A"/>
+<path d="M120 111C123.314 111 126 108.314 126 105C126 101.686 123.314 99 120 99C116.686 99 114 101.686 114 105C114 108.314 116.686 111 120 111Z" fill="#1F1E1A"/>
+<path d="M94 105C95.1046 105 96 104.105 96 103C96 101.895 95.1046 101 94 101C92.8954 101 92 101.895 92 103C92 104.105 92.8954 105 94 105Z" fill="#FAFBF6"/>
+<path d="M122 105C123.105 105 124 104.105 124 103C124 101.895 123.105 101 122 101C120.895 101 120 101.895 120 103C120 104.105 120.895 105 122 105Z" fill="#FAFBF6"/>
+<path d="M104 120C106.209 120 108 118.657 108 117C108 115.343 106.209 114 104 114C101.791 114 100 115.343 100 117C100 118.657 101.791 120 104 120Z" fill="#2C7980"/>
+<path d="M94 124C100.667 129.333 107.333 129.333 114 124" stroke="#FAFBF6" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M52 110L82 116" stroke="#FAFBF6" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M50 118L82 120" stroke="#FAFBF6" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M126 116L156 110" stroke="#FAFBF6" stroke-width="1.5" stroke-linecap="round"/>
+<path d="M126 120L158 118" stroke="#FAFBF6" stroke-width="1.5" stroke-linecap="round"/>
+<path opacity="0.4" d="M80 127C84.4183 127 88 124.761 88 122C88 119.239 84.4183 117 80 117C75.5817 117 72 119.239 72 122C72 124.761 75.5817 127 80 127Z" fill="#3797A0"/>
+<path opacity="0.4" d="M128 127C132.418 127 136 124.761 136 122C136 119.239 132.418 117 128 117C123.582 117 120 119.239 120 122C120 124.761 123.582 127 128 127Z" fill="#3797A0"/>
+<path d="M96 78C101.333 74 106.667 74 112 78" stroke="#2C7980" stroke-width="2" stroke-linecap="round"/>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_1_72" x="0" y="0" width="208" height="208" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="8"/>
+<feGaussianBlur stdDeviation="12"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.286275 0 0 0 0 0.788235 0 0 0 0 0.835294 0 0 0 0.35 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_72"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_72" result="shape"/>
+</filter>
+<clipPath id="clip0_1_72">
+<rect width="160" height="160" fill="white" transform="translate(24 16)"/>
+</clipPath>
+</defs>
+</svg>
