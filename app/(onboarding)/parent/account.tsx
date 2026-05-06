@@ -137,7 +137,7 @@ export default function ParentAccountScreen() {
 
         <Text style={styles.loginText}>
           Al een account?{' '}
-          <Text style={styles.loginLink}>Log in</Text>
+          <Text style={styles.loginLink} onPress={() => router.push('/(onboarding)/parent/login')}>Log in</Text>
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
