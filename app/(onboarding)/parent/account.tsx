@@ -6,12 +6,10 @@ import {
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 
 export default function ParentAccountScreen() {
-  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -148,9 +146,7 @@ export default function ParentAccountScreen() {
             />
           </TouchableOpacity>
         </View>
-      </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}>
         <TouchableOpacity
           style={[styles.btnPrimary, !canContinue && styles.btnDisabled]}
           onPress={() => router.push('/(onboarding)/parent/verify-email')}
@@ -169,7 +165,7 @@ export default function ParentAccountScreen() {
             Log in
           </Text>
         </Text>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -185,7 +181,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 28,
@@ -254,6 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
+    marginBottom: Spacing.lg,
   },
   socialBtn: {
     width: 70,
@@ -268,12 +265,6 @@ const styles = StyleSheet.create({
   socialIcon: {
     width: 26,
     height: 26,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    gap: 12,
-    backgroundColor: Colors.background,
   },
   btnPrimary: {
     height: 48,
