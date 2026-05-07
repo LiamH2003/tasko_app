@@ -48,21 +48,21 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   progressTrack: {
-    height: 2,
-    backgroundColor: Colors.surface,
+    height: 4,
+    backgroundColor: Colors.iconBg,
     width: '100%',
   },
   progressFill: {
-    height: 2,
+    height: 4,
     backgroundColor: Colors.primary,
   },
   stepLabel: {
     fontSize: FontSize.xs,
-    color: Colors.primary,
+    color: Colors.primaryDark,
     fontWeight: FontWeight.semibold,
     paddingHorizontal: 24,
     paddingTop: 7,
     paddingBottom: 6,
-    letterSpacing: 0.7,
+    letterSpacing: 0.96,
   },
 });

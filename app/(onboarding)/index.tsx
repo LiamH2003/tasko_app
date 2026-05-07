@@ -1,79 +1,79 @@
-import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, Dimensions,
+} from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontWeight } from '@/constants/theme';
+import { Colors, Radius, FontSize, FontWeight } from '@/constants/theme';
 
-type IoniconName = keyof typeof Ionicons.glyphMap;
+const SCREEN_W = Dimensions.get('window').width;
 
-const FEATURES: { icon: IoniconName; title: string; description: string }[] = [
-  { icon: 'scan-outline',    title: 'Focus Mode',      description: 'Dagelijkse routines zonder afleiding' },
-  { icon: 'refresh-outline', title: 'Slimme Routines', description: 'Gezonde gewoonten, stap voor stap' },
-  { icon: 'happy-outline',   title: 'Mood Tracker',    description: 'Hoe voel je je vandaag?' },
+// Icon filenames are swapped vs. what they visually represent in the design:
+// routines_icon.png = crosshair/target  → Focus Mode
+// focusmode_icon.png = circular refresh → Slimme Routines
+const FEATURES = [
+  { icon: require('@/assets/images/icons/routines_icon.png'),  title: 'Focus Mode',      description: 'Dagelijkse routines zonder afleiding' },
+  { icon: require('@/assets/images/icons/focusmode_icon.png'), title: 'Slimme Routines', description: 'Gezonde gewoonten, stap voor stap' },
+  { icon: require('@/assets/images/icons/mood_icon.png'),      title: 'Mood Tracker',    description: 'Hoe voel je je vandaag?' },
 ];
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const floatAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, { toValue: -10, duration: 1750, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(floatAnim, { toValue: 0,   duration: 1750, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ])
-    ).start();
-  }, [floatAnim]);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
 
-      {/* Status bar spacer — matches HTML .status-bar height */}
+      {/* mainscreen_g1: 320×320 radial gradient, opacity 0.18 baked in — Figma node 1:67 */}
+      <Image
+        source={require('@/assets/images/backgrounds/mainscreen_g1.svg')}
+        style={[styles.blobMain, { top: insets.top - 20, left: (SCREEN_W - 320) / 2 }]}
+        contentFit="fill"
+      />
+      {/* mainscreen_g2: 128×128 teal circle at 8% — centred behind the mascot */}
+      <Image
+        source={require('@/assets/images/backgrounds/mainscreen_g2.svg')}
+        style={[styles.blobAccent, { top: insets.top + 64, left: (SCREEN_W - 128) / 2 }]}
+        contentFit="fill"
+      />
+
+      {/* Safe-area top spacer */}
       <View style={{ height: insets.top }} />
 
-      {/* ── HERO — flex: 1, identical to HTML .hero ── */}
+      {/* ── Hero ── */}
       <View style={styles.hero}>
 
-        {/* Decorative blob — top: -20 bleeds slightly into status bar, matching HTML */}
-        <View style={styles.blob} />
-
-        {/* Mascot — margin-top: 48 from hero top, matching HTML */}
-        <Animated.View style={[styles.mascotWrapper, { transform: [{ translateY: floatAnim }] }]}>
+        <View style={styles.mascotWrap}>
           <Image
             source={require('@/assets/images/mascot.svg')}
-            style={styles.mascotImage}
+            style={styles.mascot}
             contentFit="contain"
           />
-        </Animated.View>
+        </View>
 
-        {/* margin-top: 20, font-size: 32, matching HTML .hero__brand */}
         <Text style={styles.brand}>Tasko Tracker</Text>
 
-        {/* margin-top: 8, font-size: 14, matching HTML .hero__tagline */}
         <Text style={styles.tagline}>
-          Help je kind focussen, routines opbouwen en zichzelf beter begrijpen.
+          Dagelijkse structuur die rustig aanvoelt,{'\n'}voor elk kind en elk gezin.
         </Text>
 
-        {/* margin-top: 36, gap: 12, matching HTML .pills */}
-        <View style={styles.pills}>
+        <View style={styles.cards}>
           {FEATURES.map((f) => (
-            <View key={f.title} style={styles.pill}>
-              <View style={styles.pillIcon}>
-                <Ionicons name={f.icon} size={20} color={Colors.primary} />
+            <View key={f.title} style={styles.card}>
+              <View style={styles.cardIconWrap}>
+                <Image source={f.icon} style={styles.cardIcon} contentFit="contain" />
               </View>
-              <View style={styles.pillText}>
-                <Text style={styles.pillTitle}>{f.title}</Text>
-                <Text style={styles.pillSub}>{f.description}</Text>
+              <View style={styles.cardText}>
+                <Text style={styles.cardTitle}>{f.title}</Text>
+                <Text style={styles.cardSub}>{f.description}</Text>
               </View>
             </View>
           ))}
         </View>
+
       </View>
 
-      {/* ── CTA — fixed at bottom, matching HTML .cta ── */}
-      <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 8, 40) }]}>
+      {/* ── CTA ── */}
+      <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 8, 24) }]}>
         <TouchableOpacity
           style={styles.btnPrimary}
           onPress={() => router.push('/(onboarding)/profile-setup')}
@@ -82,70 +82,76 @@ export default function WelcomeScreen() {
           <Text style={styles.btnPrimaryText}>Aan de slag</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.btnSecondary} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.btnSecondary}
+          onPress={() => router.push('/(onboarding)/parent/login')}
+          activeOpacity={0.75}
+        >
           <Text style={styles.btnSecondaryText}>Ik heb al een account</Text>
         </TouchableOpacity>
 
         <Text style={styles.legal}>
-          Door verder te gaan ga je akkoord met onze{' '}
+          Door verder te gaan ga je akkoord met onze{'\n'}
           <Text style={styles.legalLink}>Gebruiksvoorwaarden</Text>
-          {' '}en{' '}
-          <Text style={styles.legalLink}>Privacybeleid</Text>.
+          <Text style={styles.legalMuted}> en Privacybeleid.</Text>
         </Text>
       </View>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: Colors.background,
   },
 
-  // ── Hero ─────────────────────────────────────────────────────
+  blobMain: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+  },
+
+  blobAccent: {
+    position: 'absolute',
+    width: 128,
+    height: 128,
+  },
+
+  // ── Hero ───────────────────────────────────────────────────────────────────
   hero: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start',
     paddingHorizontal: 32,
   },
 
-  // Radial-gradient blob approximated as dark teal circle
-  // top: -20 matches HTML: bleeds 20px above hero into status bar area
-  blob: {
-    position: 'absolute',
-    top: -20,
-    alignSelf: 'center',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: Colors.heroBlob,
+  mascotWrap: {
+    paddingTop: 48,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 12,
+    shadowOpacity: 0.35,
   },
 
-  // margin-top: 48 matches HTML .mascot margin-top
-  mascotWrapper: {
-    marginTop: 48,
-  },
-
-  mascotImage: {
+  mascot: {
     width: 160,
     height: 160,
   },
 
-  // ── Typography ───────────────────────────────────────────────
   brand: {
     marginTop: 20,
-    fontSize: 32,
+    fontSize: FontSize.xxl,
+    fontFamily: 'Fredoka_500Medium',
     fontWeight: FontWeight.medium,
     color: Colors.primary,
-    letterSpacing: 0.4,
+    letterSpacing: 0.32,
     textAlign: 'center',
   },
 
   tagline: {
     marginTop: 8,
-    fontSize: 14,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.regular,
     color: Colors.text.secondary,
     textAlign: 'center',
@@ -153,53 +159,61 @@ const styles = StyleSheet.create({
     maxWidth: 260,
   },
 
-  // ── Feature pills ────────────────────────────────────────────
-  pills: {
+  // ── Feature cards ──────────────────────────────────────────────────────────
+  cards: {
     marginTop: 36,
     width: '100%',
     gap: 12,
   },
 
-  pill: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 15,
+    paddingHorizontal: 21,
     backgroundColor: Colors.cardTint,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
+    borderRadius: Radius.md,
   },
 
-  pillIcon: {
+  cardIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     backgroundColor: Colors.iconBg,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
 
-  pillText: { flex: 1 },
+  cardIcon: {
+    width: 20,
+    height: 20,
+  },
 
-  pillTitle: {
-    fontSize: 14,
+  cardText: {
+    flex: 1,
+  },
+
+  cardTitle: {
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.text.primary,
-    lineHeight: 18,
+    lineHeight: 18.2,
   },
 
-  pillSub: {
-    fontSize: 12,
+  cardSub: {
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.regular,
     color: Colors.text.muted,
-    marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 15.6,
+    marginTop: 1,
   },
 
-  // ── CTA ──────────────────────────────────────────────────────
+  // ── CTA ────────────────────────────────────────────────────────────────────
   cta: {
     paddingHorizontal: 32,
     paddingTop: 24,
@@ -210,39 +224,35 @@ const styles = StyleSheet.create({
   btnPrimary: {
     height: 48,
     backgroundColor: Colors.primary,
-    borderRadius: 8,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#edfafb',
-    shadowOffset: { width: 1, height: 2 },
-    shadowRadius: 3,
-    shadowOpacity: 0.2,
-    elevation: 3,
   },
 
   btnPrimaryText: {
-    fontSize: 16,
-    fontWeight: FontWeight.regular,
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.medium,
     color: Colors.background,
   },
 
   btnSecondary: {
     height: 48,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
     borderColor: Colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
 
   btnSecondaryText: {
-    fontSize: 16,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.regular,
     color: Colors.primaryLight,
   },
 
   legal: {
-    fontSize: 11,
+    fontSize: FontSize.xs,
     color: Colors.text.muted,
     textAlign: 'center',
     lineHeight: 16,
@@ -252,5 +262,9 @@ const styles = StyleSheet.create({
   legalLink: {
     color: Colors.primaryDark,
     textDecorationLine: 'underline',
+  },
+
+  legalMuted: {
+    color: Colors.text.muted,
   },
 });

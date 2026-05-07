@@ -23,7 +23,7 @@ export default function ChildWelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader step={4} totalSteps={7} role="TASKO-GEBRUIKER" />
+      <OnboardingHeader step={4} totalSteps={4} role="KIND" />
       <View style={styles.content}>
         <Image
           source={require('@/assets/images/mascot.svg')}

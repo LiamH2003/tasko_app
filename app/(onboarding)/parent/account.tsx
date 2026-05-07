@@ -3,13 +3,15 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
-import { Button } from '@/components/ui/Button';
 
 export default function ParentAccountScreen() {
+  const insets = useSafeAreaInsets();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,7 +33,13 @@ export default function ParentAccountScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <OnboardingHeader step={1} totalSteps={4} role="OUDER" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Jouw account</Text>
         <Text style={styles.subtitle}>Maak een account aan om te beginnen.</Text>
 
@@ -85,7 +93,7 @@ export default function ParentAccountScreen() {
               placeholderTextColor={Colors.text.muted}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={8}>
+            <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={8}>
               <Ionicons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
@@ -106,7 +114,7 @@ export default function ParentAccountScreen() {
               placeholderTextColor={Colors.text.muted}
               secureTextEntry={!showConfirm}
             />
-            <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} hitSlop={8}>
+            <TouchableOpacity onPress={() => setShowConfirm(v => !v)} hitSlop={8}>
               <Ionicons
                 name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
                 size={20}
@@ -119,27 +127,49 @@ export default function ParentAccountScreen() {
         <Text style={styles.orText}>Of registreer met...</Text>
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-            <Ionicons name="logo-facebook" size={24} color="#1877f2" />
+            <Image
+              source={require('@/assets/images/icons/logo_fb.svg')}
+              style={styles.socialIcon}
+              contentFit="contain"
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-            <Ionicons name="logo-google" size={24} color="#ea4335" />
+            <Image
+              source={require('@/assets/images/icons/logo_google.svg')}
+              style={styles.socialIcon}
+              contentFit="contain"
+            />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8}>
-            <Ionicons name="logo-apple" size={24} color={Colors.background} />
+            <Image
+              source={require('@/assets/images/icons/logo_apple.svg')}
+              style={styles.socialIcon}
+              contentFit="contain"
+            />
           </TouchableOpacity>
         </View>
+      </ScrollView>
 
-        <Button
-          label="Maak account aan"
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 20) }]}>
+        <TouchableOpacity
+          style={[styles.btnPrimary, !canContinue && styles.btnDisabled]}
           onPress={() => router.push('/(onboarding)/parent/verify-email')}
           disabled={!canContinue}
-        />
+          activeOpacity={0.85}
+        >
+          <Text style={styles.btnPrimaryText}>Maak account aan</Text>
+        </TouchableOpacity>
 
         <Text style={styles.loginText}>
           Al een account?{' '}
-          <Text style={styles.loginLink} onPress={() => router.push('/(onboarding)/parent/login')}>Log in</Text>
+          <Text
+            style={styles.loginLink}
+            onPress={() => router.push('/(onboarding)/parent/login')}
+          >
+            Log in
+          </Text>
         </Text>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -150,95 +180,123 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scroll: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: 40,
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   title: {
     fontSize: 28,
-    fontWeight: FontWeight.bold,
+    fontFamily: 'Fredoka_500Medium',
     color: Colors.text.primary,
-    marginBottom: 8,
-    marginTop: 8,
+    lineHeight: 33.6,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: FontSize.md,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xl,
-    lineHeight: 22,
+    lineHeight: 21,
+    marginBottom: Spacing.lg,
   },
   row: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   field: {
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   fieldHalf: {
     flex: 1,
   },
   label: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    color: Colors.primary,
-    marginBottom: 6,
+    fontSize: FontSize.lg,
+    color: Colors.primaryDark,
+    marginBottom: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.md,
+    height: 48,
+    backgroundColor: Colors.backgroundDark,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primaryDark,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
     color: Colors.text.primary,
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
   },
   inputRow: {
+    height: 50,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
-    borderRadius: Radius.md,
+    backgroundColor: Colors.backgroundDark,
+    borderRadius: Radius.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primaryDark,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
     gap: 8,
   },
   inputFlex: {
     flex: 1,
     color: Colors.text.primary,
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     padding: 0,
   },
   orText: {
     textAlign: 'center',
-    fontSize: FontSize.sm,
-    color: Colors.text.secondary,
-    marginTop: 8,
-    marginBottom: 16,
+    fontSize: FontSize.md,
+    color: Colors.text.muted,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
-    marginBottom: 24,
   },
   socialBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.text.primary,
+    width: 70,
+    height: 41,
+    borderRadius: Radius.lg,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e3e3e3',
     alignItems: 'center',
     justifyContent: 'center',
   },
+  socialIcon: {
+    width: 26,
+    height: 26,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    gap: 12,
+    backgroundColor: Colors.background,
+  },
+  btnPrimary: {
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnDisabled: {
+    opacity: 0.4,
+  },
+  btnPrimaryText: {
+    fontSize: FontSize.lg,
+    color: Colors.background,
+  },
   loginText: {
     textAlign: 'center',
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.text.muted,
-    marginTop: 16,
+    marginBottom: 4,
   },
   loginLink: {
-    color: Colors.primary,
-    fontWeight: FontWeight.medium,
+    color: Colors.primaryDark,
+    textDecorationLine: 'underline',
   },
 });
