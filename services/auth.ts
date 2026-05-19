@@ -23,6 +23,13 @@ export async function getSession() {
   return data.session;
 }
 
+export async function saveParentProfile(firstName: string, familyName: string) {
+  const { error } = await supabase.auth.updateUser({
+    data: { first_name: firstName, family_name: familyName },
+  });
+  if (error) throw error;
+}
+
 // Called at the end of parent onboarding (success screen) to unlock the parent dashboard.
 export async function completeOnboarding() {
   const { error } = await supabase.auth.updateUser({

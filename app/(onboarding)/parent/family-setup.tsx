@@ -8,6 +8,7 @@ import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
 import { createChildWithCode } from '@/services/children';
+import { saveParentProfile } from '@/services/auth';
 
 const SUGGESTIONS = ['Familie De Smedt', 'Ons gezin', 'Team Thuis'];
 
@@ -76,7 +77,10 @@ export default function ParentFamilySetupScreen() {
             setError('');
             setLoading(true);
             try {
-              const child = await createChildWithCode(familyName.trim());
+              const [child] = await Promise.all([
+                createChildWithCode(familyName.trim()),
+                saveParentProfile(parentName.trim(), familyName.trim()),
+              ]);
               router.push({
                 pathname: '/(onboarding)/parent/success',
                 params: {

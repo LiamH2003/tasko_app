@@ -1,15 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
-
-const CHILDREN = [
-  { id: 'emma', name: 'Emma', avatar: '👧' },
-  { id: 'luca', name: 'Luca', avatar: '👦' },
-];
+import { getChildren } from '@/services/children';
+import type { ChildRow } from '@/lib/database.types';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
@@ -51,7 +48,15 @@ const INSIGHTS = [
 ];
 
 export default function GevoelScreen() {
-  const [activeChild, setActiveChild] = useState('emma');
+  const [children, setChildren] = useState<ChildRow[]>([]);
+  const [activeChild, setActiveChild] = useState<string | null>(null);
+
+  useEffect(() => {
+    getChildren().then((data) => {
+      setChildren(data);
+      if (data.length > 0) setActiveChild(data[0].id);
+    }).catch(() => {});
+  }, []);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -67,9 +72,9 @@ export default function GevoelScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Child selector */}
         <View style={styles.childSelector}>
-          {CHILDREN.map((c) => (
+          {children.map((c) => (
             <TouchableOpacity key={c.id} style={[styles.childBtn, activeChild === c.id && styles.childBtnActive]} onPress={() => setActiveChild(c.id)} activeOpacity={0.8}>
-              <Text style={styles.childAvatar}>{c.avatar}</Text>
+              <Text style={styles.childAvatar}>🧒</Text>
               <Text style={[styles.childName, activeChild === c.id && styles.childNameActive]}>{c.name}</Text>
             </TouchableOpacity>
           ))}

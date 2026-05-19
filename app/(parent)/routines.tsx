@@ -1,59 +1,23 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { getChildren } from '@/services/children';
+import { getRoutines } from '@/services/routines';
+import type { ChildRow, TaskRow, RoutineWithTasks } from '@/lib/database.types';
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
-const CHILDREN = [
-  { id: 'emma', name: 'Emma', avatar: '👧' },
-  { id: 'luca', name: 'Luca', avatar: '👦' },
-];
-
-const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-
-type TaskStatus = 'done' | 'bezig' | 'pending';
-
-interface ParentTask {
-  id: string;
-  icon: IconName;
-  title: string;
-  time: string;
-  duration: number;
-  xp: number;
-  status: TaskStatus;
-  statusTime?: string;
-  activeDays: boolean[];
-}
-
-const SECTIONS: { label: string; tasks: ParentTask[] }[] = [
-  {
-    label: 'Ochtend',
-    tasks: [
-      { id: 't1', icon: 'sparkles-outline', title: 'Tanden poetsen', time: '07:15', duration: 5, xp: 20, status: 'done', statusTime: '07:17', activeDays: [true, true, true, true, true, true, true] },
-      { id: 't2', icon: 'cafe-outline', title: 'Ontbijt eten', time: '07:30', duration: 15, xp: 20, status: 'done', statusTime: '07:44', activeDays: [true, true, true, true, true, true, true] },
-    ],
-  },
-  {
-    label: 'Middag',
-    tasks: [
-      { id: 't3', icon: 'star-outline', title: 'Huiswerk maken', time: '16:00', duration: 45, xp: 30, status: 'bezig', activeDays: [true, true, false, true, true, true, false] },
-      { id: 't4', icon: 'heart-outline', title: 'Buiten spelen', time: '17:30', duration: 30, xp: 20, status: 'pending', activeDays: [true, true, true, true, true, false, false] },
-    ],
-  },
-];
+type TaskStatus = 'done' | 'pending';
 
 const STATUS_COLORS: Record<TaskStatus, string> = {
   done: Colors.status.success,
-  bezig: Colors.status.warning,
   pending: Colors.text.muted,
 };
 
-function StatusBadge({ status, time }: { status: TaskStatus; time?: string }) {
+function StatusBadge({ status }: { status: TaskStatus }) {
   const color = STATUS_COLORS[status];
-  const label = status === 'done' && time ? `✓ Klaar (${time})` : status === 'bezig' ? '⏱ Bezig' : '— Nog niet';
+  const label = status === 'done' ? '✓ Klaar' : '— Nog niet';
   return (
     <View style={[styles.statusBadge, { backgroundColor: `${color}22`, borderColor: `${color}55` }]}>
       <Text style={[styles.statusBadgeText, { color }]}>{label}</Text>
@@ -61,50 +25,50 @@ function StatusBadge({ status, time }: { status: TaskStatus; time?: string }) {
   );
 }
 
-function TaskCard({ task }: { task: ParentTask }) {
-  const [expanded, setExpanded] = useState(true);
-  const [enabled, setEnabled] = useState(true);
-
+function TaskCard({ task }: { task: TaskRow }) {
   return (
     <View style={styles.taskCard}>
-      <TouchableOpacity style={styles.taskCardHeader} onPress={() => setExpanded((e) => !e)} activeOpacity={0.8}>
+      <View style={styles.taskCardHeader}>
         <View style={styles.taskIconBox}>
-          <Ionicons name={task.icon} size={18} color={Colors.primary} />
+          <Text style={styles.taskEmoji}>{task.emoji}</Text>
         </View>
         <View style={styles.taskInfo}>
           <Text style={styles.taskTitle}>{task.title}</Text>
-          <Text style={styles.taskMeta}>{task.time} · {task.duration} min · +{task.xp} EXP</Text>
         </View>
-        <Switch value={enabled} onValueChange={setEnabled} trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor="#fff" ios_backgroundColor={Colors.card} style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} />
+        <StatusBadge status={task.completed ? 'done' : 'pending'} />
         <TouchableOpacity hitSlop={8}>
           <Ionicons name="create-outline" size={18} color={Colors.text.muted} />
         </TouchableOpacity>
-      </TouchableOpacity>
-
-      {expanded && (
-        <View style={styles.taskCardBody}>
-          <View style={styles.bodyRow}>
-            <Text style={styles.statusLabel}>Status vandaag</Text>
-            <StatusBadge status={task.status} time={task.statusTime} />
-          </View>
-          <View style={styles.dayRow}>
-            {DAYS.map((d, i) => (
-              <View key={d} style={[styles.dayPill, task.activeDays[i] && styles.dayPillActive]}>
-                <Text style={[styles.dayPillText, task.activeDays[i] && styles.dayPillTextActive]}>{d}</Text>
-              </View>
-            ))}
-            <View style={styles.xpBadge}>
-              <Text style={styles.xpBadgeText}>+{task.xp} EXP</Text>
-            </View>
-          </View>
-        </View>
-      )}
+      </View>
     </View>
   );
 }
 
 export default function ParentRoutinesScreen() {
-  const [activeChild, setActiveChild] = useState('emma');
+  const [children, setChildren] = useState<ChildRow[]>([]);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [routines, setRoutines] = useState<RoutineWithTasks[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [routinesLoading, setRoutinesLoading] = useState(false);
+
+  useEffect(() => {
+    getChildren()
+      .then((data) => {
+        setChildren(data);
+        if (data.length > 0) setActiveChildId(data[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!activeChildId) return;
+    setRoutinesLoading(true);
+    getRoutines(activeChildId)
+      .then(setRoutines)
+      .catch(() => {})
+      .finally(() => setRoutinesLoading(false));
+  }, [activeChildId]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -120,23 +84,61 @@ export default function ParentRoutinesScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <View style={styles.childSelector}>
-          {CHILDREN.map((c) => (
-            <TouchableOpacity key={c.id} style={[styles.childBtn, activeChild === c.id && styles.childBtnActive]} onPress={() => setActiveChild(c.id)} activeOpacity={0.8}>
-              <Text style={styles.childAvatar}>{c.avatar}</Text>
-              <Text style={[styles.childName, activeChild === c.id && styles.childNameActive]}>{c.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {SECTIONS.map((section) => (
-          <View key={section.label}>
-            <Text style={styles.sectionLabel}>{section.label}</Text>
-            <View style={styles.taskList}>
-              {section.tasks.map((task) => <TaskCard key={task.id} task={task} />)}
-            </View>
+        {loading ? (
+          <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
+        ) : children.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Geen kinderen gevonden</Text>
+            <Text style={styles.emptyBody}>Voeg eerst een kind toe via de instellingen.</Text>
           </View>
-        ))}
+        ) : (
+          <>
+            <View style={styles.childSelector}>
+              {children.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.childBtn, activeChildId === c.id && styles.childBtnActive]}
+                  onPress={() => setActiveChildId(c.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.childAvatar}>🧒</Text>
+                  <Text style={[styles.childName, activeChildId === c.id && styles.childNameActive]}>{c.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {routinesLoading ? (
+              <ActivityIndicator color={Colors.primary} style={{ marginTop: 24 }} />
+            ) : routines.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>Geen routines</Text>
+                <Text style={styles.emptyBody}>Druk op + om een eerste routine aan te maken.</Text>
+              </View>
+            ) : (
+              routines.map((routine) => (
+                <View key={routine.id}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionLabel}>{routine.name}</Text>
+                    {routine.scheduled_time && (
+                      <Text style={styles.sectionTime}>{routine.scheduled_time}</Text>
+                    )}
+                  </View>
+                  <View style={styles.taskList}>
+                    {routine.tasks.length === 0 ? (
+                      <View style={styles.emptyTaskRow}>
+                        <Text style={styles.emptyTaskText}>Geen taken in deze routine.</Text>
+                      </View>
+                    ) : (
+                      [...routine.tasks]
+                        .sort((a, b) => a.sort_order - b.sort_order)
+                        .map((task) => <TaskCard key={task.id} task={task} />)
+                    )}
+                  </View>
+                </View>
+              ))
+            )}
+          </>
+        )}
 
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
@@ -152,30 +154,31 @@ const styles = StyleSheet.create({
   navTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
   addBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+
   childSelector: { flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 4, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
   childBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: Radius.md },
   childBtnActive: { backgroundColor: Colors.card },
   childAvatar: { fontSize: 16 },
   childName: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.text.muted },
   childNameActive: { color: Colors.text.primary },
-  sectionLabel: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary, marginBottom: Spacing.sm },
+
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
+  sectionLabel: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
+  sectionTime: { fontSize: FontSize.sm, color: Colors.text.muted },
+
   taskList: { gap: Spacing.sm, marginBottom: Spacing.lg },
   taskCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
   taskCardHeader: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
   taskIconBox: { width: 36, height: 36, borderRadius: Radius.sm, backgroundColor: Colors.iconBg, alignItems: 'center', justifyContent: 'center' },
+  taskEmoji: { fontSize: 18 },
   taskInfo: { flex: 1 },
   taskTitle: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text.primary },
-  taskMeta: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
-  taskCardBody: { borderTopWidth: 1, borderTopColor: Colors.border, padding: Spacing.md, gap: Spacing.sm },
-  bodyRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusLabel: { fontSize: FontSize.xs, color: Colors.text.muted },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1 },
   statusBadgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold },
-  dayRow: { flexDirection: 'row', gap: 4, alignItems: 'center' },
-  dayPill: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: Radius.sm, backgroundColor: Colors.card },
-  dayPillActive: { backgroundColor: Colors.primary },
-  dayPillText: { fontSize: FontSize.xs, color: Colors.text.muted },
-  dayPillTextActive: { color: Colors.background, fontWeight: FontWeight.semibold },
-  xpBadge: { marginLeft: 'auto', backgroundColor: 'rgba(72,187,120,0.15)', borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
-  xpBadgeText: { fontSize: FontSize.xs, color: Colors.status.success, fontWeight: FontWeight.semibold },
+
+  emptyState: { alignItems: 'center', paddingTop: 40, gap: 8 },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
+  emptyBody: { fontSize: FontSize.sm, color: Colors.text.muted, textAlign: 'center' },
+  emptyTaskRow: { padding: Spacing.md },
+  emptyTaskText: { fontSize: FontSize.sm, color: Colors.text.muted, textAlign: 'center' },
 });

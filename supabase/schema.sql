@@ -91,3 +91,10 @@ create policy "Parents can manage mood entries for their children"
   using (
     child_id in (select id from children where parent_id = auth.uid())
   );
+
+-- ── Role grants ──────────────────────────────────────────────
+-- RLS policies control which rows; grants control table access at all.
+grant select, insert, update, delete on table children      to authenticated;
+grant select, insert, update, delete on table routines      to authenticated;
+grant select, insert, update, delete on table tasks         to authenticated;
+grant select, insert, update, delete on table mood_entries  to authenticated;
