@@ -1,4 +1,6 @@
-import { createContext, useContext, useReducer, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import type { MoodType } from '@/types';
 import type { RoutineWithTasks } from '@/lib/database.types';
 import { stageForLevel, xpToNextLevel, XP_REWARDS } from '@/utils/xp';
@@ -6,6 +8,8 @@ import { stageForLevel, xpToNextLevel, XP_REWARDS } from '@/utils/xp';
 // ── State ────────────────────────────────────────────────────────────────────
 
 interface AppState {
+  session: Session | null;
+  sessionLoading: boolean;
   child: LocalChild | null;
   moodHistory: Array<{ mood: MoodType; timestamp: string }>;
 }
@@ -27,6 +31,8 @@ interface LocalChild {
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 type Action =
+  | { type: 'SET_SESSION'; session: Session | null }
+  | { type: 'SET_SESSION_LOADING'; loading: boolean }
   | { type: 'CREATE_PROFILE'; payload: { childName: string; monsterName: string } }
   | { type: 'TOGGLE_TASK'; taskId: string }
   | { type: 'GAIN_XP'; amount: number }
@@ -46,6 +52,12 @@ function applyXp(monster: LocalChild['monster'], amount: number): LocalChild['mo
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'SET_SESSION':
+      return { ...state, session: action.session, sessionLoading: false };
+
+    case 'SET_SESSION_LOADING':
+      return { ...state, sessionLoading: action.loading };
+
     case 'CREATE_PROFILE':
       return {
         ...state,
@@ -113,6 +125,7 @@ interface AppContextValue extends AppState {
   createProfile: (payload: { childName: string; monsterName: string }) => void;
   toggleTask: (taskId: string) => void;
   logMood: (mood: MoodType) => void;
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -120,13 +133,36 @@ const AppContext = createContext<AppContextValue | null>(null);
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, { child: null, moodHistory: [] });
+  const [state, dispatch] = useReducer(reducer, {
+    session: null,
+    sessionLoading: true,
+    child: null,
+    moodHistory: [],
+  });
+
+  useEffect(() => {
+    // Restore existing session on mount
+    supabase.auth.getSession().then(({ data }) => {
+      dispatch({ type: 'SET_SESSION', session: data.session });
+    });
+
+    // Keep session in sync on login / logout / token refresh
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      dispatch({ type: 'SET_SESSION', session });
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value: AppContextValue = {
     ...state,
     createProfile: (payload) => dispatch({ type: 'CREATE_PROFILE', payload }),
     toggleTask: (taskId) => dispatch({ type: 'TOGGLE_TASK', taskId }),
     logMood: (mood) => dispatch({ type: 'LOG_MOOD', mood }),
+    signOut: async () => {
+      await supabase.auth.signOut();
+      dispatch({ type: 'SET_SESSION', session: null });
+    },
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

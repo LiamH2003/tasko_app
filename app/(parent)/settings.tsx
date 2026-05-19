@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { useAppStore } from '@/store/useAppStore';
 
 const CHILDREN = [
   { id: 'emma', name: 'Emma', avatar: '👧', age: 9, level: 4, routines: 5 },
@@ -14,6 +15,8 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 export default function ParentSettingsScreen() {
+  const { signOut } = useAppStore();
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.navHeader}>
@@ -116,6 +119,11 @@ export default function ParentSettingsScreen() {
           </View>
         </View>
 
+        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={18} color={Colors.status.error} />
+          <Text style={styles.signOutText}>Uitloggen</Text>
+        </TouchableOpacity>
+
         <View style={{ height: Spacing.xl }} />
       </ScrollView>
     </SafeAreaView>
@@ -169,4 +177,6 @@ const styles = StyleSheet.create({
   memberSub: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
   editBtn: { backgroundColor: Colors.card, borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border },
   editBtnText: { fontSize: FontSize.xs, color: Colors.text.secondary, fontWeight: FontWeight.medium },
+  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(252,107,107,0.35)', backgroundColor: 'rgba(252,107,107,0.08)' },
+  signOutText: { fontSize: FontSize.md, color: Colors.status.error, fontWeight: FontWeight.medium },
 });

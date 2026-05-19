@@ -1,12 +1,33 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { AppProvider } from '@/store/useAppStore';
+import { AppProvider, useAppStore } from '@/store/useAppStore';
 import { Colors } from '@/constants/theme';
 import { useFonts, Fredoka_500Medium } from '@expo-google-fonts/fredoka';
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();
+
+function RootNavigator() {
+  const { session, sessionLoading } = useAppStore();
+
+  useEffect(() => {
+    if (sessionLoading) return;
+    if (session) {
+      router.replace('/(parent)');
+    } else {
+      router.replace('/(onboarding)');
+    }
+  }, [session, sessionLoading]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(child)" />
+      <Stack.Screen name="(parent)" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Fredoka_500Medium });
@@ -19,11 +40,7 @@ export default function RootLayout() {
 
   return (
     <AppProvider>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(child)" />
-        <Stack.Screen name="(parent)" />
-      </Stack>
+      <RootNavigator />
       <StatusBar style="light" />
     </AppProvider>
   );
