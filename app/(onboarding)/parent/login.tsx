@@ -22,7 +22,7 @@ export default function ParentLoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <OnboardingHeader step={1} totalSteps={4} role="OUDER" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Inloggen</Text>
         <Text style={styles.subtitle}>Welkom terug! Log in op je account.</Text>
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +24,11 @@ export default function ChildProfileScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <OnboardingHeader step={2} totalSteps={4} role="KIND" />
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Leuk je te ontmoeten!</Text>
 
         <View style={styles.field}>
@@ -63,13 +67,12 @@ export default function ChildProfileScreen() {
           </View>
         </View>
 
-        <View style={styles.spacer} />
         <Button
           label="Zo heet ik!"
           onPress={() => router.push('/(onboarding)/child/monster-select')}
           disabled={!canContinue}
         />
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -80,9 +83,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    flex: 1,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 28,
@@ -138,8 +141,5 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.text.primary,
-  },
-  spacer: {
-    flex: 1,
   },
 });

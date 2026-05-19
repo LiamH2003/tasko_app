@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
@@ -40,7 +40,11 @@ export default function ChildInviteCodeScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <OnboardingHeader step={1} totalSteps={4} role="KIND" />
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Heb je een code?</Text>
         <Text style={styles.subtitle}>
           Jouw ouder heeft een code aangemaakt.{'\n'}Type hem hieronder in!
@@ -77,7 +81,7 @@ export default function ChildInviteCodeScreen() {
         <TouchableOpacity style={styles.noCodeBtn} activeOpacity={0.7}>
           <Text style={styles.noCodeText}>Geen code? Vraag je ouder</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -88,9 +92,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
-    flex: 1,
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.lg,
+    paddingBottom: 32,
   },
   title: {
     fontSize: 28,

@@ -22,7 +22,7 @@ export default function ParentFamilySetupScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <OnboardingHeader step={3} totalSteps={4} role="OUDER" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Even kennismaken</Text>
         <Text style={styles.subtitle}>Snel twee vragen, dan kunnen we beginnen.</Text>
 

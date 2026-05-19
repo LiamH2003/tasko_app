@@ -1,16 +1,11 @@
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { createContext, useContext, useReducer, type ReactNode } from 'react';
 import type { MoodType } from '@/types';
-import type { ChildRow, RoutineWithTasks } from '@/lib/database.types';
+import type { RoutineWithTasks } from '@/lib/database.types';
 import { stageForLevel, xpToNextLevel, XP_REWARDS } from '@/utils/xp';
 
 // ── State ────────────────────────────────────────────────────────────────────
 
 interface AppState {
-  session: Session | null;
-  // Local child state (used while screens still use mock data;
-  // swap individual fields for Supabase rows as screens get wired up)
   child: LocalChild | null;
   moodHistory: Array<{ mood: MoodType; timestamp: string }>;
 }
@@ -24,7 +19,7 @@ interface LocalChild {
     level: number;
     xp: number;
     xpToNextLevel: number;
-    stage: ChildRow['stage'];
+    stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
   };
   routines: RoutineWithTasks[];
 }
@@ -32,7 +27,6 @@ interface LocalChild {
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 type Action =
-  | { type: 'SET_SESSION'; session: Session | null }
   | { type: 'CREATE_PROFILE'; payload: { childName: string; monsterName: string } }
   | { type: 'TOGGLE_TASK'; taskId: string }
   | { type: 'GAIN_XP'; amount: number }
@@ -52,9 +46,6 @@ function applyXp(monster: LocalChild['monster'], amount: number): LocalChild['mo
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
-    case 'SET_SESSION':
-      return { ...state, session: action.session };
-
     case 'CREATE_PROFILE':
       return {
         ...state,
@@ -129,25 +120,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 // ── Provider ─────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, {
-    session: null,
-    child: null,
-    moodHistory: [],
-  });
-
-  useEffect(() => {
-    // Restore any existing session on mount
-    supabase.auth.getSession().then(({ data }) => {
-      dispatch({ type: 'SET_SESSION', session: data.session });
-    });
-
-    // Keep session in sync when auth state changes (login / logout / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      dispatch({ type: 'SET_SESSION', session });
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const [state, dispatch] = useReducer(reducer, { child: null, moodHistory: [] });
 
   const value: AppContextValue = {
     ...state,
