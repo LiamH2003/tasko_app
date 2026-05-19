@@ -4,10 +4,12 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { updateChild } from '@/services/children';
 
 const MIN_AGE = 6;
 const MAX_AGE = 18;
@@ -15,6 +17,7 @@ const MAX_AGE = 18;
 export default function ChildProfileScreen() {
   const [name, setName] = useState('');
   const [age, setAge] = useState(9);
+  const [loading, setLoading] = useState(false);
 
   const canContinue = name.trim().length >= 2;
 
@@ -68,9 +71,20 @@ export default function ChildProfileScreen() {
         </View>
 
         <Button
-          label="Zo heet ik!"
-          onPress={() => router.push('/(onboarding)/child/monster-select')}
-          disabled={!canContinue}
+          label={loading ? 'Bezig...' : 'Zo heet ik!'}
+          onPress={async () => {
+            setLoading(true);
+            try {
+              const childId = await SecureStore.getItemAsync('childId');
+              if (childId) await updateChild(childId, { name: name.trim() });
+            } catch {
+              // non-fatal — name can be set later
+            } finally {
+              setLoading(false);
+            }
+            router.push('/(onboarding)/child/monster-select');
+          }}
+          disabled={!canContinue || loading}
         />
       </ScrollView>
     </KeyboardAvoidingView>

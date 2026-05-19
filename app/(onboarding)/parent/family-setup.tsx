@@ -7,12 +7,15 @@ import { router } from 'expo-router';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { createChildWithCode } from '@/services/children';
 
 const SUGGESTIONS = ['Familie De Smedt', 'Ons gezin', 'Team Thuis'];
 
 export default function ParentFamilySetupScreen() {
   const [parentName, setParentName] = useState('');
   const [familyName, setFamilyName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const canContinue = parentName.trim().length > 0 && familyName.trim().length > 0;
 
@@ -64,11 +67,31 @@ export default function ParentFamilySetupScreen() {
           </View>
         </View>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <View style={styles.spacer} />
         <Button
-          label="Verder"
-          onPress={() => router.push('/(onboarding)/parent/success')}
-          disabled={!canContinue}
+          label={loading ? 'Bezig...' : 'Verder'}
+          onPress={async () => {
+            setError('');
+            setLoading(true);
+            try {
+              const child = await createChildWithCode(familyName.trim());
+              router.push({
+                pathname: '/(onboarding)/parent/success',
+                params: {
+                  parentName: parentName.trim(),
+                  familyName: familyName.trim(),
+                  inviteCode: child.invite_code ?? '',
+                },
+              });
+            } catch (e: any) {
+              setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={!canContinue || loading}
         />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -142,5 +165,11 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
     minHeight: 32,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.status.error,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

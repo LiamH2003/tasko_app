@@ -4,12 +4,16 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { getChildByInviteCode } from '@/services/children';
 
 export default function ChildInviteCodeScreen() {
   const [code, setCode] = useState(['', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const inputs = useRef<(TextInput | null)[]>([null, null, null, null]);
 
   const handleChange = (text: string, index: number) => {
@@ -33,6 +37,24 @@ export default function ChildInviteCodeScreen() {
 
   const fullCode = code.join('');
   const canContinue = fullCode.length === 4;
+
+  const handleConfirm = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const child = await getChildByInviteCode(`TASKO-${fullCode}`);
+      if (!child) {
+        setError('Onbekende code. Controleer de code bij je ouder.');
+        return;
+      }
+      await SecureStore.setItemAsync('childId', child.id);
+      router.push('/(onboarding)/child/profile');
+    } catch (e: any) {
+      setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -70,12 +92,14 @@ export default function ChildInviteCodeScreen() {
           ))}
         </View>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <Text style={styles.hint}>Vraag de code aan jouw ouder</Text>
 
         <Button
-          label="Bevestigen"
-          onPress={() => router.push('/(onboarding)/child/profile')}
-          disabled={!canContinue}
+          label={loading ? 'Bezig...' : 'Bevestigen'}
+          onPress={handleConfirm}
+          disabled={!canContinue || loading}
         />
 
         <TouchableOpacity style={styles.noCodeBtn} activeOpacity={0.7}>
@@ -112,7 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   prefix: {
     fontSize: FontSize.lg,
@@ -133,6 +157,11 @@ const styles = StyleSheet.create({
   },
   codeBoxFilled: {
     borderColor: Colors.primary,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.status.error,
+    marginBottom: 8,
   },
   hint: {
     fontSize: FontSize.sm,

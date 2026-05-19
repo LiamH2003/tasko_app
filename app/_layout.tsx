@@ -9,15 +9,21 @@ import * as SplashScreen from 'expo-splash-screen';
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { session, sessionLoading } = useAppStore();
+  const { session, sessionLoading, childId, childLoading } = useAppStore();
   const segments = useSegments();
 
   useEffect(() => {
-    if (sessionLoading) return;
+    if (sessionLoading || childLoading) return;
 
     const inOnboarding = segments[0] === '(onboarding)';
     const inParent = segments[0] === '(parent)';
     const inChild = segments[0] === '(child)';
+
+    // Child device: stored childId takes priority over everything
+    if (childId) {
+      if (!inChild) router.replace('/(child)');
+      return;
+    }
 
     if (session) {
       const onboardingComplete = session.user.user_metadata?.onboarding_complete === true;
@@ -33,7 +39,7 @@ function RootNavigator() {
         router.replace('/(onboarding)');
       }
     }
-  }, [session, sessionLoading, segments[0]]);
+  }, [session, sessionLoading, childId, childLoading, segments[0]]);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>

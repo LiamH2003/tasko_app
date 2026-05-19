@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
 import type { MoodType } from '@/types';
 import type { RoutineWithTasks } from '@/lib/database.types';
@@ -10,6 +11,8 @@ import { stageForLevel, xpToNextLevel, XP_REWARDS } from '@/utils/xp';
 interface AppState {
   session: Session | null;
   sessionLoading: boolean;
+  childId: string | null;
+  childLoading: boolean;
   child: LocalChild | null;
   moodHistory: Array<{ mood: MoodType; timestamp: string }>;
 }
@@ -33,6 +36,7 @@ interface LocalChild {
 type Action =
   | { type: 'SET_SESSION'; session: Session | null }
   | { type: 'SET_SESSION_LOADING'; loading: boolean }
+  | { type: 'SET_CHILD_ID'; childId: string | null }
   | { type: 'CREATE_PROFILE'; payload: { childName: string; monsterName: string } }
   | { type: 'TOGGLE_TASK'; taskId: string }
   | { type: 'GAIN_XP'; amount: number }
@@ -57,6 +61,9 @@ function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_SESSION_LOADING':
       return { ...state, sessionLoading: action.loading };
+
+    case 'SET_CHILD_ID':
+      return { ...state, childId: action.childId, childLoading: false };
 
     case 'CREATE_PROFILE':
       return {
@@ -126,6 +133,7 @@ interface AppContextValue extends AppState {
   toggleTask: (taskId: string) => void;
   logMood: (mood: MoodType) => void;
   signOut: () => Promise<void>;
+  clearChildId: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -136,6 +144,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {
     session: null,
     sessionLoading: true,
+    childId: null,
+    childLoading: true,
     child: null,
     moodHistory: [],
   });
@@ -144,6 +154,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Restore existing session on mount
     supabase.auth.getSession().then(({ data }) => {
       dispatch({ type: 'SET_SESSION', session: data.session });
+    });
+
+    // Check for stored child device session
+    SecureStore.getItemAsync('childId').then((id) => {
+      dispatch({ type: 'SET_CHILD_ID', childId: id });
     });
 
     // Keep session in sync on login / logout / token refresh
@@ -162,6 +177,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       dispatch({ type: 'SET_SESSION', session: null });
+    },
+    clearChildId: async () => {
+      await SecureStore.deleteItemAsync('childId');
+      dispatch({ type: 'SET_CHILD_ID', childId: null });
     },
   };
 

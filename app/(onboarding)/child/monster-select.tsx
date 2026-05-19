@@ -3,11 +3,13 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { updateChild } from '@/services/children';
 
 type MonsterDef = {
   id: string;
@@ -56,6 +58,7 @@ const MONSTERS: MonsterDef[] = [
 export default function MonsterSelectScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const canContinue = selectedId !== null;
 
@@ -112,9 +115,23 @@ export default function MonsterSelectScreen() {
         />
 
         <Button
-          label="Kies deze Tasko"
-          onPress={() => router.push('/(onboarding)/child/welcome')}
-          disabled={!canContinue}
+          label={loading ? 'Bezig...' : 'Kies deze Tasko'}
+          onPress={async () => {
+            setLoading(true);
+            try {
+              const childId = await SecureStore.getItemAsync('childId');
+              if (childId) {
+                const monsterName = nickname.trim() || (MONSTERS.find(m => m.id === selectedId)?.name ?? 'Monster');
+                await updateChild(childId, { monster_name: monsterName });
+              }
+            } catch {
+              // non-fatal
+            } finally {
+              setLoading(false);
+            }
+            router.push('/(onboarding)/child/welcome');
+          }}
+          disabled={!canContinue || loading}
         />
         <Text style={styles.hint}>Je kan dit later altijd veranderen in instellingen</Text>
       </ScrollView>

@@ -11,6 +11,7 @@ export type Database = {
           xp: number;
           xp_to_next_level: number;
           stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
+          invite_code: string | null;
           created_at: string;
         };
         Insert: {
@@ -22,6 +23,7 @@ export type Database = {
           xp?: number;
           xp_to_next_level?: number;
           stage?: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
+          invite_code?: string | null;
           created_at?: string;
         };
         Update: {
@@ -33,6 +35,7 @@ export type Database = {
           xp?: number;
           xp_to_next_level?: number;
           stage?: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
+          invite_code?: string | null;
           created_at?: string;
         };
       };

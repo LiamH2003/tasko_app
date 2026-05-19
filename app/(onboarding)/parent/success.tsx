@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
@@ -7,13 +7,13 @@ import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
 import { completeOnboarding } from '@/services/auth';
 
-// Placeholder values — replace with actual state/params when backend is wired up
-const PARENT_NAME = 'Jan';
-const FAMILY_NAME = 'Familie De Smedt';
-const INVITE_CODE = 'TASKO-7F3K';
-
 export default function ParentSuccessScreen() {
   const insets = useSafeAreaInsets();
+  const { parentName, familyName, inviteCode } = useLocalSearchParams<{
+    parentName: string;
+    familyName: string;
+    inviteCode: string;
+  }>();
 
   return (
     <View style={styles.container}>
@@ -23,7 +23,7 @@ export default function ParentSuccessScreen() {
           <Ionicons name="checkmark" size={52} color={Colors.status.success} />
         </View>
 
-        <Text style={styles.title}>Je bent klaar, {PARENT_NAME}!</Text>
+        <Text style={styles.title}>Je bent klaar, {parentName}!</Text>
         <Text style={styles.description}>
           Jouw gezinsruimte is aangemaakt. Zodra je kind de code invoert, verschijnt hij hier.
         </Text>
@@ -35,7 +35,7 @@ export default function ParentSuccessScreen() {
             </View>
             <View style={styles.cardTexts}>
               <Text style={styles.cardLabel}>Gezin</Text>
-              <Text style={styles.cardValue}>{FAMILY_NAME}</Text>
+              <Text style={styles.cardValue}>{familyName}</Text>
             </View>
           </View>
 
@@ -47,7 +47,7 @@ export default function ParentSuccessScreen() {
             </View>
             <View style={styles.cardTexts}>
               <Text style={styles.cardLabel}>Uitnodigingscode voor kind</Text>
-              <Text style={styles.cardValue}>{INVITE_CODE}</Text>
+              <Text style={styles.cardValue}>{inviteCode}</Text>
             </View>
           </View>
         </View>

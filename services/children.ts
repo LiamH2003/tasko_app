@@ -33,6 +33,36 @@ export async function createChild(name: string, monsterName: string): Promise<Ch
   return data;
 }
 
+function generateInviteCode(): string {
+  // Exclude visually ambiguous characters (O, 0, I, 1, L)
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let suffix = '';
+  for (let i = 0; i < 4; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `TASKO-${suffix}`;
+}
+
+export async function createChildWithCode(familyName: string): Promise<ChildRow> {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error('Niet ingelogd');
+
+  const invite_code = generateInviteCode();
+  const { data, error } = await supabase
+    .from('children')
+    .insert({ parent_id: user.id, name: familyName, monster_name: 'Monster', invite_code })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getChildByInviteCode(code: string): Promise<ChildRow | null> {
+  const { data, error } = await supabase.rpc('get_child_by_invite_code', { code });
+  if (error) throw error;
+  return (data as ChildRow[])?.[0] ?? null;
+}
+
 export async function updateChild(id: string, updates: Partial<ChildRow>): Promise<ChildRow> {
   const { data, error } = await supabase
     .from('children')
