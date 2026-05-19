@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AppProvider, useAppStore } from '@/store/useAppStore';
 import { Colors } from '@/constants/theme';
@@ -10,15 +10,30 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { session, sessionLoading } = useAppStore();
+  const segments = useSegments();
 
   useEffect(() => {
     if (sessionLoading) return;
+
+    const inOnboarding = segments[0] === '(onboarding)';
+    const inParent = segments[0] === '(parent)';
+    const inChild = segments[0] === '(child)';
+
     if (session) {
-      router.replace('/(parent)');
+      const onboardingComplete = session.user.user_metadata?.onboarding_complete === true;
+
+      if (onboardingComplete && !inParent) {
+        // Existing user logging back in → go straight to dashboard
+        router.replace('/(parent)');
+      }
+      // New signup (onboarding_complete not set yet) → stay in onboarding flow
     } else {
-      router.replace('/(onboarding)');
+      // No session → always send to onboarding
+      if (inParent || inChild) {
+        router.replace('/(onboarding)');
+      }
     }
-  }, [session, sessionLoading]);
+  }, [session, sessionLoading, segments[0]]);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>

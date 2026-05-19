@@ -22,3 +22,11 @@ export async function getSession() {
   if (error) throw error;
   return data.session;
 }
+
+// Called at the end of parent onboarding (success screen) to unlock the parent dashboard.
+export async function completeOnboarding() {
+  const { error } = await supabase.auth.updateUser({
+    data: { onboarding_complete: true },
+  });
+  if (error) throw error;
+}

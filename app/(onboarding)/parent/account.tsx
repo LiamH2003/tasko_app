@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform,
+  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { signUp } from '@/services/auth';
 
 export default function ParentAccountScreen() {
   const [firstName, setFirstName] = useState('');
@@ -17,6 +18,8 @@ export default function ParentAccountScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const canContinue =
     firstName.trim().length > 0 &&
@@ -147,13 +150,28 @@ export default function ParentAccountScreen() {
           </TouchableOpacity>
         </View>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <TouchableOpacity
-          style={[styles.btnPrimary, !canContinue && styles.btnDisabled]}
-          onPress={() => router.push('/(onboarding)/parent/verify-email')}
-          disabled={!canContinue}
+          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          onPress={async () => {
+            setError('');
+            setLoading(true);
+            try {
+              await signUp(email, password);
+              router.push('/(onboarding)/parent/verify-email');
+            } catch (e: any) {
+              setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={!canContinue || loading}
           activeOpacity={0.85}
         >
-          <Text style={styles.btnPrimaryText}>Maak account aan</Text>
+          {loading
+            ? <ActivityIndicator color={Colors.background} />
+            : <Text style={styles.btnPrimaryText}>Maak account aan</Text>}
         </TouchableOpacity>
 
         <Text style={styles.loginText}>
@@ -289,5 +307,11 @@ const styles = StyleSheet.create({
   loginLink: {
     color: Colors.primaryDark,
     textDecorationLine: 'underline',
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.status.error,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
 });

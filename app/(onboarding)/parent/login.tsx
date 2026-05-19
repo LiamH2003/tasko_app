@@ -1,20 +1,36 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { signIn } from '@/services/auth';
 
 export default function ParentLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const canContinue = email.includes('@') && password.length >= 1;
+
+  const handleLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signIn(email, password);
+      // Auth listener in store sets session → _layout.tsx redirects to /(parent)
+    } catch (e: any) {
+      setError(e.message ?? 'Inloggen mislukt. Controleer je gegevens.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -61,10 +77,12 @@ export default function ParentLoginScreen() {
           </View>
         </View>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         <Button
-          label="Inloggen"
-          onPress={() => router.push('/(onboarding)/parent/verify-email')}
-          disabled={!canContinue}
+          label={loading ? 'Bezig...' : 'Inloggen'}
+          onPress={handleLogin}
+          disabled={!canContinue || loading}
         />
 
         <Text style={styles.registerText}>
@@ -139,6 +157,12 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     fontSize: FontSize.md,
     padding: 0,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.status.error,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
   registerText: {
     textAlign: 'center',

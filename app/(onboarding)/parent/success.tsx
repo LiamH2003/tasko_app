@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { completeOnboarding } from '@/services/auth';
 
 // Placeholder values — replace with actual state/params when backend is wired up
 const PARENT_NAME = 'Jan';
@@ -55,7 +56,10 @@ export default function ParentSuccessScreen() {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 32) }]}>
         <Button
           label="Ga naar mijn dashboard"
-          onPress={() => router.replace('/(parent)')}
+          onPress={async () => {
+            await completeOnboarding();
+            router.replace('/(parent)');
+          }}
         />
       </View>
     </View>
