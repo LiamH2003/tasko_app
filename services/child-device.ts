@@ -54,6 +54,25 @@ export async function submitMood(childId: string, mood: string): Promise<void> {
   if (error) throw error;
 }
 
+export type FamilyChild = {
+  id: string;
+  name: string;
+  monster_name: string;
+  level: number;
+  stage: string;
+};
+
+export type FamilyData = {
+  family_name: string;
+  children: FamilyChild[];
+};
+
+export async function getFamilyByInviteCode(code: string): Promise<FamilyData | null> {
+  const { data, error } = await supabase.rpc('get_family_by_invite_code', { p_code: code });
+  if (error) throw error;
+  return (data as FamilyData) ?? null;
+}
+
 export async function updateChildName(childId: string, name: string): Promise<void> {
   const { error } = await supabase.rpc('update_child_name', {
     p_child_id: childId,

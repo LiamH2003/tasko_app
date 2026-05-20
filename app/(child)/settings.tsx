@@ -52,7 +52,7 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 export default function SettingsScreen() {
-  const { child } = useAppStore();
+  const { child, clearChildId } = useAppStore();
   const name = child?.name ?? 'Emma';
   const monster = child?.monster ?? { name: 'Blub', level: 4 };
 
@@ -138,6 +138,19 @@ export default function SettingsScreen() {
           <LinkRow icon="🐾" label="Avatar wijzigen" description="Kies een nieuw emoji" />
           <View style={styles.divider} />
           <LinkRow icon="🔑" label="Wachtwoord" />
+        </View>
+
+        {/* Device */}
+        <SectionHeader label="APPARAAT" />
+        <View style={styles.section}>
+          <LinkRow
+            icon="🚪"
+            label="Verlaat kind-modus"
+            description="Dit apparaat wordt ontkoppeld"
+            onPress={async () => {
+              await clearChildId();
+            }}
+          />
         </View>
 
         <View style={{ height: Spacing.xl }} />

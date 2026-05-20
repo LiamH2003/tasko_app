@@ -76,7 +76,7 @@ export default function WelcomeScreen() {
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 8, 24) }]}>
         <TouchableOpacity
           style={styles.btnPrimary}
-          onPress={() => router.push('/(onboarding)/profile-setup')}
+          onPress={() => router.push('/(onboarding)/role-select')}
           activeOpacity={0.85}
         >
           <Text style={styles.btnPrimaryText}>Aan de slag</Text>
@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
 
         <TouchableOpacity
           style={styles.btnSecondary}
-          onPress={() => router.push('/(onboarding)/parent/login')}
+          onPress={() => router.push('/(onboarding)/login-welcome')}
           activeOpacity={0.75}
         >
           <Text style={styles.btnSecondaryText}>Ik heb al een account</Text>

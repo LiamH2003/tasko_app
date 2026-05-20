@@ -119,7 +119,7 @@ export default function MonsterSelectScreen() {
           onPress={async () => {
             setLoading(true);
             try {
-              const childId = await SecureStore.getItemAsync('childId');
+              const childId = await SecureStore.getItemAsync('pendingChildId');
               if (childId) {
                 const monsterName = nickname.trim() || (MONSTERS.find(m => m.id === selectedId)?.name ?? 'Monster');
                 await updateChild(childId, { monster_name: monsterName });

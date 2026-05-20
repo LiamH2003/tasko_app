@@ -47,7 +47,7 @@ export default function ChildInviteCodeScreen() {
         setError('Onbekende code. Controleer de code bij je ouder.');
         return;
       }
-      await SecureStore.setItemAsync('childId', child.id);
+      await SecureStore.setItemAsync('pendingChildId', child.id);
       router.push('/(onboarding)/child/profile');
     } catch (e: any) {
       setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');

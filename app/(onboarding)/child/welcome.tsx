@@ -2,10 +2,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { Button } from '@/components/ui/Button';
+import { useAppStore } from '@/store/useAppStore';
+import { useState } from 'react';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -20,6 +23,8 @@ const CHILD_NAME = 'Sam';
 
 export default function ChildWelcomeScreen() {
   const insets = useSafeAreaInsets();
+  const { setChildId } = useAppStore();
+  const [loading, setLoading] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -60,8 +65,23 @@ export default function ChildWelcomeScreen() {
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 32) }]}>
         <Button
-          label="Start mijn avontuur"
-          onPress={() => router.replace('/(child)')}
+          label={loading ? 'Bezig...' : 'Start mijn avontuur'}
+          disabled={loading}
+          onPress={async () => {
+            setLoading(true);
+            try {
+              const pendingId = await SecureStore.getItemAsync('pendingChildId');
+              if (pendingId) {
+                await setChildId(pendingId);
+                await SecureStore.deleteItemAsync('pendingChildId');
+              }
+            } catch {
+              // non-fatal — routing will still proceed
+            } finally {
+              setLoading(false);
+            }
+            router.replace('/(child)');
+          }}
         />
       </View>
     </View>

@@ -75,7 +75,7 @@ export default function ChildProfileScreen() {
           onPress={async () => {
             setLoading(true);
             try {
-              const childId = await SecureStore.getItemAsync('childId');
+              const childId = await SecureStore.getItemAsync('pendingChildId');
               if (childId) await updateChild(childId, { name: name.trim() });
             } catch {
               // non-fatal — name can be set later

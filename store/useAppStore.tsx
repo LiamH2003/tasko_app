@@ -133,6 +133,7 @@ interface AppContextValue extends AppState {
   toggleTask: (taskId: string) => void;
   logMood: (mood: MoodType) => void;
   signOut: () => Promise<void>;
+  setChildId: (id: string) => Promise<void>;
   clearChildId: () => Promise<void>;
 }
 
@@ -177,6 +178,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       dispatch({ type: 'SET_SESSION', session: null });
+    },
+    setChildId: async (id: string) => {
+      await SecureStore.setItemAsync('childId', id);
+      dispatch({ type: 'SET_CHILD_ID', childId: id });
     },
     clearChildId: async () => {
       await SecureStore.deleteItemAsync('childId');
