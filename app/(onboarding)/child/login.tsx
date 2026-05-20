@@ -3,13 +3,14 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
+import { BackButton } from '@/components/ui/BackButton';
 import { getFamilyByInviteCode } from '@/services/child-device';
 
 export default function ChildLoginScreen() {
+  const insets = useSafeAreaInsets();
   const [code, setCode] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -60,15 +61,13 @@ export default function ChildLoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={18} color={Colors.primary} />
-          <Text style={styles.backText}>Terug</Text>
-        </TouchableOpacity>
+        <View style={{ height: insets.top + 16 }} />
+        <BackButton />
 
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -129,23 +128,13 @@ export default function ChildLoginScreen() {
 
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   flex: { flex: 1 },
-
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  backText: { fontSize: FontSize.md, color: Colors.primary },
 
   scroll: {
     flexGrow: 1,

@@ -2,46 +2,11 @@ import { Dimensions, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createTheme, ThemeProvider, createBox, createText } from '@shopify/restyle';
 import { MotiView } from 'moti';
 import { BlurView } from 'expo-blur';
+import { Box, Text } from '@/components/ui/primitives';
 
 const SCREEN_W = Dimensions.get('window').width;
-
-const theme = createTheme({
-  colors: {
-    background:    '#e8e5dd',
-    surface:       '#ffffff',
-    primary:       '#49c9d5',
-    primaryDark:   '#3797a0',
-    textPrimary:   '#1a1918',
-    textSecondary: '#4a4845',
-    textMuted:     '#8a8885',
-    iconBg:        'rgba(73,201,213,0.14)',
-  },
-  spacing: {
-    xxs: 2, xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48,
-  },
-  borderRadii: {
-    sm: 8, md: 12, lg: 16, xl: 24, full: 9999,
-  },
-  textVariants: {
-    defaults:     { fontSize: 14, color: 'textPrimary' },
-    eyebrow:      { fontSize: 11, fontWeight: '600', color: 'primary', letterSpacing: 2, textAlign: 'center' },
-    brand:        { fontSize: 32, fontWeight: '600', color: 'textPrimary', letterSpacing: 0.3, fontFamily: 'Fredoka_500Medium', textAlign: 'center' },
-    tagline:      { fontSize: 14, color: 'textSecondary', lineHeight: 21, textAlign: 'center' },
-    cardTitle:    { fontSize: 14, fontWeight: '600', color: 'textPrimary' },
-    cardSub:      { fontSize: 12, color: 'textMuted', lineHeight: 17, marginTop: 'xxs' },
-    btnPrimary:   { fontSize: 16, fontWeight: '600', color: 'surface' },
-    btnSecondary: { fontSize: 15, color: 'primaryDark' },
-    legal:        { fontSize: 11, color: 'textMuted', textAlign: 'center', lineHeight: 16 },
-    legalLink:    { fontSize: 11, color: 'primaryDark', textDecorationLine: 'underline' },
-  },
-});
-
-type AppTheme = typeof theme;
-const Box  = createBox<AppTheme>();
-const Text = createText<AppTheme>();
 
 const FEATURES = [
   { icon: require('@/assets/images/icons/routines_icon.png'),  title: 'Focus Mode',      description: 'Dagelijkse routines zonder afleiding' },
@@ -49,7 +14,7 @@ const FEATURES = [
   { icon: require('@/assets/images/icons/mood_icon.png'),      title: 'Mood Tracker',    description: 'Hoe voel je je vandaag?' },
 ];
 
-function WelcomeContent() {
+export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
 
   return (
@@ -96,7 +61,6 @@ function WelcomeContent() {
         transition={{ type: 'spring', damping: 18, stiffness: 100, delay: 0 }}
         style={{ alignItems: 'center', paddingTop: 40 }}
       >
-        {/* Mascot with floating loop */}
         <MotiView
           from={{ translateY: 0 }}
           animate={{ translateY: -9 }}
@@ -111,7 +75,6 @@ function WelcomeContent() {
           </Box>
         </MotiView>
 
-        {/* Brand */}
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
           animate={{ opacity: 1, translateY: 0 }}
@@ -196,14 +159,6 @@ function WelcomeContent() {
   );
 }
 
-export default function WelcomeScreen() {
-  return (
-    <ThemeProvider theme={theme}>
-      <WelcomeContent />
-    </ThemeProvider>
-  );
-}
-
 const styles = StyleSheet.create({
   mascotWrap: {
     width: 164,
@@ -231,13 +186,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: 'rgba(255,255,255,0.45)',
-  },
-  cardAccent: {
-    width: 3,
-    height: 28,
-    borderRadius: 2,
-    backgroundColor: 'rgba(73,201,213,0.5)',
-    flexShrink: 0,
   },
   btnPrimary: {
     height: 52,

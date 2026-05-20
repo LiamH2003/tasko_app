@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { Button } from '@/components/ui/Button';
 import { useAppStore } from '@/store/useAppStore';
 import { useState } from 'react';
@@ -28,7 +29,10 @@ export default function ChildWelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader step={4} totalSteps={4} role="KIND" />
+      <View style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <View style={{ height: 12 }} />
+      <StepBar step={4} total={4} />
       <View style={styles.content}>
         <Image
           source={require('@/assets/images/mascot.svg')}

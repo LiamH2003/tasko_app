@@ -1,27 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, ActivityIndicator,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Dimensions, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { BlurView } from 'expo-blur';
+import { Box, Text } from '@/components/ui/primitives';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { supabase } from '@/lib/supabase';
 
+const SCREEN_W = Dimensions.get('window').width;
 const RESEND_COOLDOWN = 90;
 
-function StepBar({ step }: { step: number }) {
-  return (
-    <View style={styles.stepBar}>
-      {[1, 2, 3].map((s) => (
-        <View key={s} style={[styles.stepSegment, s <= step && styles.stepActive]} />
-      ))}
-    </View>
-  );
+function formatCountdown(s: number) {
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 export default function ForgotVerifyScreen() {
+  const insets = useSafeAreaInsets();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -35,9 +32,6 @@ export default function ForgotVerifyScreen() {
     const t = setInterval(() => setCountdown((c) => c - 1), 1000);
     return () => clearInterval(t);
   }, [countdown]);
-
-  const formatCountdown = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const handleChange = (text: string, index: number) => {
     const char = text.replace(/[^0-9]/g, '').slice(-1);
@@ -92,218 +86,198 @@ export default function ForgotVerifyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <Box flex={1} backgroundColor="background">
 
-      <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
-        <Ionicons name="chevron-back" size={16} color={Colors.primary} />
-        <Text style={styles.backText}>Terug</Text>
-      </TouchableOpacity>
+      {/* Blob — top left */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.6 }}
+        animate={{ scale: 1.1, opacity: 0.95 }}
+        transition={{ type: 'timing', duration: 3200, loop: true, repeatReverse: true }}
+        style={{
+          position: 'absolute', width: 260, height: 260, borderRadius: 130,
+          backgroundColor: 'rgba(73,201,213,0.13)', top: -50, left: -60,
+        }}
+      />
+      {/* Blob — bottom right */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.35 }}
+        animate={{ scale: 1.07, opacity: 0.65 }}
+        transition={{ type: 'timing', duration: 2700, loop: true, repeatReverse: true, delay: 800 }}
+        style={{
+          position: 'absolute', width: 190, height: 190, borderRadius: 95,
+          backgroundColor: 'rgba(73,201,213,0.09)', bottom: 80, right: -50,
+        }}
+      />
 
-      <StepBar step={2} />
+      <Box style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <Box style={{ height: 12 }} />
+      <StepBar step={2} total={3} />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 24, 40), flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
 
-        <Text style={styles.stepLabel}>STAP 2 VAN 3 — WACHTWOORD</Text>
-
-        <View style={styles.iconWrap}>
-          <Ionicons name="document-text-outline" size={42} color={Colors.primary} />
-        </View>
-
-        <Text style={styles.title}>Voer de code in</Text>
-        <Text style={styles.subtitle}>
-          We hebben een 6-cijferige code gestuurd naar{' '}
-          <Text style={styles.emailHighlight}>{email}</Text>. Vul hem hier in.
-        </Text>
-
-        <Text style={styles.label}>JOUW 6-CIJFERIGE CODE</Text>
-
-        <View style={styles.codeRow}>
-          {code.map((char, i) => (
-            <TextInput
-              key={i}
-              ref={(el) => { inputs.current[i] = el; }}
-              style={[styles.codeBox, char ? styles.codeBoxFilled : null]}
-              value={char}
-              onChangeText={(t) => handleChange(t, i)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-              maxLength={1}
-              keyboardType="number-pad"
-              textAlign="center"
-              selectionColor={Colors.primary}
-            />
-          ))}
-        </View>
-
-        <View style={styles.resendRow}>
-          {countdown > 0
-            ? <Text style={styles.countdownText}>Nieuwe code in <Text style={styles.countdownNum}>{formatCountdown(countdown)}</Text></Text>
-            : null}
-          <TouchableOpacity
-            onPress={handleResend}
-            disabled={countdown > 0 || resending}
-            activeOpacity={0.7}
+        {/* Icon */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 14, stiffness: 100 }}
+          style={{ marginBottom: 24 }}
+        >
+          <Text variant="label" marginBottom="lg">STAP 2 VAN 3 — WACHTWOORD</Text>
+          <MotiView
+            from={{ translateY: 0 }}
+            animate={{ translateY: -6 }}
+            transition={{ type: 'timing', duration: 2400, loop: true, repeatReverse: true }}
+            style={{ alignSelf: 'flex-start' }}
           >
-            <Text style={[styles.resendText, countdown > 0 && styles.resendDisabled]}>
+            <Box style={styles.iconWrap}>
+              <Ionicons name="document-text-outline" size={38} color="#49c9d5" />
+            </Box>
+          </MotiView>
+        </MotiView>
+
+        {/* Heading */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 100 }}
+          style={{ marginBottom: 28 }}
+        >
+          <Text variant="title" marginBottom="xs">Voer de code in</Text>
+          <Text variant="subtitle">
+            We hebben een code gestuurd naar{' '}
+            <Text variant="subtitle" style={{ color: '#49c9d5', fontWeight: '600' }}>{email}</Text>.
+          </Text>
+        </MotiView>
+
+        {/* OTP */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 360, delay: 180 }}
+          style={{ marginBottom: 16 }}
+        >
+          <Text variant="label" marginBottom="md">JOUW 6-CIJFERIGE CODE</Text>
+          <Box flexDirection="row" gap="sm">
+            {code.map((char, i) => (
+              <MotiView
+                key={i}
+                animate={{
+                  borderColor: char ? '#49c9d5' : 'rgba(73,201,213,0.25)',
+                  backgroundColor: char ? 'rgba(73,201,213,0.08)' : 'rgba(255,255,255,0.7)',
+                }}
+                transition={{ type: 'timing', duration: 150 }}
+                style={styles.codeBox}
+              >
+                <TextInput
+                  ref={(el) => { inputs.current[i] = el; }}
+                  style={styles.codeInput}
+                  value={char}
+                  onChangeText={(t) => handleChange(t, i)}
+                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
+                  maxLength={1}
+                  keyboardType="number-pad"
+                  textAlign="center"
+                  selectionColor="#49c9d5"
+                />
+              </MotiView>
+            ))}
+          </Box>
+        </MotiView>
+
+        {/* Resend row */}
+        <Box flexDirection="row" alignItems="center" justifyContent="space-between" marginBottom="md">
+          {countdown > 0 ? (
+            <Text variant="cardSub" style={{ fontSize: 12 }}>
+              Nieuwe code in <Text variant="cardSub" style={{ fontWeight: '600', color: '#4a4845' }}>{formatCountdown(countdown)}</Text>
+            </Text>
+          ) : <Box />}
+          <TouchableOpacity onPress={handleResend} disabled={countdown > 0 || resending} activeOpacity={0.7}>
+            <Text variant="backLabel" style={{ opacity: countdown > 0 ? 0.4 : 1 }}>
               {resending ? 'Bezig...' : 'Opnieuw sturen'}
             </Text>
           </TouchableOpacity>
-        </View>
+        </Box>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>
+        {/* Info card */}
+        <BlurView intensity={30} tint="light" style={[styles.infoCard, { marginBottom: 16 }]}>
+          <Ionicons name="information-circle-outline" size={18} color="#49c9d5" style={{ flexShrink: 0 }} />
+          <Text variant="cardSub" style={{ flex: 1, lineHeight: 18 }}>
             Geen code ontvangen? Controleer je spam-map of klik op "Opnieuw sturen" na de wachttijd.
           </Text>
-        </View>
+        </BlurView>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? (
+          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Text variant="errorText" style={{ marginBottom: 8 }}>{error}</Text>
+          </MotiView>
+        ) : null}
 
-        <View style={styles.spacer} />
+        <Box flex={1} style={{ minHeight: 24 }} />
 
-        <TouchableOpacity
-          style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
-          onPress={handleVerify}
-          disabled={!canVerify || loading}
-          activeOpacity={0.85}
+        {/* CTA */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 280 }}
+          style={{ gap: 10 }}
         >
-          {loading
-            ? <ActivityIndicator color={Colors.background} />
-            : <Text style={styles.btnPrimaryText}>Code bevestigen</Text>}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
+            onPress={handleVerify}
+            disabled={!canVerify || loading}
+            activeOpacity={0.85}
+          >
+            {loading
+              ? <ActivityIndicator color="#e8e5dd" />
+              : <Text variant="btnPrimary">Code bevestigen</Text>}
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.btnSecondary} onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={styles.btnSecondaryText}>Annuleren</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.btnSecondary} onPress={() => router.back()} activeOpacity={0.7}>
+            <Text variant="btnSecondary">Annuleren</Text>
+          </TouchableOpacity>
+        </MotiView>
 
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-  },
-  backText: { fontSize: FontSize.sm, color: Colors.primary },
-
-  stepBar: {
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  stepSegment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.surface },
-  stepActive: { backgroundColor: Colors.primary },
-
-  scroll: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
-
-  stepLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: Colors.primary,
-    letterSpacing: 1,
-    marginBottom: Spacing.lg,
-  },
-
   iconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
-
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    lineHeight: 21,
-    marginBottom: Spacing.xl,
-  },
-  emailHighlight: { color: Colors.primary, fontWeight: FontWeight.semibold },
-
-  label: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
-    color: Colors.primary,
-    letterSpacing: 1,
-    marginBottom: Spacing.md,
-  },
-
-  codeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 14, shadowOpacity: 0.2, elevation: 5,
   },
   codeBox: {
-    flex: 1,
-    height: 60,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    color: Colors.text.primary,
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
+    flex: 1, height: 64, borderRadius: 14,
+    borderWidth: 2, overflow: 'hidden',
   },
-  codeBoxFilled: { borderColor: Colors.primary },
-
-  resendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.md,
+  codeInput: {
+    flex: 1, height: '100%', fontSize: 24,
+    fontWeight: '700', color: '#1a1918', textAlign: 'center',
   },
-  countdownText: { fontSize: FontSize.sm, color: Colors.text.muted },
-  countdownNum: { color: Colors.text.secondary, fontWeight: FontWeight.semibold },
-  resendText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: FontWeight.medium },
-  resendDisabled: { color: Colors.text.muted },
-
-  infoBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+  infoCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    padding: 14, borderRadius: 14, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
-  infoText: { fontSize: FontSize.sm, color: Colors.text.muted, lineHeight: 19 },
-
-  errorText: { fontSize: FontSize.sm, color: Colors.status.error, marginBottom: Spacing.sm },
-
-  spacer: { flex: 1, minHeight: Spacing.xl },
-
   btnPrimary: {
-    height: 52,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    height: 52, backgroundColor: '#49c9d5', borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
   btnDisabled: { opacity: 0.4 },
-  btnPrimaryText: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold, color: Colors.background },
-
   btnSecondary: {
-    height: 52,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
   },
-  btnSecondaryText: { fontSize: FontSize.md, color: Colors.text.muted, fontWeight: FontWeight.medium },
 });

@@ -5,12 +5,15 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { Button } from '@/components/ui/Button';
 import { getChildByInviteCode } from '@/services/children';
 
 export default function ChildInviteCodeScreen() {
+  const insets = useSafeAreaInsets();
   const [code, setCode] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +64,10 @@ export default function ChildInviteCodeScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <OnboardingHeader step={1} totalSteps={4} role="KIND" />
+      <View style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <View style={{ height: 12 }} />
+      <StepBar step={1} total={4} />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

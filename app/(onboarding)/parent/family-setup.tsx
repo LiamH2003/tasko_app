@@ -4,8 +4,10 @@ import {
   KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { Button } from '@/components/ui/Button';
 import { createChildWithCode } from '@/services/children';
 import { saveParentProfile } from '@/services/auth';
@@ -13,6 +15,7 @@ import { saveParentProfile } from '@/services/auth';
 const SUGGESTIONS = ['Familie De Smedt', 'Ons gezin', 'Team Thuis'];
 
 export default function ParentFamilySetupScreen() {
+  const insets = useSafeAreaInsets();
   const [parentName, setParentName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +28,10 @@ export default function ParentFamilySetupScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <OnboardingHeader step={3} totalSteps={4} role="OUDER" />
+      <View style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <View style={{ height: 12 }} />
+      <StepBar step={3} total={4} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Even kennismaken</Text>
         <Text style={styles.subtitle}>Snel twee vragen, dan kunnen we beginnen.</Text>

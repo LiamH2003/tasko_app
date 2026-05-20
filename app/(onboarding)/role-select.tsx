@@ -1,16 +1,21 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Dimensions, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { Colors, Spacing, Radius, FontSize, FontWeight } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { BlurView } from 'expo-blur';
+import { Box, Text } from '@/components/ui/primitives';
+import { BackButton } from '@/components/ui/BackButton';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 const OPTIONS = [
   {
     key: 'parent',
     title: 'Ik ben een ouder',
     description: 'Ik wil Tasko instellen voor mijn kind',
-    icon: <Ionicons name="person-outline" size={22} color={Colors.primary} />,
+    icon: <Ionicons name="person-outline" size={22} color="#49c9d5" />,
     route: '/(onboarding)/parent/account' as const,
   },
   {
@@ -29,144 +34,122 @@ const OPTIONS = [
 ];
 
 export default function RoleSelectScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <Box flex={1} backgroundColor="background">
 
-      <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
-        <Ionicons name="chevron-back" size={18} color={Colors.primary} />
-        <Text style={styles.backText}>Terug</Text>
-      </TouchableOpacity>
+      {/* Blob — top left */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.6 }}
+        animate={{ scale: 1.1, opacity: 0.95 }}
+        transition={{ type: 'timing', duration: 3400, loop: true, repeatReverse: true }}
+        style={{
+          position: 'absolute', width: 300, height: 300, borderRadius: 150,
+          backgroundColor: 'rgba(73,201,213,0.12)', top: -80, left: -80,
+        }}
+      />
+      {/* Blob — mid right */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.35 }}
+        animate={{ scale: 1.07, opacity: 0.65 }}
+        transition={{ type: 'timing', duration: 2900, loop: true, repeatReverse: true, delay: 500 }}
+        style={{
+          position: 'absolute', width: 160, height: 160, borderRadius: 80,
+          backgroundColor: 'rgba(73,201,213,0.1)', top: '40%', right: -50,
+        }}
+      />
+      {/* Blob — bottom centre */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.3 }}
+        animate={{ scale: 1.05, opacity: 0.55 }}
+        transition={{ type: 'timing', duration: 3100, loop: true, repeatReverse: true, delay: 1200 }}
+        style={{
+          position: 'absolute', width: 220, height: 220, borderRadius: 110,
+          backgroundColor: 'rgba(73,201,213,0.08)', bottom: -40, left: (SCREEN_W - 220) / 2,
+        }}
+      />
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Wie ben jij?</Text>
-        <Text style={styles.subtitle}>
-          Kies je rol zodat we Tasko goed voor je kunnen instellen.
-        </Text>
+      <Box style={{ height: insets.top + 16 }} />
+      <BackButton />
 
-        <View style={styles.options}>
-          {OPTIONS.map((opt) => (
-            <TouchableOpacity
+      <Box flex={1} paddingHorizontal="lg">
+
+        {/* Heading */}
+        <MotiView
+          from={{ opacity: 0, translateY: 14 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'spring', damping: 18, stiffness: 100, delay: 60 }}
+          style={{ marginTop: 24, marginBottom: 32 }}
+        >
+          <Text variant="eyebrow" marginBottom="sm" style={{ textAlign: 'left' }}>NIEUW BIJ TASKO</Text>
+          <Text variant="title" marginBottom="xs">Wie ben jij?</Text>
+          <Text variant="subtitle">
+            Kies je rol zodat we Tasko goed voor je kunnen instellen.
+          </Text>
+        </MotiView>
+
+        {/* Role cards */}
+        <Box gap="md">
+          {OPTIONS.map((opt, i) => (
+            <MotiView
               key={opt.key}
-              style={styles.card}
-              onPress={() => router.push(opt.route)}
-              activeOpacity={0.8}
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 360, delay: 180 + i * 100 }}
             >
-              <View style={styles.cardIconWrap}>
-                {opt.icon}
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{opt.title}</Text>
-                <Text style={styles.cardDescription}>{opt.description}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
-            </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push(opt.route)} activeOpacity={0.8}>
+                <BlurView intensity={40} tint="light" style={styles.card}>
+                  <Box
+                    width={48} height={48} borderRadius="md" backgroundColor="iconBg"
+                    alignItems="center" justifyContent="center" style={{ flexShrink: 0 }}
+                  >
+                    {opt.icon}
+                  </Box>
+                  <Box flex={1}>
+                    <Text variant="cardTitle" style={{ fontSize: 15 }}>{opt.title}</Text>
+                    <Text variant="cardSub">{opt.description}</Text>
+                  </Box>
+                  <Box style={styles.arrowWrap}>
+                    <Ionicons name="chevron-forward" size={16} color="#49c9d5" />
+                  </Box>
+                </BlurView>
+              </TouchableOpacity>
+            </MotiView>
           ))}
-        </View>
-      </View>
+        </Box>
+      </Box>
 
-      <TouchableOpacity
-        style={styles.loginRow}
-        onPress={() => router.push('/(onboarding)/login-welcome')}
-        activeOpacity={0.7}
+      {/* Bottom link */}
+      <MotiView
+        from={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ type: 'timing', duration: 400, delay: 420 }}
+        style={{ alignItems: 'center', paddingBottom: Math.max(insets.bottom + 16, 28) }}
       >
-        <Text style={styles.loginText}>
-          Al een account?{' '}
-          <Text style={styles.loginLink}>Log in</Text>
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(onboarding)/login-welcome')} activeOpacity={0.7}>
+          <Text variant="legal">
+            Al een account?{'  '}
+            <Text variant="legalLink">Log in</Text>
+          </Text>
+        </TouchableOpacity>
+      </MotiView>
 
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-
-  back: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  backText: {
-    fontSize: FontSize.md,
-    color: Colors.primary,
-    fontWeight: FontWeight.regular,
-  },
-
-  content: {
-    flex: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.sm,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    lineHeight: 21,
-    marginBottom: Spacing.xl,
-  },
-
-  options: {
-    gap: Spacing.md,
-  },
-
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 16, paddingHorizontal: 16,
+    borderRadius: 18, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
-  cardIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.iconBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  cardText: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  cardDescription: {
-    fontSize: FontSize.sm,
-    color: Colors.text.muted,
-    marginTop: 2,
-    lineHeight: 18,
-  },
-
-  loginRow: {
-    alignItems: 'center',
-    paddingBottom: Spacing.lg,
-  },
-  loginText: {
-    fontSize: FontSize.sm,
-    color: Colors.text.muted,
-  },
-  loginLink: {
-    color: Colors.primary,
-    fontWeight: FontWeight.medium,
+  arrowWrap: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(73,201,213,0.12)',
+    alignItems: 'center', justifyContent: 'center',
   },
 });

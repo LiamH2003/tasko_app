@@ -5,9 +5,11 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { Button } from '@/components/ui/Button';
 import { updateChild } from '@/services/children';
 
@@ -15,6 +17,7 @@ const MIN_AGE = 6;
 const MAX_AGE = 18;
 
 export default function ChildProfileScreen() {
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [age, setAge] = useState(9);
   const [loading, setLoading] = useState(false);
@@ -26,7 +29,10 @@ export default function ChildProfileScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <OnboardingHeader step={2} totalSteps={4} role="KIND" />
+      <View style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <View style={{ height: 12 }} />
+      <StepBar step={2} total={4} />
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

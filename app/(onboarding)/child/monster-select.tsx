@@ -6,8 +6,10 @@ import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
+import { BackButton } from '@/components/ui/BackButton';
+import { StepBar } from '@/components/ui/StepBar';
 import { Button } from '@/components/ui/Button';
 import { updateChild } from '@/services/children';
 
@@ -56,6 +58,7 @@ const MONSTERS: MonsterDef[] = [
 ];
 
 export default function MonsterSelectScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,7 +67,10 @@ export default function MonsterSelectScreen() {
 
   return (
     <View style={styles.container}>
-      <OnboardingHeader step={3} totalSteps={4} role="KIND" />
+      <View style={{ height: insets.top + 16 }} />
+      <BackButton />
+      <View style={{ height: 12 }} />
+      <StepBar step={3} total={4} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Kies jouw Tasko!</Text>
         <Text style={styles.subtitle}>Dit is jouw Tasko. Hij groeit mee met jou!</Text>
