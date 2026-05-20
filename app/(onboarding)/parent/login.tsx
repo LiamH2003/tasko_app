@@ -142,7 +142,11 @@ export default function ParentLoginScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.forgotRow}
+            onPress={() => router.push('/(onboarding)/parent/forgot-password')}
+            activeOpacity={0.7}
+          >
             <Text style={styles.forgotText}>Wachtwoord vergeten?</Text>
           </TouchableOpacity>
 

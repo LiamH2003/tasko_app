@@ -34,13 +34,23 @@ function RootNavigator() {
     }
 
     if (session) {
+      const emailConfirmed = !!session.user.email_confirmed_at;
       const onboardingComplete = session.user.user_metadata?.onboarding_complete === true;
 
+      if (!emailConfirmed) {
+        // Registered but not yet verified — send back to OTP screen
+        if (inParent || inChild) {
+          router.replace({
+            pathname: '/(onboarding)/parent/verify-email',
+            params: { email: session.user.email ?? '' },
+          });
+        }
+        return;
+      }
+
       if (onboardingComplete && !inParent) {
-        // Existing user logging back in → go straight to dashboard
         router.replace('/(parent)');
       }
-      // New signup (onboarding_complete not set yet) → stay in onboarding flow
     } else {
       // No session → always send to onboarding
       if (inParent || inChild) {

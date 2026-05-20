@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator,
@@ -7,17 +7,37 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
-import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { supabase } from '@/lib/supabase';
 
-export default function ParentVerifyEmailScreen() {
+const RESEND_COOLDOWN = 90;
+
+function StepBar({ step }: { step: number }) {
+  return (
+    <View style={styles.stepBar}>
+      {[1, 2, 3].map((s) => (
+        <View key={s} style={[styles.stepSegment, s <= step && styles.stepActive]} />
+      ))}
+    </View>
+  );
+}
+
+export default function ForgotVerifyScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
-  const [resendSent, setResendSent] = useState(false);
+  const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
   const inputs = useRef<(TextInput | null)[]>([null, null, null, null, null, null]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [countdown]);
+
+  const formatCountdown = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   const handleChange = (text: string, index: number) => {
     const char = text.replace(/[^0-9]/g, '').slice(-1);
@@ -48,7 +68,7 @@ export default function ParentVerifyEmailScreen() {
         type: 'email',
       });
       if (err) throw err;
-      router.push('/(onboarding)/parent/family-setup');
+      router.push({ pathname: '/(onboarding)/parent/forgot-reset', params: { email } });
     } catch (e: any) {
       setError(e.message ?? 'Ongeldige code. Controleer de code en probeer opnieuw.');
     } finally {
@@ -59,14 +79,13 @@ export default function ParentVerifyEmailScreen() {
   const handleResend = async () => {
     setResending(true);
     setError('');
-    setResendSent(false);
     try {
       await supabase.auth.signInWithOtp({ email: email ?? '', options: { shouldCreateUser: false } });
-      setResendSent(true);
+      setCountdown(RESEND_COOLDOWN);
       setCode(['', '', '', '', '', '']);
       inputs.current[0]?.focus();
-    } catch (e: any) {
-      setError(e.message ?? 'Opnieuw sturen mislukt. Probeer opnieuw.');
+    } catch {
+      setError('Opnieuw sturen mislukt. Probeer opnieuw.');
     } finally {
       setResending(false);
     }
@@ -74,24 +93,29 @@ export default function ParentVerifyEmailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <OnboardingHeader step={2} totalSteps={4} role="OUDER" />
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.iconBox}>
-          <Ionicons name="mail-outline" size={42} color={Colors.primary} />
+      <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
+        <Ionicons name="chevron-back" size={16} color={Colors.primary} />
+        <Text style={styles.backText}>Terug</Text>
+      </TouchableOpacity>
+
+      <StepBar step={2} />
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+        <Text style={styles.stepLabel}>STAP 2 VAN 3 — WACHTWOORD</Text>
+
+        <View style={styles.iconWrap}>
+          <Ionicons name="document-text-outline" size={42} color={Colors.primary} />
         </View>
 
-        <Text style={styles.title}>Check je inbox</Text>
+        <Text style={styles.title}>Voer de code in</Text>
         <Text style={styles.subtitle}>
           We hebben een 6-cijferige code gestuurd naar{' '}
-          <Text style={styles.emailHighlight}>{email}</Text>. Vul hem hieronder in.
+          <Text style={styles.emailHighlight}>{email}</Text>. Vul hem hier in.
         </Text>
 
-        <Text style={styles.label}>JOUW VERIFICATIECODE</Text>
+        <Text style={styles.label}>JOUW 6-CIJFERIGE CODE</Text>
 
         <View style={styles.codeRow}>
           {code.map((char, i) => (
@@ -110,14 +134,30 @@ export default function ParentVerifyEmailScreen() {
           ))}
         </View>
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        {resendSent ? <Text style={styles.successText}>Nieuwe code verstuurd!</Text> : null}
+        <View style={styles.resendRow}>
+          {countdown > 0
+            ? <Text style={styles.countdownText}>Nieuwe code in <Text style={styles.countdownNum}>{formatCountdown(countdown)}</Text></Text>
+            : null}
+          <TouchableOpacity
+            onPress={handleResend}
+            disabled={countdown > 0 || resending}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.resendText, countdown > 0 && styles.resendDisabled]}>
+              {resending ? 'Bezig...' : 'Opnieuw sturen'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Geen code ontvangen? Controleer je spam-map of stuur de code opnieuw.
+            Geen code ontvangen? Controleer je spam-map of klik op "Opnieuw sturen" na de wachttijd.
           </Text>
         </View>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <View style={styles.spacer} />
 
         <TouchableOpacity
           style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
@@ -127,18 +167,11 @@ export default function ParentVerifyEmailScreen() {
         >
           {loading
             ? <ActivityIndicator color={Colors.background} />
-            : <Text style={styles.btnPrimaryText}>Bevestig e-mailadres</Text>}
+            : <Text style={styles.btnPrimaryText}>Code bevestigen</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.resendBtn}
-          onPress={handleResend}
-          disabled={resending}
-          activeOpacity={0.7}
-        >
-          {resending
-            ? <ActivityIndicator color={Colors.primary} size="small" />
-            : <Text style={styles.resendText}>Code opnieuw sturen</Text>}
+        <TouchableOpacity style={styles.btnSecondary} onPress={() => router.back()} activeOpacity={0.7}>
+          <Text style={styles.btnSecondaryText}>Annuleren</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -149,14 +182,36 @@ export default function ParentVerifyEmailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
+  back: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+  },
+  backText: { fontSize: FontSize.sm, color: Colors.primary },
+
+  stepBar: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  stepSegment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: Colors.surface },
+  stepActive: { backgroundColor: Colors.primary },
+
+  scroll: { flexGrow: 1, paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl },
+
+  stepLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primary,
+    letterSpacing: 1,
+    marginBottom: Spacing.lg,
   },
 
-  iconBox: {
+  iconWrap: {
     width: 88,
     height: 88,
     borderRadius: Radius.xl,
@@ -165,7 +220,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: Spacing.xl,
     marginBottom: Spacing.lg,
   },
 
@@ -174,19 +228,16 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: FontSize.md,
     color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
     marginBottom: Spacing.xl,
   },
   emailHighlight: { color: Colors.primary, fontWeight: FontWeight.semibold },
 
   label: {
-    alignSelf: 'flex-start',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
     color: Colors.primary,
@@ -198,7 +249,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginBottom: Spacing.md,
-    width: '100%',
   },
   codeBox: {
     flex: 1,
@@ -213,32 +263,32 @@ const styles = StyleSheet.create({
   },
   codeBoxFilled: { borderColor: Colors.primary },
 
-  errorText: {
-    alignSelf: 'flex-start',
-    fontSize: FontSize.sm,
-    color: Colors.status.error,
-    marginBottom: Spacing.sm,
+  resendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
   },
-  successText: {
-    alignSelf: 'flex-start',
-    fontSize: FontSize.sm,
-    color: Colors.status.success,
-    marginBottom: Spacing.sm,
-  },
+  countdownText: { fontSize: FontSize.sm, color: Colors.text.muted },
+  countdownNum: { color: Colors.text.secondary, fontWeight: FontWeight.semibold },
+  resendText: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: FontWeight.medium },
+  resendDisabled: { color: Colors.text.muted },
 
   infoBox: {
-    width: '100%',
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: Colors.border,
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   infoText: { fontSize: FontSize.sm, color: Colors.text.muted, lineHeight: 19 },
 
+  errorText: { fontSize: FontSize.sm, color: Colors.status.error, marginBottom: Spacing.sm },
+
+  spacer: { flex: 1, minHeight: Spacing.xl },
+
   btnPrimary: {
-    width: '100%',
     height: 52,
     backgroundColor: Colors.primary,
     borderRadius: Radius.lg,
@@ -249,10 +299,11 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.4 },
   btnPrimaryText: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold, color: Colors.background },
 
-  resendBtn: {
+  btnSecondary: {
     height: 52,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  resendText: { fontSize: FontSize.md, color: Colors.primary, fontWeight: FontWeight.medium },
+  btnSecondaryText: { fontSize: FontSize.md, color: Colors.text.muted, fontWeight: FontWeight.medium },
 });

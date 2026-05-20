@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import { OnboardingHeader } from '@/components/ui/OnboardingHeader';
 import { signUp } from '@/services/auth';
+import { supabase } from '@/lib/supabase';
 
 export default function ParentAccountScreen() {
   const [firstName, setFirstName] = useState('');
@@ -159,7 +160,9 @@ export default function ParentAccountScreen() {
             setLoading(true);
             try {
               await signUp(email, password);
-              router.push('/(onboarding)/parent/verify-email');
+              await supabase.auth.signOut();
+              await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+              router.push({ pathname: '/(onboarding)/parent/verify-email', params: { email } });
             } catch (e: any) {
               setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
             } finally {
