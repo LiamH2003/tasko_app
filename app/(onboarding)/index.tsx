@@ -1,270 +1,263 @@
-import {
-  View, Text, StyleSheet, TouchableOpacity, Dimensions,
-} from 'react-native';
+import { Dimensions, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Radius, FontSize, FontWeight } from '@/constants/theme';
+import { createTheme, ThemeProvider, createBox, createText } from '@shopify/restyle';
+import { MotiView } from 'moti';
+import { BlurView } from 'expo-blur';
 
 const SCREEN_W = Dimensions.get('window').width;
 
-// Icon filenames are swapped vs. what they visually represent in the design:
-// routines_icon.png = crosshair/target  → Focus Mode
-// focusmode_icon.png = circular refresh → Slimme Routines
+const theme = createTheme({
+  colors: {
+    background:    '#e8e5dd',
+    surface:       '#ffffff',
+    primary:       '#49c9d5',
+    primaryDark:   '#3797a0',
+    textPrimary:   '#1a1918',
+    textSecondary: '#4a4845',
+    textMuted:     '#8a8885',
+    iconBg:        'rgba(73,201,213,0.14)',
+  },
+  spacing: {
+    xxs: 2, xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48,
+  },
+  borderRadii: {
+    sm: 8, md: 12, lg: 16, xl: 24, full: 9999,
+  },
+  textVariants: {
+    defaults:     { fontSize: 14, color: 'textPrimary' },
+    eyebrow:      { fontSize: 11, fontWeight: '600', color: 'primary', letterSpacing: 2, textAlign: 'center' },
+    brand:        { fontSize: 32, fontWeight: '600', color: 'textPrimary', letterSpacing: 0.3, fontFamily: 'Fredoka_500Medium', textAlign: 'center' },
+    tagline:      { fontSize: 14, color: 'textSecondary', lineHeight: 21, textAlign: 'center' },
+    cardTitle:    { fontSize: 14, fontWeight: '600', color: 'textPrimary' },
+    cardSub:      { fontSize: 12, color: 'textMuted', lineHeight: 17, marginTop: 'xxs' },
+    btnPrimary:   { fontSize: 16, fontWeight: '600', color: 'surface' },
+    btnSecondary: { fontSize: 15, color: 'primaryDark' },
+    legal:        { fontSize: 11, color: 'textMuted', textAlign: 'center', lineHeight: 16 },
+    legalLink:    { fontSize: 11, color: 'primaryDark', textDecorationLine: 'underline' },
+  },
+});
+
+type AppTheme = typeof theme;
+const Box  = createBox<AppTheme>();
+const Text = createText<AppTheme>();
+
 const FEATURES = [
   { icon: require('@/assets/images/icons/routines_icon.png'),  title: 'Focus Mode',      description: 'Dagelijkse routines zonder afleiding' },
   { icon: require('@/assets/images/icons/focusmode_icon.png'), title: 'Slimme Routines', description: 'Gezonde gewoonten, stap voor stap' },
   { icon: require('@/assets/images/icons/mood_icon.png'),      title: 'Mood Tracker',    description: 'Hoe voel je je vandaag?' },
 ];
 
-export default function WelcomeScreen() {
+function WelcomeContent() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.root}>
+    <Box flex={1} backgroundColor="background">
 
-      {/* mainscreen_g1: 320×320 radial gradient, opacity 0.18 baked in — Figma node 1:67 */}
-      <Image
-        source={require('@/assets/images/backgrounds/mainscreen_g1.svg')}
-        style={[styles.blobMain, { top: insets.top - 20, left: (SCREEN_W - 320) / 2 }]}
-        contentFit="fill"
+      {/* Large soft teal blob — top centre */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.7 }}
+        animate={{ scale: 1.1, opacity: 1 }}
+        transition={{ type: 'timing', duration: 3600, loop: true, repeatReverse: true }}
+        style={{
+          position: 'absolute',
+          width: 380,
+          height: 380,
+          borderRadius: 190,
+          backgroundColor: 'rgba(73,201,213,0.14)',
+          top: -60,
+          left: (SCREEN_W - 380) / 2,
+        }}
       />
-      {/* mainscreen_g2: 128×128 teal circle at 8% — centred behind the mascot */}
-      <Image
-        source={require('@/assets/images/backgrounds/mainscreen_g2.svg')}
-        style={[styles.blobAccent, { top: insets.top + 64, left: (SCREEN_W - 128) / 2 }]}
-        contentFit="fill"
+
+      {/* Smaller accent blob — bottom right */}
+      <MotiView
+        from={{ scale: 1, opacity: 0.5 }}
+        animate={{ scale: 1.06, opacity: 0.8 }}
+        transition={{ type: 'timing', duration: 2800, loop: true, repeatReverse: true, delay: 800 }}
+        style={{
+          position: 'absolute',
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: 'rgba(73,201,213,0.09)',
+          bottom: 120,
+          right: -60,
+        }}
       />
 
-      {/* Safe-area top spacer */}
-      <View style={{ height: insets.top }} />
+      <Box style={{ height: insets.top }} />
 
-      {/* ── Hero ── */}
-      <View style={styles.hero}>
+      {/* ── Mascot + brand — upper middle ── */}
+      <MotiView
+        from={{ opacity: 0, translateY: -16 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'spring', damping: 18, stiffness: 100, delay: 0 }}
+        style={{ alignItems: 'center', paddingTop: 40 }}
+      >
+        {/* Mascot with floating loop */}
+        <MotiView
+          from={{ translateY: 0 }}
+          animate={{ translateY: -9 }}
+          transition={{ type: 'timing', duration: 2600, loop: true, repeatReverse: true }}
+        >
+          <Box style={styles.mascotWrap}>
+            <Image
+              source={require('@/assets/images/mascot.svg')}
+              style={{ width: 130, height: 130 }}
+              contentFit="contain"
+            />
+          </Box>
+        </MotiView>
 
-        <View style={styles.mascotWrap}>
-          <Image
-            source={require('@/assets/images/mascot.svg')}
-            style={styles.mascot}
-            contentFit="contain"
-          />
-        </View>
+        {/* Brand */}
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 380, delay: 200 }}
+          style={{ alignItems: 'center' }}
+        >
+          <Text variant="eyebrow" marginTop="md" marginBottom="xs">JOUW DAGELIJKS AVONTUUR</Text>
+          <Text variant="brand" marginBottom="sm">Tasko Tracker</Text>
+          <Text variant="tagline" style={{ maxWidth: 260 }}>
+            {'Dagelijkse structuur die rustig aanvoelt,\nvoor elk kind en elk gezin.'}
+          </Text>
+        </MotiView>
+      </MotiView>
 
-        <Text style={styles.brand}>Tasko Tracker</Text>
-
-        <Text style={styles.tagline}>
-          Dagelijkse structuur die rustig aanvoelt,{'\n'}voor elk kind en elk gezin.
-        </Text>
-
-        <View style={styles.cards}>
-          {FEATURES.map((f) => (
-            <View key={f.title} style={styles.card}>
-              <View style={styles.cardIconWrap}>
-                <Image source={f.icon} style={styles.cardIcon} contentFit="contain" />
-              </View>
-              <View style={styles.cardText}>
-                <Text style={styles.cardTitle}>{f.title}</Text>
-                <Text style={styles.cardSub}>{f.description}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-      </View>
+      {/* ── Feature cards ── */}
+      <Box flex={1} paddingHorizontal="lg" justifyContent="center" gap="sm" marginTop="lg">
+        {FEATURES.map((f, i) => (
+          <MotiView
+            key={f.title}
+            from={{ opacity: 0, translateY: 18 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 320 + i * 80 }}
+          >
+            <BlurView intensity={40} tint="light" style={styles.card}>
+              <Box
+                width={40}
+                height={40}
+                borderRadius="md"
+                backgroundColor="iconBg"
+                alignItems="center"
+                justifyContent="center"
+                style={{ flexShrink: 0 }}
+              >
+                <Image source={f.icon} style={{ width: 21, height: 21 }} contentFit="contain" />
+              </Box>
+              <Box flex={1}>
+                <Text variant="cardTitle">{f.title}</Text>
+                <Text variant="cardSub">{f.description}</Text>
+              </Box>
+            </BlurView>
+          </MotiView>
+        ))}
+      </Box>
 
       {/* ── CTA ── */}
-      <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom + 8, 24) }]}>
-        <TouchableOpacity
-          style={styles.btnPrimary}
-          onPress={() => router.push('/(onboarding)/role-select')}
-          activeOpacity={0.85}
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 360, delay: 580 }}
+      >
+        <Box
+          paddingHorizontal="lg"
+          paddingTop="xl"
+          gap="sm"
+          style={{ paddingBottom: Math.max(insets.bottom + 8, 24) }}
         >
-          <Text style={styles.btnPrimaryText}>Aan de slag</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.btnPrimary}
+            onPress={() => router.push('/(onboarding)/role-select')}
+            activeOpacity={0.85}
+          >
+            <Text variant="btnPrimary">Aan de slag</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.btnSecondary}
-          onPress={() => router.push('/(onboarding)/login-welcome')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.btnSecondaryText}>Ik heb al een account</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            onPress={() => router.push('/(onboarding)/login-welcome')}
+            activeOpacity={0.75}
+          >
+            <Text variant="btnSecondary">Ik heb al een account</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.legal}>
-          Door verder te gaan ga je akkoord met onze{'\n'}
-          <Text style={styles.legalLink}>Gebruiksvoorwaarden</Text>
-          <Text style={styles.legalMuted}> en Privacybeleid.</Text>
-        </Text>
-      </View>
+          <Text variant="legal">
+            Door verder te gaan ga je akkoord met onze{'\n'}
+            <Text variant="legalLink">Gebruiksvoorwaarden</Text>
+            <Text variant="legal"> en Privacybeleid.</Text>
+          </Text>
+        </Box>
+      </MotiView>
 
-    </View>
+    </Box>
+  );
+}
+
+export default function WelcomeScreen() {
+  return (
+    <ThemeProvider theme={theme}>
+      <WelcomeContent />
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-
-  blobMain: {
-    position: 'absolute',
-    width: 320,
-    height: 320,
-  },
-
-  blobAccent: {
-    position: 'absolute',
-    width: 128,
-    height: 128,
-  },
-
-  // ── Hero ───────────────────────────────────────────────────────────────────
-  hero: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-
   mascotWrap: {
-    paddingTop: 48,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 12,
-    shadowOpacity: 0.35,
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(73,201,213,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#49c9d5',
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 20,
+    shadowOpacity: 0.22,
+    elevation: 8,
   },
-
-  mascot: {
-    width: 160,
-    height: 160,
-  },
-
-  brand: {
-    marginTop: 20,
-    fontSize: FontSize.xxl,
-    fontFamily: 'Fredoka_500Medium',
-    fontWeight: FontWeight.medium,
-    color: Colors.primary,
-    letterSpacing: 0.32,
-    textAlign: 'center',
-  },
-
-  tagline: {
-    marginTop: 8,
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.regular,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 21,
-    maxWidth: 260,
-  },
-
-  // ── Feature cards ──────────────────────────────────────────────────────────
-  cards: {
-    marginTop: 36,
-    width: '100%',
-    gap: 12,
-  },
-
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    paddingTop: 14,
-    paddingBottom: 15,
-    paddingHorizontal: 21,
-    backgroundColor: Colors.cardTint,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
+    borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
-
-  cardIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.iconBg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  cardAccent: {
+    width: 3,
+    height: 28,
+    borderRadius: 2,
+    backgroundColor: 'rgba(73,201,213,0.5)',
     flexShrink: 0,
   },
-
-  cardIcon: {
-    width: 20,
-    height: 20,
-  },
-
-  cardText: {
-    flex: 1,
-  },
-
-  cardTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: Colors.text.primary,
-    lineHeight: 18.2,
-  },
-
-  cardSub: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.regular,
-    color: Colors.text.muted,
-    lineHeight: 15.6,
-    marginTop: 1,
-  },
-
-  // ── CTA ────────────────────────────────────────────────────────────────────
-  cta: {
-    paddingHorizontal: 32,
-    paddingTop: 24,
-    gap: 12,
-    backgroundColor: Colors.background,
-  },
-
   btnPrimary: {
-    height: 48,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.sm,
+    height: 52,
+    backgroundColor: '#49c9d5',
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#49c9d5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    shadowOpacity: 0.35,
+    elevation: 6,
   },
-
-  btnPrimaryText: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.medium,
-    color: Colors.background,
-  },
-
   btnSecondary: {
-    height: 48,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(73,201,213,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-
-  btnSecondaryText: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.regular,
-    color: Colors.primaryLight,
-  },
-
-  legal: {
-    fontSize: FontSize.xs,
-    color: Colors.text.muted,
-    textAlign: 'center',
-    lineHeight: 16,
-    paddingHorizontal: 8,
-  },
-
-  legalLink: {
-    color: Colors.primaryDark,
-    textDecorationLine: 'underline',
-  },
-
-  legalMuted: {
-    color: Colors.text.muted,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });
