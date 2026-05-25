@@ -1,51 +1,34 @@
 import { useState, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView,
+  View, TextInput, TouchableOpacity, StyleSheet,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
-import { Button } from '@/components/ui/Button';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { getChildByInviteCode } from '@/services/children';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ChildInviteCodeScreen() {
   const insets = useSafeAreaInsets();
-  const [code, setCode] = useState(['', '', '', '']);
+  const [code, setCode] = useState('');
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const inputs = useRef<(TextInput | null)[]>([null, null, null, null]);
+  const inputRef = useRef<TextInput | null>(null);
 
-  const handleChange = (text: string, index: number) => {
-    const char = text.replace(/[^a-zA-Z0-9]/g, '').slice(-1).toUpperCase();
-    const next = [...code];
-    next[index] = char;
-    setCode(next);
-    if (char && index < 3) {
-      inputs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !code[index] && index > 0) {
-      const next = [...code];
-      next[index - 1] = '';
-      setCode(next);
-      inputs.current[index - 1]?.focus();
-    }
-  };
-
-  const fullCode = code.join('');
-  const canContinue = fullCode.length === 4;
+  const canContinue = code.length === 4;
 
   const handleConfirm = async () => {
     setError('');
     setLoading(true);
     try {
-      const child = await getChildByInviteCode(`TASKO-${fullCode}`);
+      const child = await getChildByInviteCode(`TASKO-${code}`);
       if (!child) {
         setError('Onbekende code. Controleer de code bij je ouder.');
         return;
@@ -60,126 +43,153 @@ export default function ChildInviteCodeScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={{ height: insets.top + 16 }} />
-      <BackButton />
-      <View style={{ height: 12 }} />
-      <StepBar step={1} total={4} />
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={300} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -60, left: -70 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, right: -50 }}
+        />
+      </View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <Box style={{ height: insets.top + 16 }} />
+        <BackButton />
+        <Box style={{ height: 12 }} />
+        <StepBar step={1} total={4} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 4 — CODE</Text>
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <MotiView
+            from={{ opacity: 0, translateY: 14 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 60 }}
+            style={{ marginBottom: 28 }}
+          >
+            <Text variant="title" marginBottom="xs">Heb je een code?</Text>
+            <Text variant="subtitle">Jouw ouder heeft een code aangemaakt. Type hem hieronder in!</Text>
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 360, delay: 140 }}
+          >
+            <View style={styles.formCard}>
+              <Text variant="label" marginBottom="sm" style={{ color: '#6b6560' }}>GEZINSCODE</Text>
+              <Text variant="cardSub" style={{ marginBottom: 16, lineHeight: 18 }}>
+                Vraag de code aan jouw ouder.
+              </Text>
+
+              <View style={{ position: 'relative' }}>
+                {/* Input first = paints behind the visual layer */}
+                <TextInput
+                  ref={inputRef}
+                  value={code}
+                  onChangeText={(t) => setCode(t.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase())}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  maxLength={4}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  caretHidden
+                  style={styles.overlayInput}
+                />
+                {/* Visual layer on top — pointerEvents none so taps reach the input */}
+                <Box flexDirection="row" alignItems="center" gap="sm" pointerEvents="none">
+                  <Text style={styles.prefix}>TASKO–</Text>
+                  <Box flexDirection="row" gap="sm" style={{ flex: 1 }}>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <MotiView
+                        key={i}
+                        animate={{
+                          borderColor: i < code.length
+                            ? PRIMARY
+                            : (i === code.length && focused ? PRIMARY : primaryAlpha(0.25)),
+                          backgroundColor: i < code.length
+                            ? primaryAlpha(0.08)
+                            : 'rgba(255,255,255,0.7)',
+                        }}
+                        transition={{ type: 'timing', duration: 150 }}
+                        style={styles.codeBox}
+                      >
+                        <Text style={styles.codeDigit}>{code[i] ?? ''}</Text>
+                      </MotiView>
+                    ))}
+                  </Box>
+                </Box>
+              </View>
+            </View>
+          </MotiView>
+
+          {error ? (
+            <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 12 }}>
+              <Text variant="errorText" style={{ textAlign: 'center' }}>{error}</Text>
+            </MotiView>
+          ) : null}
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 260 }}
+        style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
-        <Text style={styles.title}>Heb je een code?</Text>
-        <Text style={styles.subtitle}>
-          Jouw ouder heeft een code aangemaakt.{'\n'}Type hem hieronder in!
-        </Text>
-
-        <View style={styles.codeRow}>
-          <Text style={styles.prefix}>TASKO-</Text>
-          {code.map((char, i) => (
-            <TextInput
-              key={i}
-              ref={(el) => { inputs.current[i] = el; }}
-              style={[styles.codeBox, char ? styles.codeBoxFilled : null]}
-              value={char}
-              onChangeText={(t) => handleChange(t, i)}
-              onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-              maxLength={1}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              keyboardType="default"
-              textAlign="center"
-              selectionColor={Colors.primary}
-            />
-          ))}
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <Text style={styles.hint}>Vraag de code aan jouw ouder</Text>
-
-        <Button
-          label={loading ? 'Bezig...' : 'Bevestigen'}
+        <TouchableOpacity
+          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
           onPress={handleConfirm}
           disabled={!canContinue || loading}
-        />
-
-        <TouchableOpacity style={styles.noCodeBtn} activeOpacity={0.7}>
-          <Text style={styles.noCodeText}>Geen code? Vraag je ouder</Text>
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#e8e5dd" />
+            : <Text variant="btnPrimary">Bevestigen</Text>}
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+        <Text variant="legal" style={{ textAlign: 'center', paddingVertical: 4 }}>
+          Geen code? Vraag het je ouder
+        </Text>
+      </MotiView>
+
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 16 },
+  formCard: {
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
   },
-  content: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-    paddingBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    lineHeight: 22,
-    marginBottom: 36,
-  },
-  codeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  prefix: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.primary,
-    marginRight: 4,
-  },
+  prefix: { fontSize: 18, fontWeight: '700', color: '#1a1918' },
   codeBox: {
-    width: 52,
-    height: 56,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.card,
-    color: Colors.text.primary,
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
+    flex: 1, height: 60, borderRadius: 14,
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
   },
-  codeBoxFilled: {
-    borderColor: Colors.primary,
+  codeDigit: { fontSize: 22, fontWeight: '700', color: '#1a1918', textAlign: 'center' },
+  overlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    color: '#ffffff',
+    backgroundColor: 'transparent',
   },
-  errorText: {
-    fontSize: FontSize.sm,
-    color: Colors.status.error,
-    marginBottom: 8,
+  btnPrimary: {
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  hint: {
-    fontSize: FontSize.sm,
-    color: Colors.text.muted,
-    marginBottom: 24,
-  },
-  noCodeBtn: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  noCodeText: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-  },
+  btnDisabled: { opacity: 0.4 },
 });

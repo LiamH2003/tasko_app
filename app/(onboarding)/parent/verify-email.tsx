@@ -1,45 +1,29 @@
 import { useState, useRef } from 'react';
-import { Dimensions, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { BlurView } from 'expo-blur';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-
-const SCREEN_W = Dimensions.get('window').width;
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ParentVerifyEmailScreen() {
   const insets = useSafeAreaInsets();
   const { email } = useLocalSearchParams<{ email: string }>();
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [code, setCode] = useState('');
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [resendSent, setResendSent] = useState(false);
-  const inputs = useRef<(TextInput | null)[]>([null, null, null, null, null, null]);
+  const inputRef = useRef<TextInput | null>(null);
 
-  const handleChange = (text: string, index: number) => {
-    const char = text.replace(/[^0-9]/g, '').slice(-1);
-    const next = [...code];
-    next[index] = char;
-    setCode(next);
-    if (char && index < 5) inputs.current[index + 1]?.focus();
-  };
-
-  const handleKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !code[index] && index > 0) {
-      const next = [...code];
-      next[index - 1] = '';
-      setCode(next);
-      inputs.current[index - 1]?.focus();
-    }
-  };
-
-  const canVerify = code.join('').length === 6;
+  const canVerify = code.length === 6;
 
   const handleVerify = async () => {
     setError('');
@@ -47,8 +31,8 @@ export default function ParentVerifyEmailScreen() {
     try {
       const { error: err } = await supabase.auth.verifyOtp({
         email: email ?? '',
-        token: code.join(''),
-        type: 'email',
+        token: code,
+        type: 'signup',
       });
       if (err) throw err;
       router.push('/(onboarding)/parent/family-setup');
@@ -64,10 +48,11 @@ export default function ParentVerifyEmailScreen() {
     setError('');
     setResendSent(false);
     try {
-      await supabase.auth.signInWithOtp({ email: email ?? '', options: { shouldCreateUser: false } });
+      const { error: err } = await supabase.auth.resend({ type: 'signup', email: email ?? '' });
+      if (err) throw err;
       setResendSent(true);
-      setCode(['', '', '', '', '', '']);
-      inputs.current[0]?.focus();
+      setCode('');
+      inputRef.current?.focus();
     } catch (e: any) {
       setError(e.message ?? 'Opnieuw sturen mislukt. Probeer opnieuw.');
     } finally {
@@ -78,54 +63,43 @@ export default function ParentVerifyEmailScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      {/* Blob — top right */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.7 }}
-        animate={{ scale: 1.1, opacity: 1 }}
-        transition={{ type: 'timing', duration: 3600, loop: true, repeatReverse: true }}
-        style={{
-          position: 'absolute', width: 260, height: 260, borderRadius: 130,
-          backgroundColor: 'rgba(73,201,213,0.14)', top: -50, right: -60,
-        }}
-      />
-      {/* Blob — bottom left */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.4 }}
-        animate={{ scale: 1.08, opacity: 0.7 }}
-        transition={{ type: 'timing', duration: 2800, loop: true, repeatReverse: true, delay: 800 }}
-        style={{
-          position: 'absolute', width: 200, height: 200, borderRadius: 100,
-          backgroundColor: 'rgba(73,201,213,0.09)', bottom: 80, left: -60,
-        }}
-      />
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={300} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -60, left: -70 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, right: -50 }}
+        />
+      </View>
 
       <Box style={{ height: insets.top + 16 }} />
       <BackButton />
       <Box style={{ height: 12 }} />
       <StepBar step={2} total={4} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 4 — VERIFICATIE</Text>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 24, 40), alignItems: 'center' }}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
 
-        {/* Animated mail icon */}
+        {/* Mail icon with circle behind */}
         <MotiView
           from={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', damping: 14, stiffness: 100 }}
-          style={{ marginTop: 16, marginBottom: 24 }}
+          style={{ marginTop: 16, marginBottom: 24, alignSelf: 'center' }}
         >
-          <MotiView
-            from={{ translateY: 0 }}
-            animate={{ translateY: -6 }}
-            transition={{ type: 'timing', duration: 2400, loop: true, repeatReverse: true }}
-          >
+          <AnimatedFloat amplitude={6} duration={2400}>
             <Box style={styles.iconWrap}>
-              <Ionicons name="mail-outline" size={40} color="#49c9d5" />
+              <Ionicons name="mail-outline" size={44} color={PRIMARY} />
             </Box>
-          </MotiView>
+          </AnimatedFloat>
         </MotiView>
 
         {/* Heading */}
@@ -138,44 +112,51 @@ export default function ParentVerifyEmailScreen() {
           <Text variant="title" marginBottom="xs">Check je inbox</Text>
           <Text variant="subtitle">
             We hebben een 6-cijferige code gestuurd naar{' '}
-            <Text variant="subtitle" style={{ color: '#49c9d5', fontWeight: '600' }}>{email}</Text>.
+            <Text variant="subtitle" style={{ color: PRIMARY, fontWeight: '600' }}>{email}</Text>.
             {' '}Vul hem hieronder in.
           </Text>
         </MotiView>
 
-        {/* OTP boxes */}
+        {/* OTP boxes — single hidden input */}
         <MotiView
           from={{ opacity: 0, translateY: 14 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 360, delay: 180 }}
           style={{ width: '100%', marginBottom: 12 }}
         >
-          <Text variant="label" marginBottom="md" style={{ alignSelf: 'flex-start' }}>JOUW VERIFICATIECODE</Text>
-          <Box flexDirection="row" gap="sm" style={{ width: '100%' }}>
-            {code.map((char, i) => (
-              <MotiView
-                key={i}
-                animate={{
-                  borderColor: char ? '#49c9d5' : 'rgba(73,201,213,0.25)',
-                  backgroundColor: char ? 'rgba(73,201,213,0.08)' : 'rgba(255,255,255,0.7)',
-                }}
-                transition={{ type: 'timing', duration: 150 }}
-                style={[styles.codeBox]}
-              >
-                <TextInput
-                  ref={(el) => { inputs.current[i] = el; }}
-                  style={styles.codeInput}
-                  value={char}
-                  onChangeText={(t) => handleChange(t, i)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-                  maxLength={1}
-                  keyboardType="number-pad"
-                  textAlign="center"
-                  selectionColor="#49c9d5"
-                />
-              </MotiView>
-            ))}
-          </Box>
+          <Text variant="label" marginBottom="md" style={{ alignSelf: 'flex-start', color: '#6b6560' }}>JOUW VERIFICATIECODE</Text>
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              ref={inputRef}
+              value={code}
+              onChangeText={(t) => setCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              maxLength={6}
+              keyboardType="number-pad"
+              caretHidden
+              style={styles.overlayInput}
+            />
+            <Box flexDirection="row" gap="sm" style={{ width: '100%' }} pointerEvents="none">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <MotiView
+                  key={i}
+                  animate={{
+                    borderColor: i < code.length
+                      ? PRIMARY
+                      : (i === code.length && focused ? PRIMARY : primaryAlpha(0.25)),
+                    backgroundColor: i < code.length
+                      ? primaryAlpha(0.08)
+                      : 'rgba(255,255,255,0.7)',
+                  }}
+                  transition={{ type: 'timing', duration: 150 }}
+                  style={styles.codeBox}
+                >
+                  <Text style={styles.codeDigit}>{code[i] ?? ''}</Text>
+                </MotiView>
+              ))}
+            </Box>
+          </View>
         </MotiView>
 
         {error ? <Text variant="errorText" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>{error}</Text> : null}
@@ -188,20 +169,22 @@ export default function ParentVerifyEmailScreen() {
           transition={{ type: 'timing', duration: 300, delay: 280 }}
           style={{ width: '100%', marginBottom: 24 }}
         >
-          <BlurView intensity={30} tint="light" style={styles.infoCard}>
-            <Ionicons name="information-circle-outline" size={18} color="#49c9d5" style={{ flexShrink: 0 }} />
+          <View style={styles.infoCard}>
+            <Ionicons name="information-circle-outline" size={18} color={PRIMARY} style={{ flexShrink: 0 }} />
             <Text variant="cardSub" style={{ flex: 1, lineHeight: 18 }}>
               Geen code ontvangen? Controleer je spam-map of stuur de code opnieuw.
             </Text>
-          </BlurView>
+          </View>
         </MotiView>
 
-        {/* Verify button */}
+        <Box style={{ flex: 1, minHeight: 24, alignSelf: 'stretch' }} />
+
+        {/* Buttons */}
         <MotiView
           from={{ opacity: 0, translateY: 10 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 340, delay: 320 }}
-          style={{ width: '100%', gap: 10 }}
+          style={{ width: '100%', gap: 10, paddingBottom: Math.max(insets.bottom + 10, 24) }}
         >
           <TouchableOpacity
             style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
@@ -221,7 +204,7 @@ export default function ParentVerifyEmailScreen() {
             activeOpacity={0.7}
           >
             {resending
-              ? <ActivityIndicator color="#49c9d5" size="small" />
+              ? <ActivityIndicator color={PRIMARY} size="small" />
               : <Text variant="btnSecondary">Code opnieuw sturen</Text>}
           </TouchableOpacity>
         </MotiView>
@@ -232,40 +215,44 @@ export default function ParentVerifyEmailScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingHorizontal: 24, flexGrow: 1, alignItems: 'center' },
   iconWrap: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 16, shadowOpacity: 0.2, elevation: 6,
   },
   codeBox: {
     flex: 1, height: 64, borderRadius: 14,
-    borderWidth: 2, borderColor: 'rgba(73,201,213,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    overflow: 'hidden',
+    borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center',
   },
-  codeInput: {
-    flex: 1, height: '100%', fontSize: 24,
-    fontWeight: '700', color: '#1a1918', textAlign: 'center',
+  codeDigit: {
+    fontSize: 24, fontWeight: '700', color: '#1a1918', textAlign: 'center',
+  },
+  overlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    color: '#ffffff',
+    backgroundColor: 'transparent',
   },
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    padding: 14, borderRadius: 14, overflow: 'hidden',
+    padding: 14, borderRadius: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
   btnPrimary: {
-    height: 52, backgroundColor: '#49c9d5', borderRadius: 16,
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
   btnDisabled: { opacity: 0.4 },
   btnSecondary: {
     height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.4)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.4),
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
 });

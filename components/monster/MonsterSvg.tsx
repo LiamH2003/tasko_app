@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { PRIMARY, PRIMARY_DARK, primaryAlpha } from '@/constants/palette';
 
 interface MonsterSvgProps {
   size?: number;
@@ -18,7 +19,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
         top: s(20), left: s(16),
         width: s(128), height: s(128),
         borderRadius: s(64),
-        backgroundColor: 'rgba(73,201,213,0.10)',
+        backgroundColor: primaryAlpha(0.10),
       }} />
 
       {/* Left ear — CSS border triangle */}
@@ -29,7 +30,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
         borderLeftWidth: s(14), borderRightWidth: s(14), borderBottomWidth: s(36),
         borderStyle: 'solid',
         borderLeftColor: 'transparent', borderRightColor: 'transparent',
-        borderBottomColor: '#3797a0',
+        borderBottomColor: PRIMARY_DARK,
       }} />
 
       {/* Right ear — CSS border triangle */}
@@ -40,7 +41,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
         borderLeftWidth: s(14), borderRightWidth: s(14), borderBottomWidth: s(36),
         borderStyle: 'solid',
         borderLeftColor: 'transparent', borderRightColor: 'transparent',
-        borderBottomColor: '#3797a0',
+        borderBottomColor: PRIMARY_DARK,
       }} />
 
       {/* Head — teal ellipse */}
@@ -49,7 +50,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
         top: s(44), left: s(28),
         width: s(104), height: s(96),
         borderRadius: s(48),
-        backgroundColor: '#49c9d5',
+        backgroundColor: PRIMARY,
         overflow: 'hidden',
       }}>
 
@@ -122,7 +123,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
           top: s(57), left: s(20),
           width: s(16), height: s(10),
           borderRadius: s(5),
-          backgroundColor: '#3797a0',
+          backgroundColor: PRIMARY_DARK,
           opacity: 0.4,
         }} />
 
@@ -132,7 +133,7 @@ export function MonsterSvg({ size = 160 }: MonsterSvgProps) {
           top: s(57), right: s(20),
           width: s(16), height: s(10),
           borderRadius: s(5),
-          backgroundColor: '#3797a0',
+          backgroundColor: PRIMARY_DARK,
           opacity: 0.4,
         }} />
       </View>

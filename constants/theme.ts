@@ -1,3 +1,5 @@
+import { PRIMARY, PRIMARY_DARK, primaryAlpha } from './palette';
+
 // Design tokens from Figma (Bachelorproef — Individueel, node 1-8)
 export const Colors = {
   // Base surfaces
@@ -10,15 +12,15 @@ export const Colors = {
   heroBlob: '#1a3a3a',
 
   // Translucent teal — used for feature pill backgrounds / icon boxes
-  cardTint: 'rgba(73,201,213,0.07)',
-  iconBg:   'rgba(73,201,213,0.15)',
-  border:   'rgba(73,201,213,0.25)',
+  cardTint: primaryAlpha(0.07),
+  iconBg:   primaryAlpha(0.15),
+  border:   primaryAlpha(0.25),
 
   // Primary teal scale
-  primary:        '#49c9d5',  // blue-400
+  primary:        PRIMARY,
   primaryLight:   '#c7eef2',  // blue-300
   primaryMid:     '#42b5c0',  // blue-500
-  primaryDark:    '#3797a0',  // blue-700
+  primaryDark:    PRIMARY_DARK,
   primaryDeeper:  '#2c7980',  // blue-800
   primaryDeepest: '#215a60',  // blue-900
 
@@ -27,7 +29,7 @@ export const Colors = {
     primary:   '#fafbf6',  // white-400
     secondary: '#bcbcb9',  // white-700
     muted:     '#70716f',  // white-900
-    accent:    '#49c9d5',  // blue-400
+    accent:    PRIMARY,
   },
 
   // Semantic status colours (unchanged)
@@ -40,7 +42,7 @@ export const Colors = {
   // Mood palette
   mood: {
     great:  '#48bb78',
-    good:   '#49c9d5',
+    good:   PRIMARY,
     okay:   '#f6c644',
     sad:    '#6b9bff',
     angry:  '#fc6b6b',

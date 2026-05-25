@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { BlurView } from 'expo-blur';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-
-const SCREEN_W = Dimensions.get('window').width;
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
@@ -40,57 +40,44 @@ export default function ForgotPasswordScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      {/* Blob — top centre */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.65 }}
-        animate={{ scale: 1.1, opacity: 1 }}
-        transition={{ type: 'timing', duration: 3400, loop: true, repeatReverse: true }}
-        style={{
-          position: 'absolute', width: 280, height: 280, borderRadius: 140,
-          backgroundColor: 'rgba(73,201,213,0.13)', top: -70, left: (SCREEN_W - 280) / 2,
-        }}
-      />
-      {/* Blob — bottom right */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.35 }}
-        animate={{ scale: 1.07, opacity: 0.65 }}
-        transition={{ type: 'timing', duration: 2800, loop: true, repeatReverse: true, delay: 700 }}
-        style={{
-          position: 'absolute', width: 180, height: 180, borderRadius: 90,
-          backgroundColor: 'rgba(73,201,213,0.09)', bottom: 100, right: -50,
-        }}
-      />
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={300} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -60, left: -70 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, right: -50 }}
+        />
+      </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Box style={{ height: insets.top + 16 }} />
         <BackButton label="Terug naar inloggen" />
         <Box style={{ height: 12 }} />
         <StepBar step={1} total={3} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 3 — WACHTWOORD</Text>
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 24, 40), flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
 
-          {/* Step label + icon */}
+          {/* Icon */}
           <MotiView
-            from={{ opacity: 0, scale: 0.85 }}
+            from={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', damping: 14, stiffness: 100 }}
-            style={{ marginBottom: 24 }}
+            style={{ marginTop: 16, marginBottom: 24, alignSelf: 'center' }}
           >
-            <Text variant="label" marginBottom="lg">STAP 1 VAN 3 — WACHTWOORD</Text>
-            <MotiView
-              from={{ translateY: 0 }}
-              animate={{ translateY: -6 }}
-              transition={{ type: 'timing', duration: 2400, loop: true, repeatReverse: true }}
-              style={{ alignSelf: 'flex-start' }}
-            >
+            <AnimatedFloat amplitude={6} duration={2400}>
               <Box style={styles.iconWrap}>
-                <Ionicons name="mail-outline" size={38} color="#49c9d5" />
+                <Ionicons name="mail-outline" size={44} color={PRIMARY} />
               </Box>
-            </MotiView>
+            </AnimatedFloat>
           </MotiView>
 
           <MotiView
@@ -126,13 +113,13 @@ export default function ForgotPasswordScreen() {
               />
             </Box>
 
-            <BlurView intensity={30} tint="light" style={styles.infoCard}>
-              <Ionicons name="information-circle-outline" size={18} color="#49c9d5" style={{ flexShrink: 0 }} />
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle-outline" size={18} color={PRIMARY} style={{ flexShrink: 0 }} />
               <Text variant="cardSub" style={{ flex: 1, lineHeight: 18 }}>
                 We sturen een <Text variant="cardSub" style={{ fontWeight: '600', color: '#4a4845' }}>6-cijferige code</Text> naar dit adres.
                 Controleer ook je spam-map.
               </Text>
-            </BlurView>
+            </View>
           </MotiView>
 
           {error ? (
@@ -141,71 +128,67 @@ export default function ForgotPasswordScreen() {
             </MotiView>
           ) : null}
 
-          <Box flex={1} style={{ minHeight: 32 }} />
-
-          {/* CTA */}
-          <MotiView
-            from={{ opacity: 0, translateY: 12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 340, delay: 260 }}
-            style={{ gap: 10 }}
-          >
-            <TouchableOpacity
-              style={[styles.btnPrimary, (!canSubmit || loading) && styles.btnDisabled]}
-              onPress={handleSubmit}
-              disabled={!canSubmit || loading}
-              activeOpacity={0.85}
-            >
-              {loading
-                ? <ActivityIndicator color="#e8e5dd" />
-                : <Text variant="btnPrimary">Verstuur code</Text>}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.btnSecondary}
-              onPress={() => router.back()}
-              activeOpacity={0.7}
-            >
-              <Text variant="btnSecondary">Annuleren</Text>
-            </TouchableOpacity>
-          </MotiView>
-
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 260 }}
+        style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
+      >
+        <TouchableOpacity
+          style={[styles.btnPrimary, (!canSubmit || loading) && styles.btnDisabled]}
+          onPress={handleSubmit}
+          disabled={!canSubmit || loading}
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#e8e5dd" />
+            : <Text variant="btnPrimary">Verstuur code</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ alignItems: 'center', paddingVertical: 4 }}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text variant="legal" style={{ color: PRIMARY }}>Annuleren</Text>
+        </TouchableOpacity>
+      </MotiView>
+
     </Box>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 16, flexGrow: 1 },
   iconWrap: {
-    width: 88, height: 88, borderRadius: 44,
+    width: 96, height: 96, borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 14, shadowOpacity: 0.2, elevation: 5,
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 16, shadowOpacity: 0.2, elevation: 6,
   },
   inputBox: {
     height: 50, flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    borderRadius: 12, borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     paddingHorizontal: 14, gap: 10,
   },
   input: { flex: 1, fontSize: 15, color: '#1a1918', padding: 0 },
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    padding: 14, borderRadius: 14, overflow: 'hidden',
+    padding: 14, borderRadius: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
   btnPrimary: {
-    height: 52, backgroundColor: '#49c9d5', borderRadius: 16,
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
   btnDisabled: { opacity: 0.4 },
-  btnSecondary: {
-    height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-  },
 });

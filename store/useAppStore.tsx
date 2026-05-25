@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
@@ -170,7 +170,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const value: AppContextValue = {
+  const value = useMemo<AppContextValue>(() => ({
     ...state,
     createProfile: (payload) => dispatch({ type: 'CREATE_PROFILE', payload }),
     toggleTask: (taskId) => dispatch({ type: 'TOGGLE_TASK', taskId }),
@@ -187,7 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await SecureStore.deleteItemAsync('childId');
       dispatch({ type: 'SET_CHILD_ID', childId: null });
     },
-  };
+  }), [state]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

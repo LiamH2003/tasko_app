@@ -1,25 +1,18 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, FontSize, FontWeight, Spacing, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
-import { Button } from '@/components/ui/Button';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { useAppStore } from '@/store/useAppStore';
-import { useState } from 'react';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
-type IoniconName = keyof typeof Ionicons.glyphMap;
-
-const FEATURES: { icon: IoniconName; title: string; detail: string }[] = [
-  { icon: 'refresh-outline',  title: 'Jouw routines bijhouden', detail: 'plan en volg je dag' },
-  { icon: 'happy-outline',    title: 'Zien hoe je je voelt',    detail: 'Tasko luistert altijd' },
-  { icon: 'scan-outline',     title: 'Focussen zonder afleiding', detail: 'rust in je hoofd' },
-];
-
-// Replace with actual child name from store/params when wired up
 const CHILD_NAME = 'Sam';
 
 export default function ChildWelcomeScreen() {
@@ -27,148 +20,140 @@ export default function ChildWelcomeScreen() {
   const { setChildId } = useAppStore();
   const [loading, setLoading] = useState(false);
 
+  const handleStart = async () => {
+    setLoading(true);
+    try {
+      const pendingId = await SecureStore.getItemAsync('pendingChildId');
+      if (pendingId) {
+        await setChildId(pendingId);
+        await SecureStore.deleteItemAsync('pendingChildId');
+      }
+    } catch {
+      // non-fatal — routing will still proceed
+    } finally {
+      setLoading(false);
+    }
+    router.replace('/(child)');
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={{ height: insets.top + 16 }} />
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={300} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -60, left: -70 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, right: -50 }}
+        />
+      </View>
+
+      <Box style={{ height: insets.top + 16 }} />
       <BackButton />
-      <View style={{ height: 12 }} />
+      <Box style={{ height: 12 }} />
       <StepBar step={4} total={4} />
-      <View style={styles.content}>
-        <Image
-          source={require('@/assets/images/mascot.svg')}
-          style={styles.mascot}
-          contentFit="contain"
-        />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 4 — KLAAR</Text>
 
-        <View style={styles.bubble}>
-          <Text style={styles.bubbleText}>
-            "Aangenaam kennis te maken, {CHILD_NAME}!"
+      <Box flex={1} paddingHorizontal="lg" alignItems="center" justifyContent="center">
+
+        {/* Mascot */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 14, stiffness: 100 }}
+          style={{ marginBottom: 16 }}
+        >
+          <AnimatedFloat amplitude={7} duration={2400}>
+            <Box style={styles.mascotWrap}>
+              <Image
+                source={require('@/assets/images/mascot.svg')}
+                style={{ width: 100, height: 100 }}
+                contentFit="contain"
+              />
+            </Box>
+          </AnimatedFloat>
+        </MotiView>
+
+        {/* Speech bubble */}
+        <MotiView
+          from={{ opacity: 0, translateY: 8 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 120 }}
+          style={{ width: '100%', marginBottom: 20 }}
+        >
+          <View style={styles.bubble}>
+            <Text style={styles.bubbleText}>
+              "Aangenaam kennis te maken, {CHILD_NAME}!"
+            </Text>
+          </View>
+        </MotiView>
+
+        {/* Heading */}
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 200 }}
+          style={{ width: '100%', marginBottom: 24 }}
+        >
+          <Text variant="title" style={{ textAlign: 'center' }} marginBottom="xs">
+            Welkom bij Tasko, {CHILD_NAME}!
           </Text>
-        </View>
+          <Text variant="subtitle" style={{ textAlign: 'center' }}>
+            Jouw ruimte is klaar. Laten we beginnen{'\n'}met je eerste routine!
+          </Text>
+        </MotiView>
 
-        <Text style={styles.title}>Welkom bij Tasko, {CHILD_NAME}!</Text>
-        <Text style={styles.subtitle}>
-          Jouw ruimte is klaar. Laten we beginnen{'\n'}met je eerste routine!
-        </Text>
 
-        <View style={styles.features}>
-          {FEATURES.map((f) => (
-            <View key={f.title} style={styles.featureRow}>
-              <View style={styles.featureIcon}>
-                <Ionicons name={f.icon} size={18} color={Colors.primary} />
-              </View>
-              <Text style={styles.featureText}>
-                <Text style={styles.featureBold}>{f.title}</Text>
-                {' — '}
-                <Text style={styles.featureDetail}>{f.detail}</Text>
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
+      </Box>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 8, 32) }]}>
-        <Button
-          label={loading ? 'Bezig...' : 'Start mijn avontuur'}
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 500 }}
+        style={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 10, 24) }}
+      >
+        <TouchableOpacity
+          style={[styles.btnPrimary, loading && styles.btnDisabled]}
+          onPress={handleStart}
           disabled={loading}
-          onPress={async () => {
-            setLoading(true);
-            try {
-              const pendingId = await SecureStore.getItemAsync('pendingChildId');
-              if (pendingId) {
-                await setChildId(pendingId);
-                await SecureStore.deleteItemAsync('pendingChildId');
-              }
-            } catch {
-              // non-fatal — routing will still proceed
-            } finally {
-              setLoading(false);
-            }
-            router.replace('/(child)');
-          }}
-        />
-      </View>
-    </View>
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#e8e5dd" />
+            : <Text variant="btnPrimary">Start mijn avontuur</Text>}
+        </TouchableOpacity>
+      </MotiView>
+
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 8,
-  },
-  mascot: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
+  mascotWrap: {
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.3),
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 20, shadowOpacity: 0.2, elevation: 8,
   },
   bubble: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    paddingVertical: 12, paddingHorizontal: 20,
   },
   bubbleText: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    fontSize: 14, color: '#6b6560', textAlign: 'center', fontStyle: 'italic', lineHeight: 20,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: FontWeight.bold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: 10,
+  btnPrimary: {
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  subtitle: {
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 28,
-  },
-  features: {
-    width: '100%',
-    gap: 14,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  featureIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: Colors.iconBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: FontSize.md,
-    color: Colors.text.secondary,
-    lineHeight: 20,
-  },
-  featureBold: {
-    fontWeight: FontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  featureDetail: {
-    color: Colors.text.secondary,
-  },
-  footer: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 16,
-  },
+  btnDisabled: { opacity: 0.4 },
 });

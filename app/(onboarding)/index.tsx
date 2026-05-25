@@ -1,12 +1,12 @@
-import { Dimensions, TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
-import { BlurView } from 'expo-blur';
 import { Box, Text } from '@/components/ui/primitives';
-
-const SCREEN_W = Dimensions.get('window').width;
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const FEATURES = [
   { icon: require('@/assets/images/icons/routines_icon.png'),  title: 'Focus Mode',      description: 'Dagelijkse routines zonder afleiding' },
@@ -20,52 +20,27 @@ export default function WelcomeScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      {/* Large soft teal blob — top centre */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.7 }}
-        animate={{ scale: 1.1, opacity: 1 }}
-        transition={{ type: 'timing', duration: 3600, loop: true, repeatReverse: true }}
-        style={{
-          position: 'absolute',
-          width: 380,
-          height: 380,
-          borderRadius: 190,
-          backgroundColor: 'rgba(73,201,213,0.14)',
-          top: -60,
-          left: (SCREEN_W - 380) / 2,
-        }}
+      <AnimatedBlob
+        size={380} color={primaryAlpha(0.14)}
+        duration={3600} opacityFrom={0.7} opacityTo={1} scaleTarget={1.1}
+        style={{ top: -60, left: '50%', marginLeft: -190 }}
       />
-
-      {/* Smaller accent blob — bottom right */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.5 }}
-        animate={{ scale: 1.06, opacity: 0.8 }}
-        transition={{ type: 'timing', duration: 2800, loop: true, repeatReverse: true, delay: 800 }}
-        style={{
-          position: 'absolute',
-          width: 200,
-          height: 200,
-          borderRadius: 100,
-          backgroundColor: 'rgba(73,201,213,0.09)',
-          bottom: 120,
-          right: -60,
-        }}
+      <AnimatedBlob
+        size={200} color={primaryAlpha(0.09)}
+        duration={2800} delay={800} opacityFrom={0.5} opacityTo={0.8} scaleTarget={1.06}
+        style={{ bottom: 120, right: -60 }}
       />
 
       <Box style={{ height: insets.top }} />
 
-      {/* ── Mascot + brand — upper middle ── */}
+      {/* ── Mascot + brand ── */}
       <MotiView
         from={{ opacity: 0, translateY: -16 }}
         animate={{ opacity: 1, translateY: 0 }}
         transition={{ type: 'spring', damping: 18, stiffness: 100, delay: 0 }}
         style={{ alignItems: 'center', paddingTop: 40 }}
       >
-        <MotiView
-          from={{ translateY: 0 }}
-          animate={{ translateY: -9 }}
-          transition={{ type: 'timing', duration: 2600, loop: true, repeatReverse: true }}
-        >
+        <AnimatedFloat amplitude={9} duration={2600}>
           <Box style={styles.mascotWrap}>
             <Image
               source={require('@/assets/images/mascot.svg')}
@@ -73,7 +48,7 @@ export default function WelcomeScreen() {
               contentFit="contain"
             />
           </Box>
-        </MotiView>
+        </AnimatedFloat>
 
         <MotiView
           from={{ opacity: 0, translateY: 8 }}
@@ -81,7 +56,14 @@ export default function WelcomeScreen() {
           transition={{ type: 'timing', duration: 380, delay: 200 }}
           style={{ alignItems: 'center' }}
         >
-          <Text variant="eyebrow" marginTop="md" marginBottom="xs">JOUW DAGELIJKS AVONTUUR</Text>
+          <Text
+            variant="eyebrow"
+            marginTop="md"
+            marginBottom="xs"
+            style={{ color: '#6b6560', letterSpacing: 2 }}
+          >
+            JOUW DAGELIJKS AVONTUUR
+          </Text>
           <Text variant="brand" marginBottom="sm">Tasko Tracker</Text>
           <Text variant="tagline" style={{ maxWidth: 260 }}>
             {'Dagelijkse structuur die rustig aanvoelt,\nvoor elk kind en elk gezin.'}
@@ -98,23 +80,20 @@ export default function WelcomeScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 340, delay: 320 + i * 80 }}
           >
-            <BlurView intensity={40} tint="light" style={styles.card}>
+            <View style={styles.card}>
               <Box
-                width={40}
-                height={40}
-                borderRadius="md"
+                width={40} height={40} borderRadius="md"
                 backgroundColor="iconBg"
-                alignItems="center"
-                justifyContent="center"
+                alignItems="center" justifyContent="center"
                 style={{ flexShrink: 0 }}
               >
-                <Image source={f.icon} style={{ width: 21, height: 21 }} contentFit="contain" />
+                <Image source={f.icon} style={{ width: 21, height: 21 }} contentFit="contain" tintColor={PRIMARY} />
               </Box>
               <Box flex={1}>
                 <Text variant="cardTitle">{f.title}</Text>
                 <Text variant="cardSub">{f.description}</Text>
               </Box>
-            </BlurView>
+            </View>
           </MotiView>
         ))}
       </Box>
@@ -166,10 +145,10 @@ const styles = StyleSheet.create({
     borderRadius: 82,
     backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1.5,
-    borderColor: 'rgba(73,201,213,0.3)',
+    borderColor: primaryAlpha(0.3),
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#49c9d5',
+    shadowColor: PRIMARY,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 20,
     shadowOpacity: 0.22,
@@ -182,18 +161,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 16,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
   },
   btnPrimary: {
     height: 52,
-    backgroundColor: '#49c9d5',
+    backgroundColor: PRIMARY,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#49c9d5',
+    shadowColor: PRIMARY,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     shadowOpacity: 0.35,
@@ -203,7 +181,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: 'rgba(73,201,213,0.4)',
+    borderColor: primaryAlpha(0.4),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.5)',

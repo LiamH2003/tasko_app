@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
-import { BlurView } from 'expo-blur';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-
-const SCREEN_W = Dimensions.get('window').width;
+import { PRIMARY, PRIMARY_DARK, primaryAlpha } from '@/constants/palette';
 
 type Rule = { label: string; test: (p: string) => boolean };
 
@@ -51,25 +51,15 @@ export default function ForgotResetScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      {/* Blob — top right */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.65 }}
-        animate={{ scale: 1.1, opacity: 1 }}
-        transition={{ type: 'timing', duration: 3500, loop: true, repeatReverse: true }}
-        style={{
-          position: 'absolute', width: 260, height: 260, borderRadius: 130,
-          backgroundColor: 'rgba(73,201,213,0.13)', top: -50, right: -60,
-        }}
+      <AnimatedBlob
+        size={260} color={primaryAlpha(0.13)}
+        duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.1}
+        style={{ top: -50, right: -60 }}
       />
-      {/* Blob — bottom left */}
-      <MotiView
-        from={{ scale: 1, opacity: 0.35 }}
-        animate={{ scale: 1.08, opacity: 0.65 }}
-        transition={{ type: 'timing', duration: 2900, loop: true, repeatReverse: true, delay: 600 }}
-        style={{
-          position: 'absolute', width: 200, height: 200, borderRadius: 100,
-          backgroundColor: 'rgba(73,201,213,0.09)', bottom: 80, left: -55,
-        }}
+      <AnimatedBlob
+        size={200} color={primaryAlpha(0.09)}
+        duration={2900} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.08}
+        style={{ bottom: 80, left: -55 }}
       />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -79,7 +69,7 @@ export default function ForgotResetScreen() {
         <StepBar step={3} total={3} />
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 24, 40), flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -92,16 +82,11 @@ export default function ForgotResetScreen() {
             style={{ marginBottom: 24 }}
           >
             <Text variant="label" marginBottom="lg">STAP 3 VAN 3 — WACHTWOORD</Text>
-            <MotiView
-              from={{ translateY: 0 }}
-              animate={{ translateY: -6 }}
-              transition={{ type: 'timing', duration: 2400, loop: true, repeatReverse: true }}
-              style={{ alignSelf: 'flex-start' }}
-            >
+            <AnimatedFloat amplitude={6} duration={2400} style={{ alignSelf: 'flex-start' }}>
               <Box style={styles.iconWrap}>
-                <Ionicons name="lock-closed-outline" size={38} color="#49c9d5" />
+                <Ionicons name="lock-closed-outline" size={38} color={PRIMARY} />
               </Box>
-            </MotiView>
+            </AnimatedFloat>
           </MotiView>
 
           {/* Heading */}
@@ -140,16 +125,16 @@ export default function ForgotResetScreen() {
               </TouchableOpacity>
             </Box>
 
-            {/* Animated rules checklist */}
-            <BlurView intensity={30} tint="light" style={[styles.rulesCard, { marginBottom: 20 }]}>
+            {/* Rules checklist */}
+            <View style={[styles.rulesCard, { marginBottom: 20 }]}>
               {RULES.map((rule) => {
                 const passed = rule.test(password);
                 return (
                   <Box key={rule.label} flexDirection="row" alignItems="center" gap="sm" style={{ marginBottom: 8 }}>
                     <MotiView
                       animate={{
-                        backgroundColor: passed ? '#49c9d5' : 'transparent',
-                        borderColor: passed ? '#49c9d5' : 'rgba(73,201,213,0.35)',
+                        backgroundColor: passed ? PRIMARY : 'transparent',
+                        borderColor: passed ? PRIMARY : primaryAlpha(0.35),
                       }}
                       transition={{ type: 'timing', duration: 200 }}
                       style={styles.ruleCheck}
@@ -163,20 +148,20 @@ export default function ForgotResetScreen() {
                     </MotiView>
                     <Text
                       variant="cardSub"
-                      style={{ color: passed ? '#3797a0' : '#8a8885', fontWeight: passed ? '500' : '400' }}
+                      style={{ color: passed ? PRIMARY_DARK : '#8a8885', fontWeight: passed ? '500' : '400' }}
                     >
                       {rule.label}
                     </Text>
                   </Box>
                 );
               })}
-            </BlurView>
+            </View>
 
             <Text variant="label" marginBottom="sm">BEVESTIG WACHTWOORD</Text>
             <Box style={[styles.inputBox, { marginBottom: 8,
               borderColor: confirm.length > 0
-                ? (passwordsMatch ? '#49c9d5' : '#fc6b6b')
-                : 'rgba(73,201,213,0.3)',
+                ? (passwordsMatch ? PRIMARY : '#fc6b6b')
+                : primaryAlpha(0.3),
             }]}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
@@ -231,25 +216,26 @@ export default function ForgotResetScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 40, flexGrow: 1 },
   iconWrap: {
     width: 88, height: 88, borderRadius: 44,
     backgroundColor: 'rgba(255,255,255,0.75)',
-    borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 14, shadowOpacity: 0.2, elevation: 5,
   },
   inputBox: {
     height: 50, flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(73,201,213,0.3)',
+    borderRadius: 12, borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     paddingHorizontal: 14, gap: 8,
   },
   input: { fontSize: 15, color: '#1a1918', padding: 0 },
   rulesCard: {
-    padding: 16, borderRadius: 16, overflow: 'hidden',
+    padding: 16, borderRadius: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
   },
   ruleCheck: {
     width: 20, height: 20, borderRadius: 5,
@@ -257,9 +243,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   btnPrimary: {
-    height: 52, backgroundColor: '#49c9d5', borderRadius: 16,
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#49c9d5', shadowOffset: { width: 0, height: 4 },
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
   btnDisabled: { opacity: 0.4 },

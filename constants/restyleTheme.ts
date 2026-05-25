@@ -1,16 +1,17 @@
 import { createTheme } from '@shopify/restyle';
+import { PRIMARY, PRIMARY_DARK, primaryAlpha } from './palette';
 
 export const theme = createTheme({
   colors: {
-    background:   '#e8e5dd',
+    background:   '#e2e4e6',
     surface:      '#ffffff',
-    primary:      '#49c9d5',
-    primaryDark:  '#3797a0',
+    primary:      PRIMARY,
+    primaryDark:  PRIMARY_DARK,
     textPrimary:  '#1a1918',
     textSecondary:'#4a4845',
     textMuted:    '#8a8885',
-    iconBg:       'rgba(73,201,213,0.14)',
-    border:       'rgba(73,201,213,0.4)',
+    iconBg:       primaryAlpha(0.14),
+    border:       primaryAlpha(0.4),
     borderLight:  'rgba(255,255,255,0.9)',
     cardBg:       'rgba(255,255,255,0.45)',
     inputBg:      'rgba(255,255,255,0.7)',

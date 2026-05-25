@@ -1,5 +1,6 @@
 import { TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Text } from './primitives';
+import { PRIMARY, PRIMARY_DARK, primaryAlpha } from '@/constants/palette';
 
 interface ButtonProps {
   label: string;
@@ -19,7 +20,7 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading 
       activeOpacity={0.85}
     >
       {loading
-        ? <ActivityIndicator color={isPrimary ? '#e8e5dd' : '#3797a0'} />
+        ? <ActivityIndicator color={isPrimary ? '#e8e5dd' : PRIMARY_DARK} />
         : <Text variant={isPrimary ? 'btnPrimary' : 'btnSecondary'}>{label}</Text>}
     </TouchableOpacity>
   );
@@ -33,8 +34,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: '#49c9d5',
-    shadowColor: '#49c9d5',
+    backgroundColor: PRIMARY,
+    shadowColor: PRIMARY,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     shadowOpacity: 0.35,
@@ -42,7 +43,7 @@ const styles = StyleSheet.create({
   },
   secondary: {
     borderWidth: 1.5,
-    borderColor: 'rgba(73,201,213,0.4)',
+    borderColor: primaryAlpha(0.4),
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   disabled: { opacity: 0.4 },
