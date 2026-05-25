@@ -10,6 +10,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { signUp } from '@/services/auth';
+import { signInWithProvider } from '@/services/oauth';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ParentAccountScreen() {
@@ -20,9 +21,22 @@ export default function ParentAccountScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const [error, setError] = useState('');
 
   const [canContinue, setCanContinue] = useState(false);
+
+  const handleSocialRegister = async (provider: 'google' | 'facebook') => {
+    setError('');
+    setSocialLoading(provider);
+    try {
+      await signInWithProvider(provider);
+    } catch (e: any) {
+      setError(e.message ?? 'Registratie mislukt. Probeer opnieuw.');
+    } finally {
+      setSocialLoading(null);
+    }
+  };
 
   const check = (e: string, p: string, c: string) =>
     e.trim().includes('@') && p.trim().length >= 6 && p.trim() === c.trim();
@@ -76,12 +90,20 @@ export default function ParentAccountScreen() {
             >
               <Box flexDirection="row" gap="sm" marginBottom="md">
                 {[
-                  { key: 'facebook', icon: require('@/assets/images/icons/logo_fb.svg') },
-                  { key: 'google',   icon: require('@/assets/images/icons/logo_google.svg') },
+                  { key: 'google'   as const, icon: require('@/assets/images/icons/logo_fb.svg') },
+                  { key: 'facebook' as const, icon: require('@/assets/images/icons/logo_google.svg') },
                 ].map((s) => (
-                  <TouchableOpacity key={s.key} activeOpacity={0.8} style={{ flex: 1 }}>
+                  <TouchableOpacity
+                    key={s.key}
+                    activeOpacity={0.8}
+                    style={{ flex: 1 }}
+                    onPress={() => handleSocialRegister(s.key)}
+                    disabled={socialLoading !== null}
+                  >
                     <View style={styles.socialIconBtn}>
-                      <Image source={s.icon} style={{ width: 24, height: 24 }} contentFit="contain" />
+                      {socialLoading === s.key
+                        ? <ActivityIndicator size="small" color={PRIMARY} />
+                        : <Image source={s.icon} style={{ width: 24, height: 24 }} contentFit="contain" />}
                     </View>
                   </TouchableOpacity>
                 ))}
