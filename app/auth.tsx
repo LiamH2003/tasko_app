@@ -10,7 +10,7 @@ export default function AuthCallbackScreen() {
         if (onboardingComplete) {
           router.replace('/(parent)');
         } else {
-          router.replace('/(onboarding)/parent/family-setup');
+          router.replace('/(onboarding)/parent/family-choice');
         }
       } else {
         router.replace('/(onboarding)');

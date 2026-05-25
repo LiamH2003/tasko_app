@@ -35,7 +35,7 @@ export default function ParentVerifyEmailScreen() {
         type: 'signup',
       });
       if (err) throw err;
-      router.push('/(onboarding)/parent/family-setup');
+      router.push('/(onboarding)/parent/family-choice');
     } catch (e: any) {
       setError(e.message ?? 'Ongeldige code. Controleer de code en probeer opnieuw.');
     } finally {
@@ -79,8 +79,8 @@ export default function ParentVerifyEmailScreen() {
       <Box style={{ height: insets.top + 16 }} />
       <BackButton />
       <Box style={{ height: 12 }} />
-      <StepBar step={2} total={4} />
-      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 4 — VERIFICATIE</Text>
+      <StepBar step={2} total={5} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 5 — VERIFICATIE</Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -234,8 +234,7 @@ const styles = StyleSheet.create({
   },
   overlayInput: {
     ...StyleSheet.absoluteFillObject,
-    color: '#ffffff',
-    backgroundColor: 'transparent',
+    opacity: 0,
   },
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,

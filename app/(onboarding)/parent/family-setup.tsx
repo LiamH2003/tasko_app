@@ -41,8 +41,8 @@ export default function ParentFamilySetupScreen() {
         <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={3} total={4} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 3 VAN 4 — GEZIN</Text>
+        <StepBar step={4} total={5} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 5 — GEZIN</Text>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}

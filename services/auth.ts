@@ -37,3 +37,18 @@ export async function completeOnboarding() {
   });
   if (error) throw error;
 }
+
+// Looks up a family by the child invite code and links the current user to that family.
+// Returns the family name so it can be shown on the success screen.
+export async function joinFamilyByCode(code: string, parentName: string): Promise<string> {
+  const { data, error } = await supabase.rpc('get_child_by_invite_code', { code });
+  if (error) throw error;
+  const rows = data as { parent_id: string; name: string }[] | null;
+  if (!rows || rows.length === 0) throw new Error('Onbekende code. Controleer de code bij je partner.');
+  const { parent_id, name: familyName } = rows[0];
+  const { error: updateError } = await supabase.auth.updateUser({
+    data: { first_name: parentName, family_name: familyName, linked_parent_id: parent_id },
+  });
+  if (updateError) throw updateError;
+  return familyName;
+}

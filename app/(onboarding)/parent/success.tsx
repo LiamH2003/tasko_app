@@ -14,11 +14,13 @@ import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ParentSuccessScreen() {
   const insets = useSafeAreaInsets();
-  const { parentName, familyName, inviteCode } = useLocalSearchParams<{
+  const { parentName, familyName, inviteCode, joined } = useLocalSearchParams<{
     parentName: string;
     familyName: string;
     inviteCode: string;
+    joined: string;
   }>();
+  const isJoining = joined === 'true';
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
@@ -50,8 +52,8 @@ export default function ParentSuccessScreen() {
       <Box style={{ height: insets.top + 16 }} />
       <BackButton />
       <Box style={{ height: 12 }} />
-      <StepBar step={4} total={4} />
-      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 4 — KLAAR</Text>
+      <StepBar step={5} total={5} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 5 VAN 5 — KLAAR</Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -78,9 +80,13 @@ export default function ParentSuccessScreen() {
           transition={{ type: 'timing', duration: 340, delay: 100 }}
           style={{ marginBottom: 24 }}
         >
-          <Text variant="title" marginBottom="xs">Je bent klaar, {parentName}!</Text>
+          <Text variant="title" marginBottom="xs">
+            {isJoining ? `Je bent verbonden, ${parentName}!` : `Je bent klaar, ${parentName}!`}
+          </Text>
           <Text variant="subtitle">
-            Jouw gezinsruimte is aangemaakt. Zodra je kind de code invoert, verschijnt hij hier.
+            {isJoining
+              ? `Je hebt je aangesloten bij ${familyName}. Je kunt nu het dashboard bekijken.`
+              : 'Jouw gezinsruimte is aangemaakt. Zodra je kind de code invoert, verschijnt hij hier.'}
           </Text>
         </MotiView>
 
@@ -102,17 +108,20 @@ export default function ParentSuccessScreen() {
               </Box>
             </Box>
 
-            <Box style={styles.divider} />
-
-            <Box flexDirection="row" alignItems="center" gap="md">
-              <Box style={styles.iconBox}>
-                <Ionicons name="key-outline" size={20} color={PRIMARY} />
-              </Box>
-              <Box flex={1}>
-                <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>UITNODIGINGSCODE VOOR KIND</Text>
-                <Text style={styles.cardValue}>{inviteCode}</Text>
-              </Box>
-            </Box>
+            {!isJoining && (
+              <>
+                <Box style={styles.divider} />
+                <Box flexDirection="row" alignItems="center" gap="md">
+                  <Box style={styles.iconBox}>
+                    <Ionicons name="key-outline" size={20} color={PRIMARY} />
+                  </Box>
+                  <Box flex={1}>
+                    <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>CODE VOOR KIND & PARTNER</Text>
+                    <Text style={styles.cardValue}>{inviteCode}</Text>
+                  </Box>
+                </Box>
+              </>
+            )}
 
           </View>
         </MotiView>

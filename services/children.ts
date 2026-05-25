@@ -2,12 +2,9 @@ import { supabase } from '@/lib/supabase';
 import type { ChildRow } from '@/lib/database.types';
 
 export async function getChildren(): Promise<ChildRow[]> {
-  const { data, error } = await supabase
-    .from('children')
-    .select('*')
-    .order('created_at');
+  const { data, error } = await supabase.rpc('get_children_for_parent');
   if (error) throw error;
-  return data;
+  return (data as ChildRow[]) ?? [];
 }
 
 export async function getChild(id: string): Promise<ChildRow> {

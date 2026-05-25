@@ -62,8 +62,8 @@ export default function ParentAccountScreen() {
       <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={1} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 4 — ACCOUNT</Text>
+        <StepBar step={1} total={5} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 5 — ACCOUNT</Text>
 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView

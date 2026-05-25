@@ -1,46 +1,25 @@
 import { useState, useRef } from 'react';
-import {
-  View, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { getChildByInviteCode } from '@/services/children';
+import { joinFamilyByCode } from '@/services/auth';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
-export default function ChildInviteCodeScreen() {
+export default function JoinFamilyScreen() {
   const insets = useSafeAreaInsets();
+  const [parentName, setParentName] = useState('');
   const [code, setCode] = useState('');
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<TextInput | null>(null);
 
-  const canContinue = code.length === 4;
-
-  const handleConfirm = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const child = await getChildByInviteCode(`TASKO-${code}`);
-      if (!child) {
-        setError('Onbekende code. Controleer de code bij je ouder.');
-        return;
-      }
-      await SecureStore.setItemAsync('pendingChildId', child.id);
-      router.push('/(onboarding)/child/profile');
-    } catch (e: any) {
-      setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const canContinue = parentName.trim().length > 0 && code.length === 4;
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -62,8 +41,8 @@ export default function ChildInviteCodeScreen() {
         <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={1} total={4} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 4 — CODE</Text>
+        <StepBar step={4} total={5} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 5 — GEZIN</Text>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -74,25 +53,48 @@ export default function ChildInviteCodeScreen() {
             from={{ opacity: 0, translateY: 14 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 340, delay: 60 }}
-            style={{ marginBottom: 28 }}
+            style={{ marginBottom: 24 }}
           >
-            <Text variant="title" marginBottom="xs">Heb je een code?</Text>
-            <Text variant="subtitle">Jouw ouder heeft een code aangemaakt. Type hem hieronder in!</Text>
+            <Text variant="title" marginBottom="xs">Aansluiten bij gezin</Text>
+            <Text variant="subtitle">Voer de gezinscode in die je van je partner hebt gekregen.</Text>
           </MotiView>
 
+          {/* Name card */}
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 360, delay: 140 }}
+            transition={{ type: 'timing', duration: 360, delay: 120 }}
+            style={{ marginBottom: 12 }}
+          >
+            <View style={styles.formCard}>
+              <Text variant="label" marginBottom="sm" style={{ color: '#6b6560' }}>JOUW NAAM</Text>
+              <Box style={styles.inputBox}>
+                <TextInput
+                  style={styles.input}
+                  value={parentName}
+                  onChangeText={setParentName}
+                  placeholder="Jouw naam of bijnaam"
+                  placeholderTextColor="#8a8885"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+              </Box>
+            </View>
+          </MotiView>
+
+          {/* Code card — same pattern as child invite-code */}
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 360, delay: 200 }}
           >
             <View style={styles.formCard}>
               <Text variant="label" marginBottom="sm" style={{ color: '#6b6560' }}>GEZINSCODE</Text>
               <Text variant="cardSub" style={{ marginBottom: 16, lineHeight: 18 }}>
-                Vraag de code aan jouw ouder.
+                Je partner vindt deze code terug in de instellingen van het dashboard.
               </Text>
 
               <View style={{ position: 'relative' }}>
-                {/* Input first = paints behind the visual layer */}
                 <TextInput
                   ref={inputRef}
                   value={code}
@@ -105,7 +107,6 @@ export default function ChildInviteCodeScreen() {
                   caretHidden
                   style={styles.overlayInput}
                 />
-                {/* Visual layer on top — pointerEvents none so taps reach the input */}
                 <Box flexDirection="row" alignItems="center" gap="sm" pointerEvents="none">
                   <Text style={styles.prefix}>TASKO–</Text>
                   <Box flexDirection="row" gap="sm" style={{ flex: 1 }}>
@@ -144,23 +145,33 @@ export default function ChildInviteCodeScreen() {
       <MotiView
         from={{ opacity: 0, translateY: 12 }}
         animate={{ opacity: 1, translateY: 0 }}
-        transition={{ type: 'timing', duration: 340, delay: 260 }}
+        transition={{ type: 'timing', duration: 340, delay: 280 }}
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
           style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
-          onPress={handleConfirm}
+          onPress={async () => {
+            setError('');
+            setLoading(true);
+            try {
+              const familyName = await joinFamilyByCode(`TASKO-${code}`, parentName.trim());
+              router.push({
+                pathname: '/(onboarding)/parent/success',
+                params: { parentName: parentName.trim(), familyName, inviteCode: '', joined: 'true' },
+              });
+            } catch (e: any) {
+              setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
+            } finally {
+              setLoading(false);
+            }
+          }}
           disabled={!canContinue || loading}
           activeOpacity={0.85}
         >
           {loading
             ? <ActivityIndicator color="#e8e5dd" />
-            : <Text variant="btnPrimary">Bevestigen</Text>}
+            : <Text variant="btnPrimary">Aansluiten</Text>}
         </TouchableOpacity>
-
-        <Text variant="legal" style={{ textAlign: 'center', paddingVertical: 4 }}>
-          Geen code? Vraag het je ouder
-        </Text>
       </MotiView>
 
     </Box>
@@ -174,6 +185,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: 'rgba(255,255,255,0.82)',
   },
+  inputBox: {
+    height: 50, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12, borderWidth: 1.5, borderColor: primaryAlpha(0.3),
+    paddingHorizontal: 14,
+  },
+  input: { flex: 1, fontSize: 14, color: '#1a1918', padding: 0 },
   prefix: { fontSize: 18, fontWeight: '700', color: '#1a1918' },
   codeBox: {
     flex: 1, height: 60, borderRadius: 14,

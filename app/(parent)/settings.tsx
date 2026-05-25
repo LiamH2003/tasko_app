@@ -52,8 +52,8 @@ export default function ParentSettingsScreen() {
           </View>
         </View>
 
-        {/* Access codes per child */}
-        <SectionHeader label="UITNODIGINGSCODES KINDEREN" />
+        {/* Access codes — same code works for child and second parent */}
+        <SectionHeader label="CODE VOOR KIND & PARTNER" />
         {loading ? (
           <ActivityIndicator color={Colors.primary} style={{ marginBottom: Spacing.lg }} />
         ) : children.length === 0 ? (
