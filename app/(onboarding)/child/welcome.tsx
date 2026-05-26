@@ -28,8 +28,9 @@ export default function ChildWelcomeScreen() {
     setLoading(true);
     try {
       const pendingId = await SecureStore.getItemAsync('pendingChildId');
+      const pendingName = await SecureStore.getItemAsync('pendingChildName');
       if (pendingId) {
-        await setChildId(pendingId);
+        await setChildId(pendingId, pendingName ?? undefined);
         await SecureStore.deleteItemAsync('pendingChildId');
         await SecureStore.deleteItemAsync('pendingChildName');
       }

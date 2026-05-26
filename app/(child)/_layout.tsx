@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
+import { ThemeProvider } from '@shopify/restyle';
+import { theme } from '@/constants/restyleTheme';
+import { PRIMARY } from '@/constants/palette';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -10,19 +12,20 @@ function TabIcon({ name, color, size }: { name: IoniconsName; color: string; siz
 
 export default function ChildLayout() {
   return (
+    <ThemeProvider theme={theme}>
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.surface,
-          borderTopColor: Colors.border,
+          backgroundColor: 'rgba(255,255,255,0.97)',
+          borderTopColor: 'rgba(0,0,0,0.06)',
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.text.muted,
+        tabBarActiveTintColor: PRIMARY,
+        tabBarInactiveTintColor: '#8a8885',
         tabBarLabelStyle: { fontSize: 10 },
       }}
     >
@@ -64,5 +67,6 @@ export default function ChildLayout() {
       <Tabs.Screen name="tasks" options={{ href: null }} />
       <Tabs.Screen name="mood" options={{ href: null }} />
     </Tabs>
+    </ThemeProvider>
   );
 }

@@ -12,6 +12,7 @@ interface AppState {
   session: Session | null;
   sessionLoading: boolean;
   childId: string | null;
+  childName: string | null;
   childLoading: boolean;
   child: LocalChild | null;
   moodHistory: Array<{ mood: MoodType; timestamp: string }>;
@@ -36,7 +37,7 @@ interface LocalChild {
 type Action =
   | { type: 'SET_SESSION'; session: Session | null }
   | { type: 'SET_SESSION_LOADING'; loading: boolean }
-  | { type: 'SET_CHILD_ID'; childId: string | null }
+  | { type: 'SET_CHILD_ID'; childId: string | null; childName?: string | null }
   | { type: 'CREATE_PROFILE'; payload: { childName: string; monsterName: string } }
   | { type: 'TOGGLE_TASK'; taskId: string }
   | { type: 'GAIN_XP'; amount: number }
@@ -63,7 +64,7 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, sessionLoading: action.loading };
 
     case 'SET_CHILD_ID':
-      return { ...state, childId: action.childId, childLoading: false };
+      return { ...state, childId: action.childId, childName: action.childName ?? state.childName, childLoading: false };
 
     case 'CREATE_PROFILE':
       return {
@@ -133,7 +134,7 @@ interface AppContextValue extends AppState {
   toggleTask: (taskId: string) => void;
   logMood: (mood: MoodType) => void;
   signOut: () => Promise<void>;
-  setChildId: (id: string) => Promise<void>;
+  setChildId: (id: string, name?: string) => Promise<void>;
   clearChildId: () => Promise<void>;
 }
 
@@ -146,6 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     session: null,
     sessionLoading: true,
     childId: null,
+    childName: null,
     childLoading: true,
     child: null,
     moodHistory: [],
@@ -158,8 +160,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     // Check for stored child device session
-    SecureStore.getItemAsync('childId').then((id) => {
-      dispatch({ type: 'SET_CHILD_ID', childId: id });
+    Promise.all([
+      SecureStore.getItemAsync('childId'),
+      SecureStore.getItemAsync('childName'),
+    ]).then(async ([id, name]) => {
+      dispatch({ type: 'SET_CHILD_ID', childId: id, childName: name });
+      if (id && !name) {
+        try {
+          const { data } = await supabase.rpc('get_child_profile', { p_child_id: id });
+          const fetched = (data as { name: string }[])?.[0]?.name;
+          if (fetched) {
+            await SecureStore.setItemAsync('childName', fetched);
+            dispatch({ type: 'SET_CHILD_ID', childId: id, childName: fetched });
+          }
+        } catch { /* non-fatal */ }
+      }
     });
 
     // Keep session in sync on login / logout / token refresh
@@ -179,13 +194,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await supabase.auth.signOut();
       dispatch({ type: 'SET_SESSION', session: null });
     },
-    setChildId: async (id: string) => {
+    setChildId: async (id: string, name?: string) => {
       await SecureStore.setItemAsync('childId', id);
-      dispatch({ type: 'SET_CHILD_ID', childId: id });
+      if (name) await SecureStore.setItemAsync('childName', name);
+      dispatch({ type: 'SET_CHILD_ID', childId: id, childName: name });
     },
     clearChildId: async () => {
       await SecureStore.deleteItemAsync('childId');
-      dispatch({ type: 'SET_CHILD_ID', childId: null });
+      await SecureStore.deleteItemAsync('childName');
+      dispatch({ type: 'SET_CHILD_ID', childId: null, childName: null });
     },
   }), [state]);
 

@@ -28,7 +28,7 @@ export type ChildRoutine = {
 
 export async function fetchChildProfile(childId: string): Promise<ChildProfile | null> {
   const { data, error } = await supabase.rpc('get_child_profile', { p_child_id: childId });
-  if (error) throw error;
+  if (error) return null;
   return (data as ChildProfile[])?.[0] ?? null;
 }
 

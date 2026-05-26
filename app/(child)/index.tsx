@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
 import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
 import { fetchChildProfile, fetchChildRoutines, submitMood } from '@/services/child-device';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import type { ChildProfile, ChildRoutine } from '@/services/child-device';
 
 const MOODS = [
@@ -26,10 +28,12 @@ function getGreeting() {
 }
 
 export default function HomeScreen() {
-  const { childId } = useAppStore();
+  const insets = useSafeAreaInsets();
+  const { childId, child, childName } = useAppStore();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [moodOpen, setMoodOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [moodSaved, setMoodSaved] = useState(false);
 
@@ -54,107 +58,154 @@ export default function HomeScreen() {
   const allTasks = routines.flatMap(r => r.tasks);
   const doneCount = allTasks.filter(t => t.completed).length;
   const todoCount = allTasks.filter(t => !t.completed).length;
-  const nextTask = allTasks.find(t => !t.completed) ?? null;
   const xpProgress = profile ? profile.xp / profile.xp_to_next_level : 0;
+  const displayName = profile?.name ?? child?.name ?? childName ?? 'daar';
+  const monsterName = profile?.monster_name ?? 'Monster';
 
   async function handleMood(key: string) {
     setSelectedMood(key);
     if (!childId) return;
     try {
       await submitMood(childId, key);
+    } catch { /* non-fatal */ }
+    setTimeout(() => {
       setMoodSaved(true);
-    } catch {
-      // non-fatal
-    }
+      setMoodOpen(false);
+    }, 600);
   }
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <ActivityIndicator color={Colors.primary} style={{ marginTop: 60 }} />
-      </SafeAreaView>
+      <Box flex={1} backgroundColor="background" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={PRIMARY} />
+      </Box>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+    <Box flex={1} backgroundColor="background">
+
+      {/* Background blobs */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={300} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -60, left: -70 }}
+        />
+        <AnimatedBlob
+          size={180} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 160, right: -60 }}
+        />
+      </View>
+
+      <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
 
         {/* Header */}
-        <View style={styles.header}>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          style={styles.header}
+        >
           <View>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.name}>Hallo, {profile?.name ?? 'daar'}!</Text>
+            <Text variant="label">{getGreeting()}</Text>
+            <Text style={styles.name}>Hallo, {displayName}!</Text>
           </View>
           <View style={styles.levelBadge}>
             <Text style={styles.levelStar}>⭐</Text>
-            <Text style={styles.levelText}>
-              Niveau {profile?.level ?? 1} · {profile?.monster_name ?? 'Monster'}
-            </Text>
+            <Text style={styles.levelText}>Niveau {profile?.level ?? 1}</Text>
           </View>
-        </View>
+        </MotiView>
 
-        {/* Monster */}
-        <View style={styles.monsterSection}>
-          <MonsterSvg size={130} />
-          <Ionicons name="chevron-down" size={16} color={Colors.text.muted} style={{ marginTop: 4 }} />
-          <Text style={styles.monsterName}>{profile?.monster_name ?? 'Monster'}</Text>
-        </View>
+        {/* Monster — flex:1 so it takes all remaining vertical space */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.88 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 14, stiffness: 100, delay: 100 }}
+          style={styles.monsterSection}
+        >
+          <MonsterSvg size={180} />
+          <Text style={styles.monsterName}>{monsterName}</Text>
+        </MotiView>
 
-        {/* Quote card */}
-        <View style={styles.quoteCard}>
-          <Text style={styles.quoteText}>
-            "Vandaag gaan we er samen voor, toch? Ik geloof in jou! 💪"
-          </Text>
-          <View style={styles.dots}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </View>
-        </View>
-
-        {/* XP bar */}
-        <View style={styles.xpCard}>
-          <View style={styles.xpRow}>
-            <Text style={styles.xpLabel}>
-              {profile?.monster_name ?? 'Monster'} ·{' '}
-              <Text style={styles.xpAmount}>
-                {profile?.xp ?? 0} / {profile?.xp_to_next_level ?? 100} EXP
+        {/* Bottom section */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 200 }}
+          style={[styles.bottomSection, { paddingBottom: Math.max(insets.bottom + 8, 16) }]}
+        >
+          {/* XP bar */}
+          <View style={styles.xpCard}>
+            <View style={styles.xpRow}>
+              <Text style={styles.xpLabel}>
+                <Text style={styles.xpAmount}>{profile?.xp ?? 0}</Text>
+                {' / '}{profile?.xp_to_next_level ?? 100} EXP
               </Text>
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/(child)/tasko')}>
-              <Text style={styles.xpLink}>Mijn monster →</Text>
-            </TouchableOpacity>
-          </View>
-          <ProgressBar progress={xpProgress} color={Colors.status.success} height={6} />
-        </View>
-
-        {/* Stats */}
-        <Text style={styles.sectionTitle}>Routines</Text>
-        <View style={styles.statsRow}>
-          {[
-            { value: doneCount, label: 'Gedaan' },
-            { value: todoCount, label: 'Te doen' },
-            { value: allTasks.length, label: 'Totaal' },
-          ].map((s) => (
-            <View key={s.label} style={styles.statCard}>
-              <Text style={styles.statNumber}>{s.value}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
+              <TouchableOpacity onPress={() => router.push('/(child)/tasko')}>
+                <Text style={styles.link}>Mijn monster →</Text>
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
+            <ProgressBar progress={xpProgress} color="#48bb78" height={7} />
+          </View>
 
-        {/* Mood */}
-        <Text style={styles.sectionTitle}>Hoe voel je je?</Text>
-        <View style={styles.moodCard}>
-          {moodSaved ? (
-            <Text style={styles.moodSaved}>
-              ✓ Opgeslagen! {profile?.monster_name ?? 'Je monster'} weet hoe je je voelt.
-            </Text>
-          ) : (
-            <>
-              <Text style={styles.moodHint}>
-                Vertel het aan {profile?.monster_name ?? 'je monster'} — hij luistert
+          {/* Stat cards */}
+          <View style={styles.statsRow}>
+            {[
+              { value: doneCount,       label: 'Gedaan',  color: '#48bb78' },
+              { value: todoCount,       label: 'Te doen', color: PRIMARY },
+              { value: allTasks.length, label: 'Totaal',  color: '#8a8885' },
+            ].map((s) => (
+              <TouchableOpacity
+                key={s.label}
+                style={styles.statCard}
+                onPress={() => router.push('/(child)/routines')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.statNumber, { color: s.color }]}>{s.value}</Text>
+                <Text style={styles.statLabel}>{s.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Mood button */}
+          <TouchableOpacity
+            style={styles.moodBtn}
+            onPress={() => setMoodOpen(true)}
+            activeOpacity={0.85}
+          >
+            {moodSaved ? (
+              <Text style={styles.moodBtnText}>
+                {selectedMood ? MOODS.find(m => m.key === selectedMood)?.emoji : '✓'}{' '}
+                Stemming opgeslagen!
+              </Text>
+            ) : (
+              <Text style={styles.moodBtnText}>😊 Hoe voel je je vandaag?</Text>
+            )}
+          </TouchableOpacity>
+        </MotiView>
+      </View>
+
+      {/* Mood popup */}
+      <Modal
+        visible={moodOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMoodOpen(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setMoodOpen(false)}>
+          <MotiView
+            from={{ opacity: 0, translateY: 40 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'spring', damping: 18, stiffness: 120 }}
+            style={styles.sheet}
+          >
+            <Pressable>
+              <View style={styles.sheetHandle} />
+              <Text style={styles.sheetTitle}>Hoe voel je je?</Text>
+              <Text style={styles.sheetSub}>
+                Vertel het aan {monsterName} — hij luistert
               </Text>
               <View style={styles.moodRow}>
                 {MOODS.map((m) => (
@@ -169,99 +220,85 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
-            </>
-          )}
-        </View>
+            </Pressable>
+          </MotiView>
+        </Pressable>
+      </Modal>
 
-        {/* Next task */}
-        <View style={styles.nextRow}>
-          <Text style={styles.sectionTitle}>Volgende taak</Text>
-          <TouchableOpacity onPress={() => router.push('/(child)/routines')}>
-            <Text style={styles.xpLink}>Alles zien →</Text>
-          </TouchableOpacity>
-        </View>
-
-        {nextTask ? (
-          <View style={styles.nextCard}>
-            <View style={styles.nextIconBox}>
-              <Text style={{ fontSize: 20 }}>{nextTask.emoji}</Text>
-            </View>
-            <View style={styles.nextInfo}>
-              <Text style={styles.nextTitle}>{nextTask.title}</Text>
-              <Text style={styles.nextMeta}>
-                {routines.find(r => r.tasks.some(t => t.id === nextTask.id))?.name ?? ''}
-              </Text>
-            </View>
-            <View style={styles.xpPill}>
-              <Text style={styles.xpPillText}>+20 EXP</Text>
-            </View>
-          </View>
-        ) : allTasks.length > 0 ? (
-          <View style={styles.allDoneCard}>
-            <Text style={styles.allDoneText}>🎉 Alle taken gedaan! Goed bezig!</Text>
-          </View>
-        ) : (
-          <View style={styles.allDoneCard}>
-            <Text style={styles.allDoneText}>Nog geen taken. Vraag je ouder om routines aan te maken.</Text>
-          </View>
-        )}
-
-        <View style={{ height: Spacing.lg }} />
-      </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  container: { flex: 1, paddingHorizontal: 24 },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.md },
-  greeting: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: Colors.primary, letterSpacing: 1, textTransform: 'uppercase' },
-  name: { fontSize: 26, fontWeight: FontWeight.bold, color: Colors.text.primary, marginTop: 2 },
-  levelBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, gap: 4, marginTop: 4, borderWidth: 1, borderColor: Colors.border },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 8,
+  },
+  name: { fontSize: 24, fontWeight: '700', color: '#1a1918', marginTop: 2 },
+  levelBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4,
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 99,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
   levelStar: { fontSize: 12 },
-  levelText: { fontSize: FontSize.xs, color: Colors.text.primary, fontWeight: FontWeight.medium },
+  levelText: { fontSize: 12, color: '#1a1918', fontWeight: '500' },
 
-  monsterSection: { alignItems: 'center', marginVertical: Spacing.sm },
-  monsterName: { fontSize: FontSize.lg, fontWeight: FontWeight.semibold, color: Colors.text.primary, marginTop: 4 },
+  monsterSection: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  monsterName: { fontSize: 18, fontWeight: '700', color: '#1a1918' },
 
-  quoteCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  quoteText: { fontSize: FontSize.md, color: Colors.text.primary, lineHeight: 22, textAlign: 'center', fontStyle: 'italic' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: Spacing.sm },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.text.muted },
-  dotActive: { backgroundColor: Colors.text.primary },
+  xpCard: {
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 20,
+    padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  xpLabel: { fontSize: 13, color: '#6b6560' },
+  xpAmount: { color: PRIMARY, fontWeight: '700' },
+  link: { fontSize: 12, color: PRIMARY, fontWeight: '500' },
 
-  xpCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
-  xpLabel: { fontSize: FontSize.sm, color: Colors.text.secondary },
-  xpAmount: { color: Colors.primary, fontWeight: FontWeight.semibold },
-  xpLink: { fontSize: FontSize.sm, color: Colors.primary, fontWeight: FontWeight.medium },
+  bottomSection: { gap: 18 },
 
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary, marginBottom: Spacing.sm },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
-  statCard: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
-  statNumber: { fontSize: FontSize.xl, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  statLabel: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
+  statsRow: { flexDirection: 'row', gap: 10 },
+  statCard: {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 16,
+    paddingVertical: 14, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  statNumber: { fontSize: 24, fontWeight: '700' },
+  statLabel: { fontSize: 11, color: '#8a8885', marginTop: 2 },
 
-  moodCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  moodHint: { fontSize: FontSize.sm, color: Colors.text.muted, marginBottom: Spacing.sm },
+  moodBtn: {
+    height: 52, backgroundColor: PRIMARY, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12, shadowOpacity: 0.3, elevation: 6,
+  },
+  moodBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+
+  // Modal
+  backdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#f5f3ef', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 24, paddingBottom: 40,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  sheetHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.12)', alignSelf: 'center', marginBottom: 20,
+  },
+  sheetTitle: { fontSize: 20, fontWeight: '700', color: '#1a1918', textAlign: 'center', marginBottom: 4 },
+  sheetSub: { fontSize: 13, color: '#8a8885', textAlign: 'center', marginBottom: 24 },
+
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  moodItem: { alignItems: 'center', padding: 8, borderRadius: Radius.md, flex: 1 },
-  moodItemActive: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.primary },
-  moodEmoji: { fontSize: 24 },
-  moodLabel: { fontSize: FontSize.xs, color: Colors.text.secondary, marginTop: 4 },
-  moodSaved: { fontSize: FontSize.sm, color: Colors.status.success, textAlign: 'center', paddingVertical: 8 },
-
-  nextRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
-  nextCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: Colors.border },
-  nextIconBox: { width: 40, height: 40, borderRadius: Radius.sm, backgroundColor: Colors.iconBg, alignItems: 'center', justifyContent: 'center' },
-  nextInfo: { flex: 1 },
-  nextTitle: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text.primary },
-  nextMeta: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
-  xpPill: { backgroundColor: 'rgba(72,187,120,0.15)', borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4 },
-  xpPillText: { fontSize: FontSize.xs, color: Colors.status.success, fontWeight: FontWeight.semibold },
-
-  allDoneCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border, alignItems: 'center' },
-  allDoneText: { fontSize: FontSize.sm, color: Colors.text.secondary, textAlign: 'center' },
+  moodItem: { alignItems: 'center', flex: 1, paddingVertical: 10, borderRadius: 14 },
+  moodItemActive: { backgroundColor: primaryAlpha(0.1), borderWidth: 1.5, borderColor: PRIMARY },
+  moodEmoji: { fontSize: 30 },
+  moodLabel: { fontSize: 11, color: '#6b6560', marginTop: 6, fontWeight: '500' },
 });

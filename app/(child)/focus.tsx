@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, TextInput, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const SUBJECTS = ['Wiskunde', 'Lezen', 'Frans', 'Tekenen', 'Andere'];
 const DURATIONS = [10, 15, 20, 25, 30];
@@ -14,6 +17,7 @@ function fmt(seconds: number) {
 }
 
 export default function FocusScreen() {
+  const insets = useSafeAreaInsets();
   const [subject, setSubject] = useState('');
   const [duration, setDuration] = useState(20);
   const [timeLeft, setTimeLeft] = useState(20 * 60);
@@ -46,129 +50,207 @@ export default function FocusScreen() {
   }
 
   const statusLabel = running ? 'bezig...' : timeLeft === 0 ? 'klaar!' : 'klaar om te starten';
+  const progress = timeLeft / (duration * 60);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={280} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -50, left: -60 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 120, right: -50 }}
+        />
+      </View>
+
+      <Box style={{ height: insets.top + 8 }} />
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
-        <Text style={styles.title}>Focus</Text>
-        <Text style={styles.subtitle}>Kies een naam en duur — dan starten we!</Text>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          style={{ marginBottom: 20 }}
+        >
+          <Text style={styles.title}>Focus</Text>
+          <Text style={styles.subtitle}>Kies een naam en duur — dan starten we!</Text>
+        </MotiView>
 
         {/* Subject card */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>WAARMEE BEN JE BEZIG?</Text>
-          <TextInput
-            style={styles.input}
-            value={subject}
-            onChangeText={setSubject}
-            placeholder="bv. Wiskunde..."
-            placeholderTextColor={Colors.text.muted}
-          />
-          <View style={styles.chips}>
-            {SUBJECTS.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.chip, subject === s && styles.chipActive]}
-                onPress={() => setSubject(subject === s ? '' : s)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.chipText, subject === s && styles.chipTextActive]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 120 }}
+        >
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>WAARMEE BEN JE BEZIG?</Text>
+            <View style={styles.inputBox}>
+              <TextInput
+                style={styles.input}
+                value={subject}
+                onChangeText={setSubject}
+                placeholder="bv. Wiskunde..."
+                placeholderTextColor="#8a8885"
+              />
+            </View>
+            <View style={styles.chips}>
+              {SUBJECTS.map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.chip, subject === s && styles.chipActive]}
+                  onPress={() => setSubject(subject === s ? '' : s)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, subject === s && styles.chipTextActive]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </MotiView>
 
         {/* Duration card */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>HOE LANG WIL JE FOCUSSEN?</Text>
-          <View style={styles.durationRow}>
-            {DURATIONS.map((d) => (
-              <TouchableOpacity
-                key={d}
-                style={[styles.durationBtn, duration === d && styles.durationBtnActive]}
-                onPress={() => selectDuration(d)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.durationNumber, duration === d && styles.durationNumberActive]}>{d}</Text>
-                <Text style={[styles.durationUnit, duration === d && styles.durationUnitActive]}>min</Text>
-              </TouchableOpacity>
-            ))}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 180 }}
+        >
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>HOE LANG WIL JE FOCUSSEN?</Text>
+            <View style={styles.durationRow}>
+              {DURATIONS.map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[styles.durationBtn, duration === d && styles.durationBtnActive]}
+                  onPress={() => selectDuration(d)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.durationNumber, duration === d && styles.durationNumberActive]}>{d}</Text>
+                  <Text style={[styles.durationUnit, duration === d && { color: '#fff' }]}>min</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </MotiView>
 
-        {/* Timer circle */}
-        <View style={styles.timerWrapper}>
+        {/* Timer */}
+        <MotiView
+          from={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', damping: 14, stiffness: 100, delay: 240 }}
+          style={styles.timerWrapper}
+        >
           <View style={styles.timerOuter}>
             <View style={styles.timerInner}>
               <Text style={styles.timerText}>{fmt(timeLeft)}</Text>
               <Text style={styles.timerStatus}>{statusLabel}</Text>
             </View>
           </View>
-        </View>
+        </MotiView>
 
         {/* Controls */}
-        <View style={styles.controls}>
-          <TouchableOpacity style={styles.ctrlBtn} onPress={reset} activeOpacity={0.8}>
-            <Ionicons name="refresh" size={22} color={Colors.text.secondary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.playBtn}
-            onPress={() => setRunning((r) => !r)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name={running ? 'pause' : 'play'} size={28} color={Colors.background} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.ctrlBtn} onPress={() => { setRunning(false); setTimeLeft(0); }} activeOpacity={0.8}>
-            <Ionicons name="stop" size={22} color={Colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 300 }}
+        >
+          <View style={styles.controls}>
+            <TouchableOpacity style={styles.ctrlBtn} onPress={reset} activeOpacity={0.8}>
+              <Ionicons name="refresh" size={22} color="#6b6560" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.playBtn}
+              onPress={() => setRunning((r) => !r)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={running ? 'pause' : 'play'} size={28} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ctrlBtn}
+              onPress={() => { setRunning(false); setTimeLeft(0); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="stop" size={22} color="#6b6560" />
+            </TouchableOpacity>
+          </View>
+        </MotiView>
 
-        <View style={{ height: Spacing.xl }} />
+        <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scroll: { paddingHorizontal: 24, paddingTop: 8 },
 
-  title: { fontSize: 28, fontWeight: FontWeight.bold, color: Colors.text.primary, marginBottom: 4 },
-  subtitle: { fontSize: FontSize.md, color: Colors.text.muted, marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontWeight: '700', color: '#1a1918', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#8a8885' },
 
-  card: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  cardLabel: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: Colors.primary, letterSpacing: 0.8, marginBottom: Spacing.sm },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 20, padding: 18,
+    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  cardLabel: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8, marginBottom: 12 },
 
-  input: { backgroundColor: Colors.card, borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 12, color: Colors.text.primary, fontSize: FontSize.md, borderWidth: 1, borderColor: Colors.border, marginBottom: Spacing.sm },
+  inputBox: {
+    height: 48, backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12, borderWidth: 1.5, borderColor: primaryAlpha(0.3),
+    paddingHorizontal: 14, justifyContent: 'center', marginBottom: 12,
+  },
+  input: { fontSize: 14, color: '#1a1918', padding: 0 },
 
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 14, paddingVertical: 6 },
-  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  chipText: { fontSize: FontSize.sm, color: Colors.text.secondary },
-  chipTextActive: { color: Colors.background, fontWeight: FontWeight.semibold },
+  chip: {
+    borderRadius: 99, borderWidth: 1.5, borderColor: primaryAlpha(0.25),
+    paddingHorizontal: 14, paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  chipText: { fontSize: 13, color: '#6b6560' },
+  chipTextActive: { color: '#fff', fontWeight: '600' },
 
   durationRow: { flexDirection: 'row', gap: 8 },
-  durationBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: Radius.md, backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.border },
-  durationBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  durationNumber: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.secondary },
-  durationNumberActive: { color: Colors.background },
-  durationUnit: { fontSize: FontSize.xs, color: Colors.text.muted },
-  durationUnitActive: { color: Colors.background },
+  durationBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.25),
+  },
+  durationBtnActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  durationNumber: { fontSize: 18, fontWeight: '700', color: '#6b6560' },
+  durationNumberActive: { color: '#fff' },
+  durationUnit: { fontSize: 11, color: '#8a8885' },
 
-  timerWrapper: { alignItems: 'center', marginVertical: Spacing.lg },
+  timerWrapper: { alignItems: 'center', marginVertical: 24 },
   timerOuter: {
     width: 200, height: 200, borderRadius: 100,
-    borderWidth: 5, borderColor: Colors.primary,
-    backgroundColor: Colors.surface,
+    borderWidth: 4, borderColor: PRIMARY,
+    backgroundColor: 'rgba(255,255,255,0.82)',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.primary, shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 0 }, elevation: 14,
+    shadowColor: PRIMARY, shadowOpacity: 0.25, shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 }, elevation: 12,
   },
   timerInner: { alignItems: 'center' },
-  timerText: { fontSize: 42, fontWeight: FontWeight.bold, color: Colors.text.primary, letterSpacing: 2 },
-  timerStatus: { fontSize: FontSize.sm, color: Colors.text.muted, marginTop: 4 },
+  timerText: { fontSize: 42, fontWeight: '700', color: '#1a1918', letterSpacing: 2 },
+  timerStatus: { fontSize: 13, color: '#8a8885', marginTop: 4 },
 
-  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.lg },
-  ctrlBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  playBtn: { width: 68, height: 68, borderRadius: 34, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  controls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24 },
+  ctrlBtn: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  playBtn: {
+    width: 68, height: 68, borderRadius: 34, backgroundColor: PRIMARY,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
+  },
 });

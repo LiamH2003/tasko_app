@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 const DAY_STATE: Array<'done' | 'missed' | 'today' | 'future'> = [
@@ -43,7 +46,7 @@ const ROUTINE_DATA: Record<Segment, RoutineTask[]> = {
 function DayCircle({ label, state }: { label: string; state: typeof DAY_STATE[number] }) {
   const isDone = state === 'done';
   const isToday = state === 'today';
-  const isFuture = state === 'future';
+  const isMissed = state === 'missed';
 
   return (
     <View style={styles.dayCol}>
@@ -51,13 +54,12 @@ function DayCircle({ label, state }: { label: string; state: typeof DAY_STATE[nu
         styles.dayCircle,
         isDone && styles.dayCircleDone,
         isToday && styles.dayCircleToday,
-        isFuture && styles.dayCircleFuture,
+        isMissed && styles.dayCircleMissed,
       ]}>
-        {isDone ? (
-          <Ionicons name="checkmark" size={14} color="#fff" />
-        ) : null}
+        {isDone && <Ionicons name="checkmark" size={14} color="#fff" />}
+        {isMissed && <Ionicons name="close" size={12} color="#fc6b6b" />}
       </View>
-      <Text style={[styles.dayLabel, isToday && styles.dayLabelActive]}>{label}</Text>
+      <Text style={[styles.dayLabel, isToday && { color: PRIMARY }]}>{label}</Text>
     </View>
   );
 }
@@ -71,24 +73,22 @@ function TaskCard({ task, onToggle }: { task: RoutineTask; onToggle: () => void 
         </View>
       )}
       <View style={styles.taskIconBox}>
-        <Ionicons name={task.icon} size={18} color={Colors.primary} />
+        <Ionicons name={task.icon} size={18} color={PRIMARY} />
       </View>
       <View style={styles.taskInfo}>
         <Text style={styles.taskTitle}>{task.title}</Text>
         <View style={styles.taskMeta}>
           <Text style={styles.taskTime}>{task.time} · {task.duration} min</Text>
-          {task.completed ? (
-            <View style={styles.xpPillGreen}>
-              <Text style={styles.xpPillText}>+{task.xp} EXP ✓</Text>
-            </View>
-          ) : (
-            <View style={styles.xpPill}>
-              <Text style={styles.xpPillText}>+{task.xp} EXP</Text>
-            </View>
-          )}
+          <View style={task.completed ? styles.xpPillGreen : styles.xpPill}>
+            <Text style={styles.xpPillText}>{task.completed ? `+${task.xp} EXP ✓` : `+${task.xp} EXP`}</Text>
+          </View>
         </View>
       </View>
-      <TouchableOpacity style={[styles.checkbox, task.completed && styles.checkboxDone]} onPress={onToggle} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={[styles.checkbox, task.completed && styles.checkboxDone]}
+        onPress={onToggle}
+        activeOpacity={0.7}
+      >
         {task.completed && <Ionicons name="checkmark" size={16} color="#fff" />}
       </TouchableOpacity>
     </View>
@@ -96,6 +96,7 @@ function TaskCard({ task, onToggle }: { task: RoutineTask; onToggle: () => void 
 }
 
 export default function RoutinesScreen() {
+  const insets = useSafeAreaInsets();
   const [activeSegment, setActiveSegment] = useState<Segment>('Middag');
   const [tasks, setTasks] = useState(ROUTINE_DATA);
 
@@ -110,38 +111,68 @@ export default function RoutinesScreen() {
   const doneCount = current.filter((t) => t.completed).length;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={280} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -50, right: -60 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, left: -50 }}
+        />
+      </View>
+
+      <Box style={{ height: insets.top + 8 }} />
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
-        <View style={styles.header}>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          style={styles.header}
+        >
           <View>
             <Text style={styles.title}>Routines</Text>
-            <Text style={styles.subtitle}>Zaterdag 29 maart · 3 van 5 gedaan</Text>
+            <Text style={styles.subtitle}>Zaterdag 29 maart · {doneCount} van {current.length} gedaan</Text>
           </View>
-          <TouchableOpacity style={styles.addBtn} activeOpacity={0.8}>
-            <Ionicons name="add" size={22} color={Colors.background} />
-          </TouchableOpacity>
-        </View>
+        </MotiView>
 
         {/* Week row */}
-        <View style={styles.weekRow}>
-          {DAYS.map((d, i) => <DayCircle key={d} label={d} state={DAY_STATE[i]} />)}
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 120 }}
+        >
+          <View style={styles.weekCard}>
+            {DAYS.map((d, i) => <DayCircle key={d} label={d} state={DAY_STATE[i]} />)}
+          </View>
+        </MotiView>
 
         {/* Segment control */}
-        <View style={styles.segmentRow}>
-          {SEGMENTS.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[styles.segmentBtn, activeSegment === s && styles.segmentBtnActive]}
-              onPress={() => setActiveSegment(s)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.segmentText, activeSegment === s && styles.segmentTextActive]}>{s}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 160 }}
+        >
+          <View style={styles.segmentRow}>
+            {SEGMENTS.map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[styles.segmentBtn, activeSegment === s && styles.segmentBtnActive]}
+                onPress={() => setActiveSegment(s)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.segmentText, activeSegment === s && styles.segmentTextActive]}>{s}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </MotiView>
 
         {/* Section header */}
         <Text style={styles.sectionHeader}>
@@ -158,7 +189,9 @@ export default function RoutinesScreen() {
         {/* Avond peek when on Middag */}
         {activeSegment === 'Middag' && (
           <>
-            <Text style={styles.sectionHeader}>AVOND — {tasks.Avond.filter(t => t.completed).length} TAAK</Text>
+            <Text style={styles.sectionHeader}>
+              AVOND — {tasks.Avond.filter(t => t.completed).length} TAAK
+            </Text>
             <View style={styles.taskList}>
               {tasks.Avond.map((task) => (
                 <TaskCard key={task.id} task={task} onToggle={() => toggle('Avond', task.id)} />
@@ -167,56 +200,82 @@ export default function RoutinesScreen() {
           </>
         )}
 
-        <View style={{ height: Spacing.lg }} />
+        <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scroll: { paddingHorizontal: 24, paddingTop: 8 },
 
-  // Header
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
-  title: { fontSize: 28, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  subtitle: { fontSize: FontSize.sm, color: Colors.text.muted, marginTop: 4 },
-  addBtn: { width: 40, height: 40, borderRadius: Radius.full, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  header: { marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: '700', color: '#1a1918' },
+  subtitle: { fontSize: 13, color: '#8a8885', marginTop: 4 },
 
-  // Week
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.lg },
-  dayCol: { alignItems: 'center', gap: 4 },
-  dayCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
-  dayCircleDone: { backgroundColor: Colors.status.success, borderColor: Colors.status.success },
-  dayCircleToday: { backgroundColor: 'transparent', borderColor: Colors.primary },
-  dayCircleFuture: { backgroundColor: Colors.card, borderColor: Colors.card },
-  dayLabel: { fontSize: FontSize.xs, color: Colors.text.muted },
-  dayLabelActive: { color: Colors.primary },
+  weekCard: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 20,
+    padding: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  dayCol: { alignItems: 'center', gap: 6 },
+  dayCircle: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1.5, borderColor: primaryAlpha(0.25),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dayCircleDone: { backgroundColor: '#48bb78', borderColor: '#48bb78' },
+  dayCircleToday: { backgroundColor: 'transparent', borderColor: PRIMARY, borderWidth: 2 },
+  dayCircleMissed: { backgroundColor: 'rgba(252,107,107,0.08)', borderColor: 'rgba(252,107,107,0.3)' },
+  dayLabel: { fontSize: 11, color: '#8a8885' },
 
-  // Segment
-  segmentRow: { flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: Radius.full, padding: 3, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  segmentBtn: { flex: 1, paddingVertical: 8, borderRadius: Radius.full, alignItems: 'center' },
-  segmentBtnActive: { backgroundColor: Colors.primary },
-  segmentText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.text.muted },
-  segmentTextActive: { color: Colors.background },
+  segmentRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 99, padding: 3,
+    marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  segmentBtn: { flex: 1, paddingVertical: 8, borderRadius: 99, alignItems: 'center' },
+  segmentBtnActive: { backgroundColor: PRIMARY },
+  segmentText: { fontSize: 13, fontWeight: '500', color: '#8a8885' },
+  segmentTextActive: { color: '#fff', fontWeight: '600' },
 
-  // Section
-  sectionHeader: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: Colors.primary, letterSpacing: 0.8, marginBottom: Spacing.sm },
+  sectionHeader: {
+    fontSize: 11, fontWeight: '600', color: PRIMARY,
+    letterSpacing: 0.8, marginBottom: 10,
+  },
 
-  // Task list
-  taskList: { gap: Spacing.sm, marginBottom: Spacing.lg },
-  taskCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, borderWidth: 1, borderColor: Colors.border },
+  taskList: { gap: 10, marginBottom: 20 },
+  taskCard: {
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 16, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    position: 'relative',
+  },
   taskCardNow: { borderColor: '#c8a84b' },
-  nowBadge: { position: 'absolute', top: -1, right: 12, backgroundColor: '#c8a84b', borderRadius: Radius.sm, paddingHorizontal: 6, paddingVertical: 2 },
-  nowText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: '#fff' },
-  taskIconBox: { width: 36, height: 36, borderRadius: Radius.sm, backgroundColor: Colors.iconBg, alignItems: 'center', justifyContent: 'center' },
+  nowBadge: {
+    position: 'absolute', top: -1, right: 12,
+    backgroundColor: '#c8a84b', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  nowText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  taskIconBox: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: primaryAlpha(0.1),
+    alignItems: 'center', justifyContent: 'center',
+  },
   taskInfo: { flex: 1 },
-  taskTitle: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text.primary },
+  taskTitle: { fontSize: 14, fontWeight: '600', color: '#1a1918' },
   taskMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  taskTime: { fontSize: FontSize.xs, color: Colors.text.muted },
-  xpPill: { backgroundColor: Colors.iconBg, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  xpPillGreen: { backgroundColor: 'rgba(72,187,120,0.15)', borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 2 },
-  xpPillText: { fontSize: FontSize.xs, color: Colors.status.success, fontWeight: FontWeight.semibold },
-  checkbox: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  checkboxDone: { backgroundColor: Colors.status.success, borderColor: Colors.status.success },
+  taskTime: { fontSize: 11, color: '#8a8885' },
+  xpPill: { backgroundColor: primaryAlpha(0.1), borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
+  xpPillGreen: { backgroundColor: 'rgba(72,187,120,0.15)', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
+  xpPillText: { fontSize: 11, color: '#48bb78', fontWeight: '600' },
+  checkbox: {
+    width: 26, height: 26, borderRadius: 13,
+    borderWidth: 2, borderColor: PRIMARY,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxDone: { backgroundColor: '#48bb78', borderColor: '#48bb78' },
 });
