@@ -12,7 +12,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { updateChild } from '@/services/children';
+import { updateChildProfile } from '@/services/children';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 type MonsterDef = {
@@ -52,14 +52,14 @@ export default function MonsterSelectScreen() {
       const childId = await SecureStore.getItemAsync('pendingChildId');
       if (childId) {
         const monsterName = nickname.trim() || (MONSTERS.find(m => m.id === selectedId)?.name ?? 'Monster');
-        await updateChild(childId, { monster_name: monsterName });
+        await updateChildProfile(childId, { monster_name: monsterName });
       }
     } catch {
-      // non-fatal
+      // non-fatal — monster name can be updated later in settings
     } finally {
       setLoading(false);
     }
-    router.push('/(onboarding)/child/welcome');
+    router.push('/(onboarding)/child/set-pin');
   };
 
   return (
@@ -81,8 +81,8 @@ export default function MonsterSelectScreen() {
       <Box style={{ height: insets.top + 16 }} />
       <BackButton />
       <Box style={{ height: 12 }} />
-      <StepBar step={3} total={4} />
-      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 3 VAN 4 — TASKO</Text>
+      <StepBar step={3} total={5} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 3 VAN 5 — TASKO</Text>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -180,7 +180,7 @@ export default function MonsterSelectScreen() {
       {!keyboardVisible && (
         <View style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}>
           <TouchableOpacity
-            style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+            style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
             onPress={handleContinue}
             disabled={!canContinue || loading}
             activeOpacity={0.85}
@@ -241,5 +241,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

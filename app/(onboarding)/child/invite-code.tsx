@@ -62,8 +62,8 @@ export default function ChildInviteCodeScreen() {
         <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={1} total={4} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 4 — CODE</Text>
+        <StepBar step={1} total={5} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 5 — CODE</Text>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -148,7 +148,7 @@ export default function ChildInviteCodeScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
           onPress={handleConfirm}
           disabled={!canContinue || loading}
           activeOpacity={0.85}
@@ -190,5 +190,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

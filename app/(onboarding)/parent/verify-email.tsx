@@ -187,7 +187,7 @@ export default function ParentVerifyEmailScreen() {
           style={{ width: '100%', gap: 10, paddingBottom: Math.max(insets.bottom + 10, 24) }}
         >
           <TouchableOpacity
-            style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
+            style={[styles.btnPrimary, { opacity: canVerify && !loading ? 1 : 0.4 }]}
             onPress={handleVerify}
             disabled={!canVerify || loading}
             activeOpacity={0.85}
@@ -248,7 +248,6 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
   btnSecondary: {
     height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: primaryAlpha(0.4),

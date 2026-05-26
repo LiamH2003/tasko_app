@@ -17,6 +17,7 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
 
   const canSubmit = email.includes('@') && email.includes('.');
 
@@ -57,8 +58,8 @@ export default function ForgotPasswordScreen() {
         <Box style={{ height: insets.top + 16 }} />
         <BackButton label="Terug naar inloggen" />
         <Box style={{ height: 12 }} />
-        <StepBar step={1} total={3} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 3 — WACHTWOORD</Text>
+        <StepBar step={1} total={4} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 1 VAN 4 — WACHTWOORD</Text>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -105,11 +106,13 @@ export default function ForgotPasswordScreen() {
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
+                onBlur={(e) => { setEmail(e.nativeEvent.text ?? email); setTouched(true); }}
                 placeholder="jouw@email.be"
                 placeholderTextColor="#8a8885"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="off"
               />
             </Box>
 
@@ -138,7 +141,7 @@ export default function ForgotPasswordScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canSubmit || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canSubmit && !loading ? 1 : 0.4 }]}
           onPress={handleSubmit}
           disabled={!canSubmit || loading}
           activeOpacity={0.85}
@@ -153,7 +156,7 @@ export default function ForgotPasswordScreen() {
           onPress={() => router.back()}
           activeOpacity={0.7}
         >
-          <Text variant="legal" style={{ color: PRIMARY }}>Annuleren</Text>
+          <Text variant="backLabel">Annuleren</Text>
         </TouchableOpacity>
       </MotiView>
 
@@ -190,5 +193,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

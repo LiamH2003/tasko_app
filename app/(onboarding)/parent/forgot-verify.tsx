@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,12 +21,13 @@ function formatCountdown(s: number) {
 export default function ForgotVerifyScreen() {
   const insets = useSafeAreaInsets();
   const { email } = useLocalSearchParams<{ email: string }>();
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [code, setCode] = useState('');
+  const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
-  const inputs = useRef<(TextInput | null)[]>([null, null, null, null, null, null]);
+  const inputRef = useRef<TextInput | null>(null);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -34,24 +35,7 @@ export default function ForgotVerifyScreen() {
     return () => clearInterval(t);
   }, [countdown]);
 
-  const handleChange = (text: string, index: number) => {
-    const char = text.replace(/[^0-9]/g, '').slice(-1);
-    const next = [...code];
-    next[index] = char;
-    setCode(next);
-    if (char && index < 5) inputs.current[index + 1]?.focus();
-  };
-
-  const handleKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !code[index] && index > 0) {
-      const next = [...code];
-      next[index - 1] = '';
-      setCode(next);
-      inputs.current[index - 1]?.focus();
-    }
-  };
-
-  const canVerify = code.join('').length === 6;
+  const canVerify = code.length === 6;
 
   const handleVerify = async () => {
     setError('');
@@ -59,7 +43,7 @@ export default function ForgotVerifyScreen() {
     try {
       const { error: err } = await supabase.auth.verifyOtp({
         email: email ?? '',
-        token: code.join(''),
+        token: code,
         type: 'email',
       });
       if (err) throw err;
@@ -77,8 +61,8 @@ export default function ForgotVerifyScreen() {
     try {
       await supabase.auth.signInWithOtp({ email: email ?? '', options: { shouldCreateUser: false } });
       setCountdown(RESEND_COOLDOWN);
-      setCode(['', '', '', '', '', '']);
-      inputs.current[0]?.focus();
+      setCode('');
+      inputRef.current?.focus();
     } catch {
       setError('Opnieuw sturen mislukt. Probeer opnieuw.');
     } finally {
@@ -89,167 +73,182 @@ export default function ForgotVerifyScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      <AnimatedBlob
-        size={260} color={primaryAlpha(0.13)}
-        duration={3200} opacityFrom={0.6} opacityTo={0.95} scaleTarget={1.1}
-        style={{ top: -50, left: -60 }}
-      />
-      <AnimatedBlob
-        size={190} color={primaryAlpha(0.09)}
-        duration={2700} delay={800} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
-        style={{ bottom: 80, right: -50 }}
-      />
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={260} color={primaryAlpha(0.13)}
+          duration={3200} opacityFrom={0.6} opacityTo={0.95} scaleTarget={1.1}
+          style={{ top: -50, left: -60 }}
+        />
+        <AnimatedBlob
+          size={190} color={primaryAlpha(0.09)}
+          duration={2700} delay={800} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 80, right: -50 }}
+        />
+      </View>
 
-      <Box style={{ height: insets.top + 16 }} />
-      <BackButton />
-      <Box style={{ height: 12 }} />
-      <StepBar step={2} total={3} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <Box style={{ height: insets.top + 16 }} />
+        <BackButton />
+        <Box style={{ height: 12 }} />
+        <StepBar step={2} total={4} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 4 — WACHTWOORD</Text>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-
-        {/* Icon */}
-        <MotiView
-          from={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', damping: 14, stiffness: 100 }}
-          style={{ marginBottom: 24 }}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text variant="label" marginBottom="lg">STAP 2 VAN 3 — WACHTWOORD</Text>
-          <AnimatedFloat amplitude={6} duration={2400} style={{ alignSelf: 'flex-start' }}>
-            <Box style={styles.iconWrap}>
-              <Ionicons name="document-text-outline" size={38} color={PRIMARY} />
-            </Box>
-          </AnimatedFloat>
-        </MotiView>
 
-        {/* Heading */}
-        <MotiView
-          from={{ opacity: 0, translateY: 14 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 100 }}
-          style={{ marginBottom: 28 }}
-        >
-          <Text variant="title" marginBottom="xs">Voer de code in</Text>
-          <Text variant="subtitle">
-            We hebben een code gestuurd naar{' '}
-            <Text variant="subtitle" style={{ color: PRIMARY, fontWeight: '600' }}>{email}</Text>.
-          </Text>
-        </MotiView>
-
-        {/* OTP */}
-        <MotiView
-          from={{ opacity: 0, translateY: 14 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 360, delay: 180 }}
-          style={{ marginBottom: 16 }}
-        >
-          <Text variant="label" marginBottom="md">JOUW 6-CIJFERIGE CODE</Text>
-          <Box flexDirection="row" gap="sm">
-            {code.map((char, i) => (
-              <MotiView
-                key={i}
-                animate={{
-                  borderColor: char ? PRIMARY : primaryAlpha(0.25),
-                  backgroundColor: char ? primaryAlpha(0.08) : 'rgba(255,255,255,0.7)',
-                }}
-                transition={{ type: 'timing', duration: 150 }}
-                style={styles.codeBox}
-              >
-                <TextInput
-                  ref={(el) => { inputs.current[i] = el; }}
-                  style={styles.codeInput}
-                  value={char}
-                  onChangeText={(t) => handleChange(t, i)}
-                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
-                  maxLength={1}
-                  keyboardType="number-pad"
-                  textAlign="center"
-                  selectionColor={PRIMARY}
-                />
-              </MotiView>
-            ))}
-          </Box>
-        </MotiView>
-
-        {/* Resend row */}
-        <Box flexDirection="row" alignItems="center" justifyContent="space-between" marginBottom="md">
-          {countdown > 0 ? (
-            <Text variant="cardSub" style={{ fontSize: 12 }}>
-              Nieuwe code in <Text variant="cardSub" style={{ fontWeight: '600', color: '#4a4845' }}>{formatCountdown(countdown)}</Text>
-            </Text>
-          ) : <Box />}
-          <TouchableOpacity onPress={handleResend} disabled={countdown > 0 || resending} activeOpacity={0.7}>
-            <Text variant="backLabel" style={{ opacity: countdown > 0 ? 0.4 : 1 }}>
-              {resending ? 'Bezig...' : 'Opnieuw sturen'}
-            </Text>
-          </TouchableOpacity>
-        </Box>
-
-        {/* Info card */}
-        <View style={[styles.infoCard, { marginBottom: 16 }]}>
-          <Ionicons name="information-circle-outline" size={18} color={PRIMARY} style={{ flexShrink: 0 }} />
-          <Text variant="cardSub" style={{ flex: 1, lineHeight: 18 }}>
-            Geen code ontvangen? Controleer je spam-map of klik op "Opnieuw sturen" na de wachttijd.
-          </Text>
-        </View>
-
-        {error ? (
-          <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Text variant="errorText" style={{ marginBottom: 8 }}>{error}</Text>
-          </MotiView>
-        ) : null}
-
-        <Box flex={1} style={{ minHeight: 24 }} />
-
-        {/* CTA */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 280 }}
-          style={{ gap: 10 }}
-        >
-          <TouchableOpacity
-            style={[styles.btnPrimary, (!canVerify || loading) && styles.btnDisabled]}
-            onPress={handleVerify}
-            disabled={!canVerify || loading}
-            activeOpacity={0.85}
+          {/* Icon */}
+          <MotiView
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 14, stiffness: 100 }}
+            style={{ marginTop: 16, marginBottom: 24, alignSelf: 'center' }}
           >
-            {loading
-              ? <ActivityIndicator color="#e8e5dd" />
-              : <Text variant="btnPrimary">Code bevestigen</Text>}
-          </TouchableOpacity>
+            <AnimatedFloat amplitude={6} duration={2400}>
+              <Box style={styles.iconWrap}>
+                <Ionicons name="document-text-outline" size={44} color={PRIMARY} />
+              </Box>
+            </AnimatedFloat>
+          </MotiView>
 
-          <TouchableOpacity style={styles.btnSecondary} onPress={() => router.back()} activeOpacity={0.7}>
-            <Text variant="btnSecondary">Annuleren</Text>
-          </TouchableOpacity>
-        </MotiView>
+          {/* Heading */}
+          <MotiView
+            from={{ opacity: 0, translateY: 14 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 100 }}
+            style={{ marginBottom: 28 }}
+          >
+            <Text variant="title" marginBottom="xs">Voer de code in</Text>
+            <Text variant="subtitle">
+              We hebben een code gestuurd naar{' '}
+              <Text variant="subtitle" style={{ color: PRIMARY, fontWeight: '600' }}>{email}</Text>.
+            </Text>
+          </MotiView>
 
-      </ScrollView>
+          {/* OTP + resend + info */}
+          <MotiView
+            from={{ opacity: 0, translateY: 14 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 180 }}
+          >
+            <Text variant="label" marginBottom="md" style={{ color: '#6b6560' }}>JOUW 6-CIJFERIGE CODE</Text>
+
+            <View style={{ position: 'relative', marginBottom: 16 }}>
+              <TextInput
+                ref={inputRef}
+                value={code}
+                onChangeText={(t) => setCode(t.replace(/[^0-9]/g, '').slice(0, 6))}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                maxLength={6}
+                keyboardType="number-pad"
+                caretHidden
+                style={styles.overlayInput}
+              />
+              <Box flexDirection="row" gap="sm" style={{ width: '100%' }} pointerEvents="none">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <MotiView
+                    key={i}
+                    animate={{
+                      borderColor: i < code.length
+                        ? PRIMARY
+                        : (i === code.length && focused ? PRIMARY : primaryAlpha(0.25)),
+                      backgroundColor: i < code.length
+                        ? primaryAlpha(0.08)
+                        : 'rgba(255,255,255,0.7)',
+                    }}
+                    transition={{ type: 'timing', duration: 150 }}
+                    style={styles.codeBox}
+                  >
+                    <Text style={styles.codeDigit}>{code[i] ?? ''}</Text>
+                  </MotiView>
+                ))}
+              </Box>
+            </View>
+
+            <Box flexDirection="row" alignItems="center" justifyContent="space-between" marginBottom="md">
+              <TouchableOpacity onPress={handleResend} disabled={countdown > 0 || resending} activeOpacity={0.7}>
+                <Text variant="backLabel" style={{ opacity: countdown > 0 ? 0.4 : 1 }}>
+                  {resending ? 'Bezig...' : 'Opnieuw sturen'}
+                </Text>
+              </TouchableOpacity>
+              {countdown > 0 ? (
+                <Text variant="cardSub" style={{ fontSize: 12 }}>
+                  Nieuwe code in <Text variant="cardSub" style={{ fontWeight: '600', color: '#4a4845' }}>{formatCountdown(countdown)}</Text>
+                </Text>
+              ) : <Box />}
+            </Box>
+
+            <View style={styles.infoCard}>
+              <Ionicons name="information-circle-outline" size={18} color={PRIMARY} style={{ flexShrink: 0 }} />
+              <Text variant="cardSub" style={{ flex: 1, lineHeight: 18 }}>
+                Geen code ontvangen? Controleer je spam-map of klik op "Opnieuw sturen" na de wachttijd.
+              </Text>
+            </View>
+
+            {error ? (
+              <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 12 }}>
+                <Text variant="errorText">{error}</Text>
+              </MotiView>
+            ) : null}
+          </MotiView>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Pinned footer — outside KAV so it doesn't jump */}
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 280 }}
+        style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
+      >
+        <TouchableOpacity
+          style={[styles.btnPrimary, { opacity: canVerify && !loading ? 1 : 0.4 }]}
+          onPress={handleVerify}
+          disabled={!canVerify || loading}
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#e8e5dd" />
+            : <Text variant="btnPrimary">Code bevestigen</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ alignItems: 'center', paddingVertical: 4 }}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text variant="backLabel">Annuleren</Text>
+        </TouchableOpacity>
+      </MotiView>
+
     </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 40, flexGrow: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 16, flexGrow: 1 },
   iconWrap: {
-    width: 88, height: 88, borderRadius: 44,
+    width: 96, height: 96, borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     alignItems: 'center', justifyContent: 'center',
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 14, shadowOpacity: 0.2, elevation: 5,
+    shadowRadius: 16, shadowOpacity: 0.2, elevation: 6,
   },
   codeBox: {
     flex: 1, height: 64, borderRadius: 14,
-    borderWidth: 2, overflow: 'hidden',
+    borderWidth: 2, alignItems: 'center', justifyContent: 'center',
   },
-  codeInput: {
-    flex: 1, height: '100%', fontSize: 24,
-    fontWeight: '700', color: '#1a1918', textAlign: 'center',
+  codeDigit: {
+    fontSize: 24, fontWeight: '700', color: '#1a1918', textAlign: 'center',
+  },
+  overlayInput: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0,
   },
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
@@ -262,9 +261,5 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
-  },
-  btnDisabled: { opacity: 0.4 },
-  btnSecondary: {
-    height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
   },
 });

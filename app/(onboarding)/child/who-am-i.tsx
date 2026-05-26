@@ -6,9 +6,7 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import * as SecureStore from 'expo-secure-store';
 import { useState } from 'react';
-import { useAppStore } from '@/store/useAppStore';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import type { FamilyChild } from '@/services/child-device';
 
@@ -26,20 +24,17 @@ export default function WhoAmIScreen() {
     familyName: string;
     children: string;
   }>();
-  const { setChildId } = useAppStore();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const children: FamilyChild[] = childrenJson ? JSON.parse(childrenJson) : [];
 
-  const handleSelect = async (child: FamilyChild) => {
+  const handleSelect = (child: FamilyChild) => {
     setLoadingId(child.id);
-    try {
-      await setChildId(child.id);
-      await SecureStore.deleteItemAsync('pendingChildId');
-      router.replace('/(child)');
-    } catch {
-      setLoadingId(null);
-    }
+    router.push({
+      pathname: '/(onboarding)/child/enter-pin',
+      params: { childId: child.id, childName: child.name },
+    });
+    setLoadingId(null);
   };
 
   const stageColor = (stage: string) => STAGE_COLORS[stage] ?? PRIMARY;

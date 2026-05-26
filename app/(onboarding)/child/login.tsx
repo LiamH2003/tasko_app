@@ -148,7 +148,7 @@ export default function ChildLoginScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
           onPress={handleContinue}
           disabled={!canContinue || loading}
           activeOpacity={0.85}
@@ -187,8 +187,7 @@ const styles = StyleSheet.create({
   },
   overlayInput: {
     ...StyleSheet.absoluteFillObject,
-    color: '#ffffff',
-    backgroundColor: 'transparent',
+    opacity: 0,
   },
   btnPrimary: {
     height: 52, backgroundColor: PRIMARY, borderRadius: 16,
@@ -196,5 +195,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

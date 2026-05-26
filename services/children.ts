@@ -60,6 +60,33 @@ export async function getChildByInviteCode(code: string): Promise<ChildRow | nul
   return (data as ChildRow[])?.[0] ?? null;
 }
 
+export async function updateChildProfile(
+  childId: string,
+  updates: { name?: string; monster_name?: string },
+): Promise<void> {
+  const { error } = await supabase.rpc('update_child_profile', {
+    p_child_id: childId,
+    p_name: updates.name ?? null,
+    p_monster_name: updates.monster_name ?? null,
+  });
+  if (error) throw error;
+}
+
+export async function saveChildPin(childId: string, pin: string): Promise<void> {
+  const { error } = await supabase.rpc('set_child_pin', { p_child_id: childId, p_pin: pin });
+  if (error) throw error;
+}
+
+export async function verifyChildPin(childId: string, pin: string): Promise<boolean | null> {
+  const { data, error } = await supabase.rpc('verify_child_pin', {
+    p_child_id: childId,
+    p_pin: pin,
+  });
+  if (error) throw error;
+  if (data === null) return null;
+  return data as boolean;
+}
+
 export async function updateChild(id: string, updates: Partial<ChildRow>): Promise<ChildRow> {
   const { data, error } = await supabase
     .from('children')

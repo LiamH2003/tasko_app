@@ -12,7 +12,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { updateChild } from '@/services/children';
+import { updateChildProfile } from '@/services/children';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const MIN_AGE = 6;
@@ -23,20 +23,23 @@ export default function ChildProfileScreen() {
   const [name, setName] = useState('');
   const [age, setAge] = useState(9);
   const [loading, setLoading] = useState(false);
-
+  const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
   const canContinue = name.trim().length >= 2;
 
   const handleContinue = async () => {
+    setError('');
     setLoading(true);
     try {
       const childId = await SecureStore.getItemAsync('pendingChildId');
-      if (childId) await updateChild(childId, { name: name.trim() });
-    } catch {
-      // non-fatal — name can be set later
+      if (childId) await updateChildProfile(childId, { name: name.trim() });
+      await SecureStore.setItemAsync('pendingChildName', name.trim());
+      router.push('/(onboarding)/child/monster-select');
+    } catch (e: any) {
+      setError(e.message ?? 'Naam opslaan mislukt. Probeer opnieuw.');
     } finally {
       setLoading(false);
     }
-    router.push('/(onboarding)/child/monster-select');
   };
 
   return (
@@ -59,8 +62,8 @@ export default function ChildProfileScreen() {
         <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={2} total={4} />
-        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 4 — PROFIEL</Text>
+        <StepBar step={2} total={5} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 2 VAN 5 — PROFIEL</Text>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -90,6 +93,7 @@ export default function ChildProfileScreen() {
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
+                  onBlur={(e) => { setName(e.nativeEvent.text ?? name); setTouched(true); }}
                   placeholder="Jouw naam of bijnaam"
                   placeholderTextColor="#8a8885"
                   autoCapitalize="words"
@@ -130,8 +134,11 @@ export default function ChildProfileScreen() {
         transition={{ type: 'timing', duration: 340, delay: 260 }}
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
+        {error ? (
+          <Text variant="errorText" style={{ textAlign: 'center' }}>{error}</Text>
+        ) : null}
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
           onPress={handleContinue}
           disabled={!canContinue || loading}
           activeOpacity={0.85}
@@ -179,5 +186,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

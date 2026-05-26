@@ -21,6 +21,7 @@ function RootNavigator() {
     const inOnboarding = segments[0] === '(onboarding)';
     const inParent = segments[0] === '(parent)';
     const inChild = segments[0] === '(child)';
+    const inForgotFlow = segments.some(s => typeof s === 'string' && s.startsWith('forgot'));
 
     // Parent session always wins over a stale childId — a device can't be both
     if (session && childId) {
@@ -48,7 +49,7 @@ function RootNavigator() {
         return;
       }
 
-      if (onboardingComplete && !inParent) {
+      if (onboardingComplete && !inParent && !inForgotFlow) {
         router.replace('/(parent)');
       }
     } else {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -6,19 +6,23 @@ import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
-import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { useAppStore } from '@/store/useAppStore';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
-const CHILD_NAME = 'Sam';
-
 export default function ChildWelcomeScreen() {
   const insets = useSafeAreaInsets();
   const { setChildId } = useAppStore();
   const [loading, setLoading] = useState(false);
+  const [childName, setChildName] = useState('');
+
+  useEffect(() => {
+    SecureStore.getItemAsync('pendingChildName').then((name) => {
+      if (name) setChildName(name);
+    });
+  }, []);
 
   const handleStart = async () => {
     setLoading(true);
@@ -27,6 +31,7 @@ export default function ChildWelcomeScreen() {
       if (pendingId) {
         await setChildId(pendingId);
         await SecureStore.deleteItemAsync('pendingChildId');
+        await SecureStore.deleteItemAsync('pendingChildName');
       }
     } catch {
       // non-fatal — routing will still proceed
@@ -53,10 +58,9 @@ export default function ChildWelcomeScreen() {
       </View>
 
       <Box style={{ height: insets.top + 16 }} />
-      <BackButton />
       <Box style={{ height: 12 }} />
-      <StepBar step={4} total={4} />
-      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 4 — KLAAR</Text>
+      <StepBar step={5} total={5} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 5 VAN 5 — KLAAR</Text>
 
       <Box flex={1} paddingHorizontal="lg" alignItems="center" justifyContent="center">
 
@@ -87,7 +91,7 @@ export default function ChildWelcomeScreen() {
         >
           <View style={styles.bubble}>
             <Text style={styles.bubbleText}>
-              "Aangenaam kennis te maken, {CHILD_NAME}!"
+              "Aangenaam kennis te maken, {childName || 'jou'}!"
             </Text>
           </View>
         </MotiView>
@@ -100,7 +104,7 @@ export default function ChildWelcomeScreen() {
           style={{ width: '100%', marginBottom: 24 }}
         >
           <Text variant="title" style={{ textAlign: 'center' }} marginBottom="xs">
-            Welkom bij Tasko, {CHILD_NAME}!
+            Welkom bij Tasko, {childName || 'daar'}!
           </Text>
           <Text variant="subtitle" style={{ textAlign: 'center' }}>
             Jouw ruimte is klaar. Laten we beginnen{'\n'}met je eerste routine!
@@ -117,7 +121,7 @@ export default function ChildWelcomeScreen() {
         style={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, loading && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: loading ? 0.4 : 1 }]}
           onPress={handleStart}
           disabled={loading}
           activeOpacity={0.85}

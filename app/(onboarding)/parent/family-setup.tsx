@@ -20,6 +20,7 @@ export default function ParentFamilySetupScreen() {
   const [familyName, setFamilyName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
 
   const canContinue = parentName.trim().length > 0 && familyName.trim().length > 0;
 
@@ -74,6 +75,7 @@ export default function ParentFamilySetupScreen() {
                   style={styles.input}
                   value={parentName}
                   onChangeText={setParentName}
+                  onBlur={(e) => { setParentName(e.nativeEvent.text ?? parentName); setTouched(true); }}
                   placeholder="Jouw naam of bijnaam"
                   placeholderTextColor="#8a8885"
                   autoCapitalize="words"
@@ -87,6 +89,7 @@ export default function ParentFamilySetupScreen() {
                   style={styles.input}
                   value={familyName}
                   onChangeText={setFamilyName}
+                  onBlur={(e) => { setFamilyName(e.nativeEvent.text ?? familyName); setTouched(true); }}
                   placeholder="bijv. Familie Janssen"
                   placeholderTextColor="#8a8885"
                   autoCapitalize="words"
@@ -113,7 +116,7 @@ export default function ParentFamilySetupScreen() {
         ) : null}
 
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
           onPress={async () => {
             setError('');
             setLoading(true);
@@ -168,5 +171,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

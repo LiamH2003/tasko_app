@@ -6,7 +6,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 type Provider = 'google' | 'apple' | 'facebook';
 
-export async function signInWithProvider(provider: Provider): Promise<void> {
+export async function signInWithProvider(provider: Provider): Promise<{ isNewUser: boolean }> {
   const redirectTo = makeRedirectUri({ scheme: 'taskoapp', path: 'auth' });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -24,8 +24,11 @@ export async function signInWithProvider(provider: Provider): Promise<void> {
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
   if (result.type === 'success') {
-    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
+    const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
     if (sessionError) throw sessionError;
-    // Auth listener in useAppStore fires → _layout.tsx redirects to /(parent)
+    const onboardingComplete = sessionData.session?.user.user_metadata?.onboarding_complete === true;
+    return { isNewUser: !onboardingComplete };
   }
+
+  return { isNewUser: false };
 }

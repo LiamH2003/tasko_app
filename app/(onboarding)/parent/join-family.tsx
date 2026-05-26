@@ -15,6 +15,7 @@ export default function JoinFamilyScreen() {
   const [parentName, setParentName] = useState('');
   const [code, setCode] = useState('');
   const [focused, setFocused] = useState(false);
+  const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const inputRef = useRef<TextInput | null>(null);
@@ -73,6 +74,7 @@ export default function JoinFamilyScreen() {
                   style={styles.input}
                   value={parentName}
                   onChangeText={setParentName}
+                  onBlur={(e) => { setParentName(e.nativeEvent.text ?? parentName); setTouched(true); }}
                   placeholder="Jouw naam of bijnaam"
                   placeholderTextColor="#8a8885"
                   autoCapitalize="words"
@@ -149,7 +151,7 @@ export default function JoinFamilyScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canContinue || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canContinue && !loading ? 1 : 0.4 }]}
           onPress={async () => {
             setError('');
             setLoading(true);
@@ -208,5 +210,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

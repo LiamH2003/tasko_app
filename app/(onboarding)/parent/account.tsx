@@ -23,14 +23,26 @@ export default function ParentAccountScreen() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState({ email: false, password: false, confirm: false });
 
-  const [canContinue, setCanContinue] = useState(false);
+  const emailValid = email.trim().includes('@') && (email.trim().split('@')[1] ?? '').includes('.');
+  const passwordValid = password.trim().length >= 6;
+  const confirmValid = confirmPassword.length > 0 && password.trim() === confirmPassword.trim();
+  const canContinue = emailValid && passwordValid && confirmValid;
+
+  const emailBorder = !touched.email || email.length === 0 ? primaryAlpha(0.3) : emailValid ? PRIMARY : '#fc6b6b';
+  const passwordBorder = !touched.password || password.length === 0 ? primaryAlpha(0.3) : passwordValid ? PRIMARY : primaryAlpha(0.3);
+  const confirmBorder = !touched.confirm || confirmPassword.length === 0 ? primaryAlpha(0.3) : confirmValid ? PRIMARY : '#fc6b6b';
 
   const handleSocialRegister = async (provider: 'google' | 'facebook') => {
     setError('');
     setSocialLoading(provider);
     try {
-      await signInWithProvider(provider);
+      const { isNewUser } = await signInWithProvider(provider);
+      if (isNewUser) {
+        router.push('/(onboarding)/parent/family-choice');
+      }
+      // Existing user: _layout.tsx detects onboarding_complete and redirects to /(parent)
     } catch (e: any) {
       setError(e.message ?? 'Registratie mislukt. Probeer opnieuw.');
     } finally {
@@ -38,12 +50,6 @@ export default function ParentAccountScreen() {
     }
   };
 
-  const check = (e: string, p: string, c: string) =>
-    e.trim().includes('@') && p.trim().length >= 6 && p.trim() === c.trim();
-
-  const handleEmailChange = (text: string) => { setEmail(text); setCanContinue(check(text, password, confirmPassword)); };
-  const handlePasswordChange = (text: string) => { setPassword(text); setCanContinue(check(email, text, confirmPassword)); };
-  const handleConfirmChange = (text: string) => { setConfirmPassword(text); setCanContinue(check(email, password, text)); };
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -132,26 +138,39 @@ export default function ParentAccountScreen() {
 
                 {/* Email */}
                 <Text variant="label" marginBottom="sm">E-MAILADRES</Text>
-                <Box style={[styles.inputBox, { marginBottom: 16 }]}>
+                <Box style={[styles.inputBox, { borderColor: emailBorder }]}>
                   <TextInput
                     style={styles.input}
                     value={email}
-                    onChangeText={handleEmailChange}
+                    onChangeText={setEmail}
+                    onBlur={(e) => { setEmail(e.nativeEvent.text ?? email); setTouched(t => ({ ...t, email: true })); }}
                     placeholder="jan@voorbeeld.be"
                     placeholderTextColor="#8a8885"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
+                    autoComplete="off"
                   />
+                  {touched.email && email.length > 0 && (
+                    <Ionicons
+                      name={emailValid ? 'checkmark-circle' : 'close-circle'}
+                      size={18}
+                      color={emailValid ? PRIMARY : '#fc6b6b'}
+                    />
+                  )}
                 </Box>
+                {touched.email && email.length > 0 && !emailValid && (
+                  <Text style={styles.fieldError}>Voer een geldig e-mailadres in</Text>
+                )}
 
                 {/* Password */}
-                <Text variant="label" marginBottom="sm">WACHTWOORD</Text>
-                <Box style={[styles.inputBox, { marginBottom: 16 }]}>
+                <Text variant="label" marginBottom="sm" style={{ marginTop: 16 }}>WACHTWOORD</Text>
+                <Box style={[styles.inputBox, { borderColor: passwordBorder }]}>
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
                     value={password}
-                    onChangeText={handlePasswordChange}
+                    onChangeText={setPassword}
+                    onBlur={() => setTouched(t => ({ ...t, password: true }))}
                     placeholder="Min. 6 tekens"
                     placeholderTextColor="#8a8885"
                     secureTextEntry={!showPassword}
@@ -162,18 +181,25 @@ export default function ParentAccountScreen() {
                     <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
                   </Pressable>
                 </Box>
+                <View style={styles.requirementRow}>
+                  <Ionicons
+                    name={passwordValid ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={14}
+                    color={passwordValid ? PRIMARY : '#8a8885'}
+                  />
+                  <Text style={[styles.requirementText, { color: passwordValid ? PRIMARY : '#8a8885' }]}>
+                    Minimaal 6 tekens
+                  </Text>
+                </View>
 
                 {/* Confirm password */}
-                <Text variant="label" marginBottom="sm">HERHAAL WACHTWOORD</Text>
-                <Box style={[styles.inputBox, {
-                  borderColor: confirmPassword.length > 0
-                    ? (password.trim() === confirmPassword.trim() ? PRIMARY : '#fc6b6b')
-                    : primaryAlpha(0.3),
-                }]}>
+                <Text variant="label" marginBottom="sm" style={{ marginTop: 16 }}>HERHAAL WACHTWOORD</Text>
+                <Box style={[styles.inputBox, { borderColor: confirmBorder }]}>
                   <TextInput
                     style={[styles.input, { flex: 1 }]}
                     value={confirmPassword}
-                    onChangeText={handleConfirmChange}
+                    onChangeText={setConfirmPassword}
+                    onBlur={() => setTouched(t => ({ ...t, confirm: true }))}
                     placeholder="Wachtwoord herhalen"
                     placeholderTextColor="#8a8885"
                     secureTextEntry={!showConfirm}
@@ -184,6 +210,14 @@ export default function ParentAccountScreen() {
                     <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
                   </Pressable>
                 </Box>
+                {touched.confirm && confirmPassword.length > 0 && (
+                  <Text style={[styles.requirementText, {
+                    marginTop: 6,
+                    color: confirmValid ? PRIMARY : '#fc6b6b',
+                  }]}>
+                    {confirmValid ? 'Wachtwoorden komen overeen' : 'Wachtwoorden komen niet overeen'}
+                  </Text>
+                )}
 
               </View>
             </MotiView>
@@ -259,6 +293,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, gap: 8,
   },
   input: { flex: 1, fontSize: 14, color: '#1a1918', padding: 0 },
+  requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  requirementText: { fontSize: 12, lineHeight: 16 },
+  fieldError: { fontSize: 12, color: '#fc6b6b', marginTop: 6 },
   btnPrimary: {
     height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',

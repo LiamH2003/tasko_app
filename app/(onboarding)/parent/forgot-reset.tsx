@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, View, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,29 +10,22 @@ import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-import { PRIMARY, PRIMARY_DARK, primaryAlpha } from '@/constants/palette';
-
-type Rule = { label: string; test: (p: string) => boolean };
-
-const RULES: Rule[] = [
-  { label: 'Minimaal 8 tekens',                test: (p) => p.length >= 8 },
-  { label: 'Minstens 1 hoofdletter',           test: (p) => /[A-Z]/.test(p) },
-  { label: 'Minstens 1 cijfer',                test: (p) => /[0-9]/.test(p) },
-  { label: 'Minstens 1 speciaal teken (!@#…)', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
-];
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ForgotResetScreen() {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
 
-  const allRulesPassed = RULES.every((r) => r.test(password));
-  const passwordsMatch = password === confirm && confirm.length > 0;
-  const canSave = allRulesPassed && passwordsMatch;
+  const passwordValid = password.trim().length >= 6;
+  const passwordsMatch = confirm.length > 0 && password.trim() === confirm.trim();
+  const canSave = passwordValid && passwordsMatch;
 
   const handleSave = async () => {
     setError('');
@@ -40,7 +33,7 @@ export default function ForgotResetScreen() {
     try {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) throw err;
-      router.replace('/(onboarding)/parent/login');
+      router.replace('/(onboarding)/parent/forgot-success');
     } catch (e: any) {
       setError(e.message ?? 'Wachtwoord opslaan mislukt. Probeer opnieuw.');
     } finally {
@@ -51,24 +44,28 @@ export default function ForgotResetScreen() {
   return (
     <Box flex={1} backgroundColor="background">
 
-      <AnimatedBlob
-        size={260} color={primaryAlpha(0.13)}
-        duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.1}
-        style={{ top: -50, right: -60 }}
-      />
-      <AnimatedBlob
-        size={200} color={primaryAlpha(0.09)}
-        duration={2900} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.08}
-        style={{ bottom: 80, left: -55 }}
-      />
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={260} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.1}
+          style={{ top: -50, right: -60 }}
+        />
+        <AnimatedBlob
+          size={200} color={primaryAlpha(0.09)}
+          duration={2900} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.08}
+          style={{ bottom: 80, left: -55 }}
+        />
+      </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Box style={{ height: insets.top + 16 }} />
         <BackButton />
         <Box style={{ height: 12 }} />
-        <StepBar step={3} total={3} />
+        <StepBar step={3} total={4} />
+        <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 3 VAN 4 — WACHTWOORD</Text>
 
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -76,15 +73,14 @@ export default function ForgotResetScreen() {
 
           {/* Icon */}
           <MotiView
-            from={{ opacity: 0, scale: 0.85 }}
+            from={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', damping: 14, stiffness: 100 }}
-            style={{ marginBottom: 24 }}
+            style={{ marginTop: 16, marginBottom: 24, alignSelf: 'center' }}
           >
-            <Text variant="label" marginBottom="lg">STAP 3 VAN 3 — WACHTWOORD</Text>
-            <AnimatedFloat amplitude={6} duration={2400} style={{ alignSelf: 'flex-start' }}>
+            <AnimatedFloat amplitude={6} duration={2400}>
               <Box style={styles.iconWrap}>
-                <Ionicons name="lock-closed-outline" size={38} color={PRIMARY} />
+                <Ionicons name="lock-closed-outline" size={44} color={PRIMARY} />
               </Box>
             </AnimatedFloat>
           </MotiView>
@@ -98,7 +94,7 @@ export default function ForgotResetScreen() {
           >
             <Text variant="title" marginBottom="xs">Nieuw wachtwoord</Text>
             <Text variant="subtitle">
-              Kies een sterk wachtwoord. Je gebruikt het om daarna in te loggen.
+              Kies een wachtwoord. Je gebruikt het om daarna in te loggen.
             </Text>
           </MotiView>
 
@@ -108,145 +104,138 @@ export default function ForgotResetScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 360, delay: 180 }}
           >
-            <Text variant="label" marginBottom="sm">NIEUW WACHTWOORD</Text>
-            <Box style={[styles.inputBox, { marginBottom: 16 }]}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Minimaal 8 tekens..."
-                placeholderTextColor="#8a8885"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} hitSlop={8}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
-              </TouchableOpacity>
-            </Box>
+            <View style={styles.formCard}>
 
-            {/* Rules checklist */}
-            <View style={[styles.rulesCard, { marginBottom: 20 }]}>
-              {RULES.map((rule) => {
-                const passed = rule.test(password);
-                return (
-                  <Box key={rule.label} flexDirection="row" alignItems="center" gap="sm" style={{ marginBottom: 8 }}>
-                    <MotiView
-                      animate={{
-                        backgroundColor: passed ? PRIMARY : 'transparent',
-                        borderColor: passed ? PRIMARY : primaryAlpha(0.35),
-                      }}
-                      transition={{ type: 'timing', duration: 200 }}
-                      style={styles.ruleCheck}
-                    >
-                      <MotiView
-                        animate={{ opacity: passed ? 1 : 0, scale: passed ? 1 : 0.5 }}
-                        transition={{ type: 'spring', damping: 12, delay: passed ? 40 : 0 }}
-                      >
-                        <Ionicons name="checkmark" size={11} color="#e8e5dd" />
-                      </MotiView>
-                    </MotiView>
-                    <Text
-                      variant="cardSub"
-                      style={{ color: passed ? PRIMARY_DARK : '#8a8885', fontWeight: passed ? '500' : '400' }}
-                    >
-                      {rule.label}
-                    </Text>
-                  </Box>
-                );
-              })}
+              {/* Password */}
+              <Text variant="label" marginBottom="sm">WACHTWOORD</Text>
+              <Box style={[styles.inputBox, { borderColor: primaryAlpha(0.3) }]}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  onBlur={() => setTouched(true)}
+                  placeholder="Min. 6 tekens"
+                  placeholderTextColor="#8a8885"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Pressable onPressIn={() => setShowPassword(true)} onPressOut={() => setShowPassword(false)} hitSlop={8}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
+                </Pressable>
+              </Box>
+              <View style={styles.requirementRow}>
+                <Ionicons
+                  name={passwordValid ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={14}
+                  color={passwordValid ? PRIMARY : '#8a8885'}
+                />
+                <Text style={[styles.requirementText, { color: passwordValid ? PRIMARY : '#8a8885' }]}>
+                  Minimaal 6 tekens
+                </Text>
+              </View>
+
+              {/* Confirm password */}
+              <Text variant="label" marginBottom="sm" style={{ marginTop: 16 }}>HERHAAL WACHTWOORD</Text>
+              <Box style={[styles.inputBox, {
+                borderColor: confirm.length > 0
+                  ? (passwordsMatch ? PRIMARY : '#fc6b6b')
+                  : primaryAlpha(0.3),
+              }]}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  onBlur={() => setTouched(true)}
+                  onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
+                  placeholder="Wachtwoord herhalen"
+                  placeholderTextColor="#8a8885"
+                  secureTextEntry={!showConfirm}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Pressable onPressIn={() => setShowConfirm(true)} onPressOut={() => setShowConfirm(false)} hitSlop={8}>
+                  <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
+                </Pressable>
+              </Box>
+              {confirm.length > 0 && (
+                <Text style={[styles.requirementText, {
+                  marginTop: 6,
+                  color: passwordsMatch ? PRIMARY : '#fc6b6b',
+                }]}>
+                  {passwordsMatch ? 'Wachtwoorden komen overeen' : 'Wachtwoorden komen niet overeen'}
+                </Text>
+              )}
+
             </View>
-
-            <Text variant="label" marginBottom="sm">BEVESTIG WACHTWOORD</Text>
-            <Box style={[styles.inputBox, { marginBottom: 8,
-              borderColor: confirm.length > 0
-                ? (passwordsMatch ? PRIMARY : '#fc6b6b')
-                : primaryAlpha(0.3),
-            }]}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                value={confirm}
-                onChangeText={setConfirm}
-                placeholder="Typ het opnieuw..."
-                placeholderTextColor="#8a8885"
-                secureTextEntry={!showConfirm}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity onPress={() => setShowConfirm(v => !v)} hitSlop={8}>
-                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8a8885" />
-              </TouchableOpacity>
-            </Box>
-
-            {confirm.length > 0 && !passwordsMatch ? (
-              <Text variant="errorText" style={{ marginBottom: 8 }}>Wachtwoorden komen niet overeen.</Text>
-            ) : null}
-          </MotiView>
-
-          {error ? (
-            <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Text variant="errorText" style={{ marginBottom: 8 }}>{error}</Text>
-            </MotiView>
-          ) : null}
-
-          <Box flex={1} style={{ minHeight: 24 }} />
-
-          {/* CTA */}
-          <MotiView
-            from={{ opacity: 0, translateY: 12 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 340, delay: 280 }}
-          >
-            <TouchableOpacity
-              style={[styles.btnPrimary, (!canSave || loading) && styles.btnDisabled]}
-              onPress={handleSave}
-              disabled={!canSave || loading}
-              activeOpacity={0.85}
-            >
-              {loading
-                ? <ActivityIndicator color="#e8e5dd" />
-                : <Text variant="btnPrimary">Wachtwoord opslaan</Text>}
-            </TouchableOpacity>
           </MotiView>
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Pinned footer — outside KAV so it doesn't jump */}
+      <MotiView
+        from={{ opacity: 0, translateY: 12 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 280 }}
+        style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
+      >
+        {error ? (
+          <Text variant="errorText" style={{ textAlign: 'center' }}>{error}</Text>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.btnPrimary, { opacity: canSave && !loading ? 1 : 0.4 }]}
+          onPress={handleSave}
+          disabled={!canSave || loading}
+          activeOpacity={0.85}
+        >
+          {loading
+            ? <ActivityIndicator color="#e8e5dd" />
+            : <Text variant="btnPrimary">Wachtwoord opslaan</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{ alignItems: 'center', paddingVertical: 4 }}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Text variant="backLabel">Annuleren</Text>
+        </TouchableOpacity>
+      </MotiView>
+
     </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 40, flexGrow: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 100 },
   iconWrap: {
-    width: 88, height: 88, borderRadius: 44,
+    width: 96, height: 96, borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1.5, borderColor: primaryAlpha(0.3),
     alignItems: 'center', justifyContent: 'center',
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 14, shadowOpacity: 0.2, elevation: 5,
+    shadowRadius: 16, shadowOpacity: 0.2, elevation: 6,
+  },
+  formCard: {
+    borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
   },
   inputBox: {
     height: 50, flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12, borderWidth: 1.5, borderColor: primaryAlpha(0.3),
+    borderRadius: 12, borderWidth: 1.5,
     paddingHorizontal: 14, gap: 8,
   },
-  input: { fontSize: 15, color: '#1a1918', padding: 0 },
-  rulesCard: {
-    padding: 16, borderRadius: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
-    backgroundColor: 'rgba(255,255,255,0.75)',
-  },
-  ruleCheck: {
-    width: 20, height: 20, borderRadius: 5,
-    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
+  input: { flex: 1, fontSize: 14, color: '#1a1918', padding: 0 },
+  requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  requirementText: { fontSize: 12, lineHeight: 16 },
   btnPrimary: {
     height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });

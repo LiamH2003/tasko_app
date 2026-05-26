@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
@@ -8,28 +8,17 @@ import { Box, Text } from '@/components/ui/primitives';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
-import { completeOnboarding } from '@/services/auth';
+import { supabase } from '@/lib/supabase';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
-export default function ParentSuccessScreen() {
+export default function ForgotSuccessScreen() {
   const insets = useSafeAreaInsets();
-  const { parentName, familyName, inviteCode, joined } = useLocalSearchParams<{
-    parentName: string;
-    familyName: string;
-    inviteCode: string;
-    joined: string;
-  }>();
-  const isJoining = joined === 'true';
   const [loading, setLoading] = useState(false);
 
-  const handleContinue = async () => {
+  const handleLogin = async () => {
     setLoading(true);
-    try {
-      await completeOnboarding();
-      router.replace('/(parent)');
-    } finally {
-      setLoading(false);
-    }
+    await supabase.auth.signOut();
+    router.replace('/(onboarding)/parent/login');
   };
 
   return (
@@ -50,19 +39,17 @@ export default function ParentSuccessScreen() {
 
       <Box style={{ height: insets.top + 16 }} />
       <Box style={{ height: 12 }} />
-      <StepBar step={5} total={5} />
-      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 5 VAN 5 — KLAAR</Text>
+      <StepBar step={4} total={4} />
+      <Text variant="label" style={{ paddingHorizontal: 24, marginBottom: 12 }}>STAP 4 VAN 4 — KLAAR</Text>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Check icon */}
+      <Box flex={1} paddingHorizontal="lg" justifyContent="center">
+
+        {/* Icon */}
         <MotiView
           from={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', damping: 14, stiffness: 100 }}
-          style={{ marginTop: 16, marginBottom: 24, alignSelf: 'center' }}
+          style={{ marginBottom: 24, alignSelf: 'center' }}
         >
           <AnimatedFloat amplitude={6} duration={2400}>
             <Box style={styles.iconWrap}>
@@ -78,13 +65,9 @@ export default function ParentSuccessScreen() {
           transition={{ type: 'timing', duration: 340, delay: 100 }}
           style={{ marginBottom: 24 }}
         >
-          <Text variant="title" marginBottom="xs">
-            {isJoining ? `Je bent verbonden, ${parentName}!` : `Je bent klaar, ${parentName}!`}
-          </Text>
+          <Text variant="title" marginBottom="xs">Wachtwoord gewijzigd!</Text>
           <Text variant="subtitle">
-            {isJoining
-              ? `Je hebt je aangesloten bij ${familyName}. Je kunt nu het dashboard bekijken.`
-              : 'Jouw gezinsruimte is aangemaakt. Zodra je kind de code invoert, verschijnt hij hier.'}
+            Je wachtwoord is succesvol bijgewerkt. Je bent nu ingelogd en kunt meteen verder.
           </Text>
         </MotiView>
 
@@ -95,36 +78,19 @@ export default function ParentSuccessScreen() {
           transition={{ type: 'timing', duration: 360, delay: 180 }}
         >
           <View style={styles.formCard}>
-
             <Box flexDirection="row" alignItems="center" gap="md">
               <Box style={styles.iconBox}>
-                <Ionicons name="home-outline" size={20} color={PRIMARY} />
+                <Ionicons name="lock-closed-outline" size={20} color={PRIMARY} />
               </Box>
               <Box flex={1}>
-                <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>GEZIN</Text>
-                <Text style={styles.cardValue}>{familyName}</Text>
+                <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>WACHTWOORD</Text>
+                <Text style={styles.cardValue}>Succesvol bijgewerkt</Text>
               </Box>
             </Box>
-
-            {!isJoining && (
-              <>
-                <Box style={styles.divider} />
-                <Box flexDirection="row" alignItems="center" gap="md">
-                  <Box style={styles.iconBox}>
-                    <Ionicons name="key-outline" size={20} color={PRIMARY} />
-                  </Box>
-                  <Box flex={1}>
-                    <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>CODE VOOR KIND & PARTNER</Text>
-                    <Text style={styles.cardValue}>{inviteCode}</Text>
-                  </Box>
-                </Box>
-              </>
-            )}
-
           </View>
         </MotiView>
 
-      </ScrollView>
+      </Box>
 
       <MotiView
         from={{ opacity: 0, translateY: 12 }}
@@ -133,14 +99,14 @@ export default function ParentSuccessScreen() {
         style={{ paddingHorizontal: 24, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, { opacity: loading ? 0.4 : 1 }]}
-          onPress={handleContinue}
+          style={[styles.btnPrimary, loading && styles.btnDisabled]}
+          onPress={handleLogin}
           disabled={loading}
           activeOpacity={0.85}
         >
           {loading
             ? <ActivityIndicator color="#e8e5dd" />
-            : <Text variant="btnPrimary">Ga naar mijn dashboard</Text>}
+            : <Text variant="btnPrimary">Inloggen met nieuw wachtwoord</Text>}
         </TouchableOpacity>
       </MotiView>
 
@@ -149,7 +115,6 @@ export default function ParentSuccessScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: 24, paddingBottom: 16 },
   iconWrap: {
     width: 96, height: 96, borderRadius: 48,
     backgroundColor: 'rgba(255,255,255,0.75)',
@@ -171,10 +136,6 @@ const styles = StyleSheet.create({
   },
   cardValue: {
     fontSize: 16, fontWeight: '600', color: '#1a1918',
-  },
-  divider: {
-    height: 1, backgroundColor: primaryAlpha(0.12),
-    marginVertical: 16,
   },
   btnPrimary: {
     height: 52, backgroundColor: PRIMARY, borderRadius: 16,

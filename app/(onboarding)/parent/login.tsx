@@ -20,6 +20,7 @@ export default function ParentLoginScreen() {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
 
   const canLogin = email.includes('@') && password.length >= 1;
 
@@ -135,6 +136,7 @@ export default function ParentLoginScreen() {
                   style={styles.input}
                   value={email}
                   onChangeText={setEmail}
+                  onBlur={(e) => { setEmail(e.nativeEvent.text ?? email); setTouched(true); }}
                   placeholder="jan@voorbeeld.be"
                   placeholderTextColor="#8a8885"
                   keyboardType="email-address"
@@ -193,7 +195,7 @@ export default function ParentLoginScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, (!canLogin || loading) && styles.btnDisabled]}
+          style={[styles.btnPrimary, { opacity: canLogin && !loading ? 1 : 0.4 }]}
           onPress={handleLogin}
           disabled={!canLogin || loading}
           activeOpacity={0.85}
@@ -255,5 +257,4 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12, shadowOpacity: 0.35, elevation: 6,
   },
-  btnDisabled: { opacity: 0.4 },
 });
