@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
@@ -6,7 +6,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { MoodSelector } from '@/components/mood/MoodSelector';
 import { useAppStore } from '@/store/useAppStore';
-import { submitMood } from '@/services/child-device';
+import { submitMood, getTodayMood } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import type { MoodType } from '@/types';
 
@@ -16,6 +16,14 @@ export default function MoodScreen() {
   const [selected, setSelected] = useState<MoodType | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+
+  useEffect(() => {
+    if (!childId) { setLoadingInitial(false); return; }
+    getTodayMood(childId).then((mood) => {
+      if (mood) setSelected(mood as MoodType);
+    }).finally(() => setLoadingInitial(false));
+  }, [childId]);
 
   async function handleSubmit() {
     if (!selected || !childId) return;
@@ -28,6 +36,14 @@ export default function MoodScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loadingInitial) {
+    return (
+      <Box flex={1} backgroundColor="background" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={PRIMARY} />
+      </Box>
+    );
   }
 
   if (saved) {
@@ -47,7 +63,7 @@ export default function MoodScreen() {
           style={styles.savedContainer}
         >
           <Text style={styles.savedEmoji}>🎉</Text>
-          <Text style={styles.savedTitle}>Bedankt!</Text>
+          <Text style={styles.savedTitle}>Opgeslagen!</Text>
           <Text style={styles.savedSubtitle}>Je monster weet hoe je je voelt.</Text>
         </MotiView>
       </Box>
@@ -79,7 +95,9 @@ export default function MoodScreen() {
         style={styles.inner}
       >
         <Text style={styles.title}>Hoe voel je je vandaag?</Text>
-        <Text style={styles.subtitle}>Er is geen goed of fout antwoord.</Text>
+        <Text style={styles.subtitle}>
+          {selected ? 'Je kunt je stemming nog wijzigen.' : 'Er is geen goed of fout antwoord.'}
+        </Text>
 
         <MoodSelector selected={selected} onSelect={setSelected} />
 
@@ -91,7 +109,7 @@ export default function MoodScreen() {
         >
           {saving
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.buttonText}>Opslaan</Text>}
+            : <Text style={styles.buttonText}>{selected ? 'Opslaan' : 'Kies een stemming'}</Text>}
         </TouchableOpacity>
       </MotiView>
     </Box>

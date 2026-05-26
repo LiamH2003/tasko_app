@@ -5,7 +5,7 @@ import type { MoodType } from '@/types';
 const MOODS: { type: MoodType; emoji: string; label: string }[] = [
   { type: 'great', emoji: '😄', label: 'Super' },
   { type: 'good', emoji: '🙂', label: 'Goed' },
-  { type: 'okay', emoji: '😐', label: 'Zo-zo' },
+  { type: 'okay', emoji: '😐', label: 'Neutraal' },
   { type: 'sad', emoji: '😔', label: 'Verdrietig' },
   { type: 'angry', emoji: '😤', label: 'Boos' },
 ];

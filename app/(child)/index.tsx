@@ -2,20 +2,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
-import { fetchChildProfile, fetchChildRoutines, submitMood } from '@/services/child-device';
+import { fetchChildProfile, fetchChildRoutines, submitMood, getTodayMood, getDailyQuote } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import type { ChildProfile, ChildRoutine } from '@/services/child-device';
 
 const MOODS = [
   { key: 'great', emoji: '😁', label: 'Super' },
   { key: 'good',  emoji: '🙂', label: 'Goed' },
-  { key: 'okay',  emoji: '😐', label: 'Zo-zo' },
+  { key: 'okay',  emoji: '😐', label: 'Neutraal' },
   { key: 'sad',   emoji: '😒', label: 'Meh' },
   { key: 'angry', emoji: '😔', label: 'Slecht' },
 ];
@@ -35,17 +36,21 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [moodOpen, setMoodOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  const [moodSaved, setMoodSaved] = useState(false);
+  const [quote, setQuote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!childId) return;
     try {
-      const [p, r] = await Promise.all([
+      const [p, r, mood, q] = await Promise.all([
         fetchChildProfile(childId),
         fetchChildRoutines(childId),
+        getTodayMood(childId),
+        getDailyQuote(),
       ]);
       setProfile(p);
       setRoutines(r);
+      setSelectedMood(mood);
+      setQuote(q);
     } catch {
       // handled by empty state
     } finally {
@@ -64,14 +69,11 @@ export default function HomeScreen() {
 
   async function handleMood(key: string) {
     setSelectedMood(key);
+    setMoodOpen(false);
     if (!childId) return;
     try {
       await submitMood(childId, key);
     } catch { /* non-fatal */ }
-    setTimeout(() => {
-      setMoodSaved(true);
-      setMoodOpen(false);
-    }, 600);
   }
 
   if (loading) {
@@ -113,7 +115,7 @@ export default function HomeScreen() {
             <Text style={styles.name}>Hallo, {displayName}!</Text>
           </View>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelStar}>⭐</Text>
+            <Ionicons name="trophy-outline" size={13} color={PRIMARY} />
             <Text style={styles.levelText}>Niveau {profile?.level ?? 1}</Text>
           </View>
         </MotiView>
@@ -125,8 +127,13 @@ export default function HomeScreen() {
           transition={{ type: 'spring', damping: 14, stiffness: 100, delay: 100 }}
           style={styles.monsterSection}
         >
-          <MonsterSvg size={180} />
+          <MonsterSvg size={160} />
           <Text style={styles.monsterName}>{monsterName}</Text>
+          {quote ? (
+            <View style={styles.quoteCard}>
+              <Text style={styles.quoteText}>"{quote}"</Text>
+            </View>
+          ) : null}
         </MotiView>
 
         {/* Bottom section */}
@@ -175,10 +182,10 @@ export default function HomeScreen() {
             onPress={() => setMoodOpen(true)}
             activeOpacity={0.85}
           >
-            {moodSaved ? (
+            {selectedMood ? (
               <Text style={styles.moodBtnText}>
-                {selectedMood ? MOODS.find(m => m.key === selectedMood)?.emoji : '✓'}{' '}
-                Stemming opgeslagen!
+                {MOODS.find(m => m.key === selectedMood)?.emoji}{' '}
+                {MOODS.find(m => m.key === selectedMood)?.label} — tik om te wijzigen
               </Text>
             ) : (
               <Text style={styles.moodBtnText}>😊 Hoe voel je je vandaag?</Text>
@@ -243,13 +250,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
   },
-  levelStar: { fontSize: 12 },
   levelText: { fontSize: 12, color: '#1a1918', fontWeight: '500' },
 
   monsterSection: {
     flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   monsterName: { fontSize: 18, fontWeight: '700', color: '#1a1918' },
+  quoteCard: {
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 16,
+    paddingHorizontal: 18, paddingVertical: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+    marginTop: 4, width: '75%',
+  },
+  quoteText: { fontSize: 13, color: '#6b6560', textAlign: 'center', fontStyle: 'italic', lineHeight: 20 },
 
   xpCard: {
     backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 20,

@@ -54,6 +54,18 @@ export async function submitMood(childId: string, mood: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getTodayMood(childId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('get_today_mood', { p_child_id: childId });
+  if (error) return null;
+  return (data as string) ?? null;
+}
+
+export async function getDailyQuote(): Promise<string | null> {
+  const { data, error } = await supabase.rpc('get_daily_quote');
+  if (error) return null;
+  return (data as string) ?? null;
+}
+
 export type FamilyChild = {
   id: string;
   name: string;
