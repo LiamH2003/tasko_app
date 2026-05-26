@@ -46,6 +46,26 @@ export async function completeTask(taskId: string, childId: string): Promise<voi
   if (error) throw error;
 }
 
+export async function uncompleteTask(taskId: string, childId: string): Promise<void> {
+  const { error } = await supabase.rpc('uncomplete_task_for_child', {
+    p_task_id: taskId,
+    p_child_id: childId,
+  });
+  if (error) throw error;
+}
+
+export type WeekDay = {
+  date: string;
+  done: number;
+  total: number;
+};
+
+export async function getWeekCompletion(childId: string): Promise<WeekDay[]> {
+  const { data, error } = await supabase.rpc('get_week_completion', { p_child_id: childId });
+  if (error) return [];
+  return (data as WeekDay[]) ?? [];
+}
+
 export async function submitMood(childId: string, mood: string): Promise<void> {
   const { error } = await supabase.rpc('log_mood_entry', {
     p_child_id: childId,

@@ -80,7 +80,7 @@ export default function FocusScreen() {
           style={{ marginBottom: 20 }}
         >
           <Text style={styles.title}>Focus</Text>
-          <Text style={styles.subtitle}>Kies een naam en duur — dan starten we!</Text>
+          <Text style={styles.subtitle}>Kies een naam en duur, dan starten we!</Text>
         </MotiView>
 
         {/* Subject card */}

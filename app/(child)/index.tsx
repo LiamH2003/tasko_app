@@ -185,7 +185,7 @@ export default function HomeScreen() {
             {selectedMood ? (
               <Text style={styles.moodBtnText}>
                 {MOODS.find(m => m.key === selectedMood)?.emoji}{' '}
-                {MOODS.find(m => m.key === selectedMood)?.label} — tik om te wijzigen
+                {MOODS.find(m => m.key === selectedMood)?.label} (tik om te wijzigen)
               </Text>
             ) : (
               <Text style={styles.moodBtnText}>😊 Hoe voel je je vandaag?</Text>
@@ -212,7 +212,7 @@ export default function HomeScreen() {
               <View style={styles.sheetHandle} />
               <Text style={styles.sheetTitle}>Hoe voel je je?</Text>
               <Text style={styles.sheetSub}>
-                Vertel het aan {monsterName} — hij luistert
+                Vertel het aan {monsterName}, hij luistert altijd.
               </Text>
               <View style={styles.moodRow}>
                 {MOODS.map((m) => (

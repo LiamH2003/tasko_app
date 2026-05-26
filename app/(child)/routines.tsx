@@ -1,88 +1,55 @@
-import { useState } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { useAppStore } from '@/store/useAppStore';
+import { fetchChildRoutines, completeTask, uncompleteTask, getWeekCompletion } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import type { ChildRoutine, ChildTask, WeekDay } from '@/services/child-device';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-const DAY_STATE: Array<'done' | 'missed' | 'today' | 'future'> = [
-  'done', 'done', 'missed', 'done', 'done', 'today', 'future',
-];
 
-const SEGMENTS = ['Ochtend', 'Middag', 'Avond'] as const;
-type Segment = typeof SEGMENTS[number];
-
-interface RoutineTask {
-  id: string;
-  title: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  time: string;
-  duration: number;
-  xp: number;
-  completed: boolean;
-  isNow?: boolean;
+function getDayState(weekDay: WeekDay): 'done' | 'missed' | 'today' | 'future' {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = new Date(weekDay.date);
+  day.setHours(0, 0, 0, 0);
+  if (day.getTime() === today.getTime()) return 'today';
+  if (day > today) return 'future';
+  if (weekDay.done > 0) return 'done';
+  return 'missed';
 }
 
-const ROUTINE_DATA: Record<Segment, RoutineTask[]> = {
-  Ochtend: [
-    { id: 'o1', title: 'Ontbijt eten', icon: 'cafe-outline', time: '7:30', duration: 15, xp: 20, completed: true },
-    { id: 'o2', title: 'Tanden poetsen', icon: 'sparkles-outline', time: '7:50', duration: 5, xp: 10, completed: true },
-    { id: 'o3', title: 'Rugzak inpakken', icon: 'bag-outline', time: '8:00', duration: 10, xp: 20, completed: false },
-  ],
-  Middag: [
-    { id: 'm1', title: 'Lunch eten', icon: 'cafe-outline', time: '12:30', duration: 20, xp: 20, completed: true },
-    { id: 'm2', title: 'Schermvrije tijd', icon: 'desktop-outline', time: '13:00', duration: 30, xp: 20, completed: true },
-    { id: 'm3', title: 'Huiswerk maken', icon: 'star-outline', time: '16:00', duration: 45, xp: 30, completed: false, isNow: true },
-    { id: 'm4', title: 'Buiten spelen', icon: 'heart-outline', time: '17:30', duration: 30, xp: 20, completed: false },
-  ],
-  Avond: [
-    { id: 'a1', title: 'Tanden poetsen', icon: 'refresh-outline', time: '20:00', duration: 5, xp: 10, completed: false },
-  ],
-};
-
-function DayCircle({ label, state }: { label: string; state: typeof DAY_STATE[number] }) {
-  const isDone = state === 'done';
-  const isToday = state === 'today';
-  const isMissed = state === 'missed';
-
+function DayCircle({ label, state }: { label: string; state: 'done' | 'missed' | 'today' | 'future' }) {
   return (
     <View style={styles.dayCol}>
       <View style={[
         styles.dayCircle,
-        isDone && styles.dayCircleDone,
-        isToday && styles.dayCircleToday,
-        isMissed && styles.dayCircleMissed,
+        state === 'done'   && styles.dayCircleDone,
+        state === 'today'  && styles.dayCircleToday,
+        state === 'missed' && styles.dayCircleMissed,
       ]}>
-        {isDone && <Ionicons name="checkmark" size={14} color="#fff" />}
-        {isMissed && <Ionicons name="close" size={12} color="#fc6b6b" />}
+        {state === 'done'   && <Ionicons name="checkmark" size={14} color="#fff" />}
+        {state === 'missed' && <Ionicons name="close" size={12} color="#fc6b6b" />}
       </View>
-      <Text style={[styles.dayLabel, isToday && { color: PRIMARY }]}>{label}</Text>
+      <Text style={[styles.dayLabel, state === 'today' && { color: PRIMARY }]}>{label}</Text>
     </View>
   );
 }
 
-function TaskCard({ task, onToggle }: { task: RoutineTask; onToggle: () => void }) {
+function TaskCard({ task, onToggle }: { task: ChildTask; onToggle: () => void }) {
   return (
-    <View style={[styles.taskCard, task.isNow && styles.taskCardNow]}>
-      {task.isNow && (
-        <View style={styles.nowBadge}>
-          <Text style={styles.nowText}>NU</Text>
-        </View>
-      )}
+    <View style={styles.taskCard}>
       <View style={styles.taskIconBox}>
-        <Ionicons name={task.icon} size={18} color={PRIMARY} />
+        <Text style={styles.taskEmoji}>{task.emoji}</Text>
       </View>
       <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle}>{task.title}</Text>
-        <View style={styles.taskMeta}>
-          <Text style={styles.taskTime}>{task.time} · {task.duration} min</Text>
-          <View style={task.completed ? styles.xpPillGreen : styles.xpPill}>
-            <Text style={styles.xpPillText}>{task.completed ? `+${task.xp} EXP ✓` : `+${task.xp} EXP`}</Text>
-          </View>
-        </View>
+        <Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>
+          {task.title}
+        </Text>
       </View>
       <TouchableOpacity
         style={[styles.checkbox, task.completed && styles.checkboxDone]}
@@ -97,18 +64,73 @@ function TaskCard({ task, onToggle }: { task: RoutineTask; onToggle: () => void 
 
 export default function RoutinesScreen() {
   const insets = useSafeAreaInsets();
-  const [activeSegment, setActiveSegment] = useState<Segment>('Middag');
-  const [tasks, setTasks] = useState(ROUTINE_DATA);
+  const { childId } = useAppStore();
+  const [routines, setRoutines] = useState<ChildRoutine[]>([]);
+  const [weekDays, setWeekDays] = useState<WeekDay[]>([]);
+  const [activeRoutineId, setActiveRoutineId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  function toggle(segment: Segment, id: string) {
-    setTasks((prev) => ({
-      ...prev,
-      [segment]: prev[segment].map((t) => t.id === id ? { ...t, completed: !t.completed } : t),
-    }));
+  const load = useCallback(async () => {
+    if (!childId) return;
+    try {
+      const [r, w] = await Promise.all([
+        fetchChildRoutines(childId),
+        getWeekCompletion(childId),
+      ]);
+      setRoutines(r);
+      setWeekDays(w);
+      if (r.length > 0 && !activeRoutineId) setActiveRoutineId(r[0].id);
+    } catch {
+      // handled by empty state
+    } finally {
+      setLoading(false);
+    }
+  }, [childId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleToggle(task: ChildTask) {
+    if (!childId) return;
+    // Optimistic update
+    setRoutines(prev => prev.map(r => ({
+      ...r,
+      tasks: r.tasks.map(t =>
+        t.id === task.id ? { ...t, completed: !t.completed } : t
+      ),
+    })));
+    try {
+      if (task.completed) {
+        await uncompleteTask(task.id, childId);
+      } else {
+        await completeTask(task.id, childId);
+      }
+    } catch {
+      // Revert on failure
+      setRoutines(prev => prev.map(r => ({
+        ...r,
+        tasks: r.tasks.map(t =>
+          t.id === task.id ? { ...t, completed: task.completed } : t
+        ),
+      })));
+    }
   }
 
-  const current = tasks[activeSegment];
-  const doneCount = current.filter((t) => t.completed).length;
+  const activeRoutine = routines.find(r => r.id === activeRoutineId) ?? null;
+  const allTasks = routines.flatMap(r => r.tasks);
+  const doneCount = activeRoutine?.tasks.filter(t => t.completed).length ?? 0;
+  const totalCount = activeRoutine?.tasks.length ?? 0;
+
+  const today = new Date();
+  const dateLabel = today.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateCapital = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+  if (loading) {
+    return (
+      <Box flex={1} backgroundColor="background" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={PRIMARY} />
+      </Box>
+    );
+  }
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -137,67 +159,89 @@ export default function RoutinesScreen() {
           transition={{ type: 'timing', duration: 340, delay: 60 }}
           style={styles.header}
         >
-          <View>
-            <Text style={styles.title}>Routines</Text>
-            <Text style={styles.subtitle}>Zaterdag 29 maart · {doneCount} van {current.length} gedaan</Text>
-          </View>
+          <Text style={styles.title}>Routines</Text>
+          <Text style={styles.subtitle}>
+            {dateCapital}{activeRoutine ? ` · ${doneCount} van ${totalCount} gedaan` : ''}
+          </Text>
         </MotiView>
 
         {/* Week row */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 120 }}
-        >
-          <View style={styles.weekCard}>
-            {DAYS.map((d, i) => <DayCircle key={d} label={d} state={DAY_STATE[i]} />)}
-          </View>
-        </MotiView>
-
-        {/* Segment control */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 160 }}
-        >
-          <View style={styles.segmentRow}>
-            {SEGMENTS.map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.segmentBtn, activeSegment === s && styles.segmentBtnActive]}
-                onPress={() => setActiveSegment(s)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.segmentText, activeSegment === s && styles.segmentTextActive]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </MotiView>
-
-        {/* Section header */}
-        <Text style={styles.sectionHeader}>
-          {activeSegment.toUpperCase()} — {doneCount} VAN {current.length} GEDAAN
-        </Text>
-
-        {/* Tasks */}
-        <View style={styles.taskList}>
-          {current.map((task) => (
-            <TaskCard key={task.id} task={task} onToggle={() => toggle(activeSegment, task.id)} />
-          ))}
-        </View>
-
-        {/* Avond peek when on Middag */}
-        {activeSegment === 'Middag' && (
-          <>
-            <Text style={styles.sectionHeader}>
-              AVOND — {tasks.Avond.filter(t => t.completed).length} TAAK
-            </Text>
-            <View style={styles.taskList}>
-              {tasks.Avond.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={() => toggle('Avond', task.id)} />
+        {weekDays.length > 0 && (
+          <MotiView
+            from={{ opacity: 0, translateY: 12 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 120 }}
+          >
+            <View style={styles.weekCard}>
+              {weekDays.map((wd, i) => (
+                <DayCircle key={wd.date} label={DAYS[i]} state={getDayState(wd)} />
               ))}
             </View>
+          </MotiView>
+        )}
+
+        {/* Segment control */}
+        {routines.length > 0 && (
+          <MotiView
+            from={{ opacity: 0, translateY: 12 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 160 }}
+          >
+            <View style={styles.segmentRow}>
+              {routines.map((r) => (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[styles.segmentBtn, activeRoutineId === r.id && styles.segmentBtnActive]}
+                  onPress={() => setActiveRoutineId(r.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.segmentText, activeRoutineId === r.id && styles.segmentTextActive]}>
+                    {r.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </MotiView>
+        )}
+
+        {/* Tasks */}
+        {activeRoutine && (
+          <>
+            <Text style={styles.sectionHeader}>
+              {activeRoutine.name.toUpperCase()}: {doneCount} VAN {totalCount} GEDAAN
+            </Text>
+            <MotiView
+              from={{ opacity: 0, translateY: 12 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 340, delay: 200 }}
+            >
+              <View style={styles.taskList}>
+                {activeRoutine.tasks.length === 0 ? (
+                  <View style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>Geen taken in deze routine.</Text>
+                  </View>
+                ) : (
+                  activeRoutine.tasks.map(task => (
+                    <TaskCard key={task.id} task={task} onToggle={() => handleToggle(task)} />
+                  ))
+                )}
+              </View>
+            </MotiView>
           </>
+        )}
+
+        {/* Empty state */}
+        {routines.length === 0 && (
+          <MotiView
+            from={{ opacity: 0, translateY: 16 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: 'timing', duration: 340, delay: 160 }}
+          >
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyTitle}>Nog geen routines</Text>
+              <Text style={styles.emptyText}>Vraag je ouder om routines aan te maken.</Text>
+            </View>
+          </MotiView>
         )}
 
         <View style={{ height: 24 }} />
@@ -226,8 +270,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: primaryAlpha(0.25),
     alignItems: 'center', justifyContent: 'center',
   },
-  dayCircleDone: { backgroundColor: '#48bb78', borderColor: '#48bb78' },
-  dayCircleToday: { backgroundColor: 'transparent', borderColor: PRIMARY, borderWidth: 2 },
+  dayCircleDone:   { backgroundColor: '#48bb78', borderColor: '#48bb78' },
+  dayCircleToday:  { backgroundColor: 'transparent', borderColor: PRIMARY, borderWidth: 2 },
   dayCircleMissed: { backgroundColor: 'rgba(252,107,107,0.08)', borderColor: 'rgba(252,107,107,0.3)' },
   dayLabel: { fontSize: 11, color: '#8a8885' },
 
@@ -251,31 +295,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
-    position: 'relative',
   },
-  taskCardNow: { borderColor: '#c8a84b' },
-  nowBadge: {
-    position: 'absolute', top: -1, right: 12,
-    backgroundColor: '#c8a84b', borderRadius: 6,
-    paddingHorizontal: 6, paddingVertical: 2,
-  },
-  nowText: { fontSize: 10, fontWeight: '700', color: '#fff' },
   taskIconBox: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: primaryAlpha(0.1),
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: primaryAlpha(0.08),
     alignItems: 'center', justifyContent: 'center',
   },
+  taskEmoji: { fontSize: 20 },
   taskInfo: { flex: 1 },
-  taskTitle: { fontSize: 14, fontWeight: '600', color: '#1a1918' },
-  taskMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  taskTime: { fontSize: 11, color: '#8a8885' },
-  xpPill: { backgroundColor: primaryAlpha(0.1), borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
-  xpPillGreen: { backgroundColor: 'rgba(72,187,120,0.15)', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2 },
-  xpPillText: { fontSize: 11, color: '#48bb78', fontWeight: '600' },
+  taskTitle: { fontSize: 15, fontWeight: '600', color: '#1a1918' },
+  taskTitleDone: { color: '#b0ada8', textDecorationLine: 'line-through' },
   checkbox: {
-    width: 26, height: 26, borderRadius: 13,
+    width: 28, height: 28, borderRadius: 14,
     borderWidth: 2, borderColor: PRIMARY,
     alignItems: 'center', justifyContent: 'center',
   },
   checkboxDone: { backgroundColor: '#48bb78', borderColor: '#48bb78' },
+
+  emptyCard: {
+    backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 20, padding: 24,
+    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#1a1918', marginBottom: 6 },
+  emptyText: { fontSize: 13, color: '#8a8885', textAlign: 'center' },
 });
