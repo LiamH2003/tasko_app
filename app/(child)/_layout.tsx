@@ -1,7 +1,7 @@
+import { useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemeProvider } from '@shopify/restyle';
-import { theme } from '@/constants/restyleTheme';
+import { ThemePreferenceProvider, useThemePreference } from '@/store/useThemePreference';
 import { PRIMARY } from '@/constants/palette';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
@@ -10,25 +10,26 @@ function TabIcon({ name, color, size }: { name: IoniconsName; color: string; siz
   return <Ionicons name={name} size={size} color={color} />;
 }
 
-export default function ChildLayout() {
+function ThemedTabs() {
+  const { isDark } = useThemePreference();
+
+  const screenOptions = useMemo(() => ({
+    headerShown: false,
+    tabBarStyle: {
+      backgroundColor: isDark ? 'rgba(15,21,32,0.98)' : 'rgba(255,255,255,0.97)',
+      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+      borderTopWidth: 1,
+      height: 60,
+      paddingBottom: 8,
+      paddingTop: 6,
+    },
+    tabBarActiveTintColor: PRIMARY,
+    tabBarInactiveTintColor: isDark ? '#6b7280' : '#8a8885',
+    tabBarLabelStyle: { fontSize: 10 },
+  }), [isDark]);
+
   return (
-    <ThemeProvider theme={theme}>
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: 'rgba(255,255,255,0.97)',
-          borderTopColor: 'rgba(0,0,0,0.06)',
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
-        },
-        tabBarActiveTintColor: PRIMARY,
-        tabBarInactiveTintColor: '#8a8885',
-        tabBarLabelStyle: { fontSize: 10 },
-      }}
-    >
+    <Tabs screenOptions={screenOptions}>
       <Tabs.Screen
         name="index"
         options={{
@@ -64,10 +65,17 @@ export default function ChildLayout() {
           tabBarIcon: ({ color, size }) => <TabIcon name="settings-outline" color={color} size={size} />,
         }}
       />
-      <Tabs.Screen name="tasks"     options={{ href: null }} />
-      <Tabs.Screen name="mood"      options={{ href: null }} />
-      <Tabs.Screen name="wardrobe"  options={{ href: null }} />
+      <Tabs.Screen name="tasks"    options={{ href: null }} />
+      <Tabs.Screen name="mood"     options={{ href: null }} />
+      <Tabs.Screen name="wardrobe" options={{ href: null }} />
     </Tabs>
-    </ThemeProvider>
+  );
+}
+
+export default function ChildLayout() {
+  return (
+    <ThemePreferenceProvider>
+      <ThemedTabs />
+    </ThemePreferenceProvider>
   );
 }

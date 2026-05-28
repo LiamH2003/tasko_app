@@ -8,6 +8,8 @@ import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { BackButton } from '@/components/ui/BackButton';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { useTheme } from '@shopify/restyle';
+import type { AppTheme } from '@/constants/restyleTheme';
 
 const WARDROBE = [
   { id: 'w1', name: 'Gouden kroon',    badge: 'Aan',    badgeType: 'active'   as const },
@@ -26,6 +28,7 @@ const BADGE_COLORS = {
 
 export default function WardrobeScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme<AppTheme>();
   const [equippedId, setEquippedId] = useState('w1');
 
   return (
@@ -55,8 +58,8 @@ export default function WardrobeScreen() {
           transition={{ type: 'timing', duration: 340, delay: 40 }}
           style={styles.header}
         >
-          <Text style={styles.title}>Garderobe</Text>
-          <Text style={styles.subtitle}>Pas je monster aan met items die je hebt verdiend.</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Garderobe</Text>
+          <Text style={[styles.subtitle, { color: colors.textMuted }]}>Pas je monster aan met items die je hebt verdiend.</Text>
         </MotiView>
 
         <MotiView

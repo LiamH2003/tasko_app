@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -9,8 +10,10 @@ import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
+import { useThemePreference } from '@/store/useThemePreference';
 import { fetchChildProfile, fetchChildRoutines, submitMood, getTodayMood, getDailyQuote } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildProfile, ChildRoutine } from '@/services/child-device';
 
 const MOODS = [
@@ -30,7 +33,9 @@ function getGreeting() {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { childId, child, childName } = useAppStore();
+  const { isDark } = useThemePreference();
+  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { childId, childName } = useAppStore();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,13 +63,13 @@ export default function HomeScreen() {
     }
   }, [childId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const allTasks = routines.flatMap(r => r.tasks);
   const doneCount = allTasks.filter(t => t.completed).length;
   const todoCount = allTasks.filter(t => !t.completed).length;
   const xpProgress = profile ? profile.xp / profile.xp_to_next_level : 0;
-  const displayName = profile?.name ?? child?.name ?? childName ?? 'daar';
+  const displayName = childName ?? profile?.name ?? 'daar';
   const monsterName = profile?.monster_name ?? 'Monster';
 
   async function handleMood(key: string) {
@@ -112,15 +117,15 @@ export default function HomeScreen() {
         >
           <View>
             <Text variant="label">{getGreeting()}</Text>
-            <Text style={styles.name}>Hallo, {displayName}!</Text>
+            <Text style={[styles.name, { color: c.textPrimary }]}>Hallo, {displayName}!</Text>
           </View>
-          <View style={styles.levelBadge}>
+          <View style={[styles.levelBadge, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
             <Ionicons name="trophy-outline" size={13} color={PRIMARY} />
-            <Text style={styles.levelText}>Niveau {profile?.level ?? 1}</Text>
+            <Text style={[styles.levelText, { color: c.textPrimary }]}>Niveau {profile?.level ?? 1}</Text>
           </View>
         </MotiView>
 
-        {/* Monster — flex:1 so it takes all remaining vertical space */}
+        {/* Monster */}
         <MotiView
           from={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -128,10 +133,10 @@ export default function HomeScreen() {
           style={styles.monsterSection}
         >
           <MonsterSvg size={160} />
-          <Text style={styles.monsterName}>{monsterName}</Text>
+          <Text style={[styles.monsterName, { color: c.textPrimary }]}>{monsterName}</Text>
           {quote ? (
-            <View style={styles.quoteCard}>
-              <Text style={styles.quoteText}>"{quote}"</Text>
+            <View style={[styles.quoteCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.quoteText, { color: c.textMuted }]}>"{quote}"</Text>
             </View>
           ) : null}
         </MotiView>
@@ -144,9 +149,9 @@ export default function HomeScreen() {
           style={[styles.bottomSection, { paddingBottom: Math.max(insets.bottom + 8, 16) }]}
         >
           {/* XP bar */}
-          <View style={styles.xpCard}>
+          <View style={[styles.xpCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
             <View style={styles.xpRow}>
-              <Text style={styles.xpLabel}>
+              <Text style={[styles.xpLabel, { color: c.textMuted }]}>
                 <Text style={styles.xpAmount}>{profile?.xp ?? 0}</Text>
                 {' / '}{profile?.xp_to_next_level ?? 100} EXP
               </Text>
@@ -166,12 +171,12 @@ export default function HomeScreen() {
             ].map((s) => (
               <TouchableOpacity
                 key={s.label}
-                style={styles.statCard}
+                style={[styles.statCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}
                 onPress={() => router.push('/(child)/routines')}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.statNumber, { color: s.color }]}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
+                <Text style={[styles.statLabel, { color: c.textMuted }]}>{s.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -206,12 +211,12 @@ export default function HomeScreen() {
             from={{ opacity: 0, translateY: 40 }}
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'spring', damping: 18, stiffness: 120 }}
-            style={styles.sheet}
+            style={[styles.sheet, { backgroundColor: c.sheetBg }]}
           >
             <Pressable>
               <View style={styles.sheetHandle} />
-              <Text style={styles.sheetTitle}>Hoe voel je je?</Text>
-              <Text style={styles.sheetSub}>
+              <Text style={[styles.sheetTitle, { color: c.textPrimary }]}>Hoe voel je je?</Text>
+              <Text style={[styles.sheetSub, { color: c.textMuted }]}>
                 Vertel het aan {monsterName}, hij luistert altijd.
               </Text>
               <View style={styles.moodRow}>
@@ -223,7 +228,7 @@ export default function HomeScreen() {
                     activeOpacity={0.7}
                   >
                     <Text style={styles.moodEmoji}>{m.emoji}</Text>
-                    <Text style={styles.moodLabel}>{m.label}</Text>
+                    <Text style={[styles.moodLabel, { color: c.textMuted }]}>{m.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -292,7 +297,6 @@ const styles = StyleSheet.create({
   },
   moodBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
-  // Modal
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.35)',
     justifyContent: 'flex-end',

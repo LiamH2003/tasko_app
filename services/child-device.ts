@@ -9,6 +9,7 @@ export type ChildProfile = {
   xp_to_next_level: number;
   stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
   invite_code: string | null;
+  avatar_url: string | null;
 };
 
 export type ChildTask = {
@@ -109,6 +110,49 @@ export async function updateChildName(childId: string, name: string): Promise<vo
   const { error } = await supabase.rpc('update_child_name', {
     p_child_id: childId,
     p_name: name,
+  });
+  if (error) throw error;
+}
+
+export async function updateMonsterName(childId: string, name: string): Promise<void> {
+  const { error } = await supabase.rpc('update_monster_name', {
+    p_child_id: childId,
+    p_name: name,
+  });
+  if (error) throw error;
+}
+
+export async function uploadChildAvatar(childId: string, localUri: string): Promise<string> {
+  const ext = localUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const path = `${childId}/avatar.${ext}`;
+  const contentType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+
+  const res = await fetch(localUri);
+  const blob = await res.blob();
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(path, blob, { contentType, upsert: true });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function logFocusSession(childId: string, durationSeconds: number, subject: string): Promise<void> {
+  const { error } = await supabase.rpc('log_focus_session', {
+    p_child_id: childId,
+    p_duration_seconds: durationSeconds,
+    p_subject: subject || null,
+  });
+  if (error) throw error;
+}
+
+export async function updateChildAvatar(childId: string, avatarUrl: string): Promise<void> {
+  const { error } = await supabase.rpc('update_child_avatar', {
+    p_child_id: childId,
+    p_avatar_url: avatarUrl,
   });
   if (error) throw error;
 }

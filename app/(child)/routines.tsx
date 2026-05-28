@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,8 +7,10 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
+import { useThemePreference } from '@/store/useThemePreference';
 import { fetchChildRoutines, completeTask, uncompleteTask, getWeekCompletion } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
 import type { ChildRoutine, ChildTask, WeekDay } from '@/services/child-device';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
@@ -15,19 +18,34 @@ const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 function getDayState(weekDay: WeekDay): 'done' | 'missed' | 'today' | 'future' {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const day = new Date(weekDay.date);
+  // Append time so JS parses as local midnight, not UTC midnight
+  const day = new Date(weekDay.date + 'T00:00:00');
   day.setHours(0, 0, 0, 0);
-  if (day.getTime() === today.getTime()) return 'today';
+  if (day.getTime() === today.getTime()) {
+    if (weekDay.total > 0 && weekDay.done >= weekDay.total) return 'done';
+    return 'today';
+  }
   if (day > today) return 'future';
   if (weekDay.done > 0) return 'done';
   return 'missed';
 }
 
-function DayCircle({ label, state }: { label: string; state: 'done' | 'missed' | 'today' | 'future' }) {
+function dateToLabel(dateStr: string): string {
+  // (getDay()+6)%7 maps Sun=0→6, Mon=1→0, …, Sat=6→5 → aligns with DAYS (Ma…Zo)
+  const day = new Date(dateStr + 'T00:00:00');
+  return DAYS[(day.getDay() + 6) % 7];
+}
+
+function DayCircle({
+  label, state, c,
+}: {
+  label: string; state: 'done' | 'missed' | 'today' | 'future'; c: AppTheme['colors'];
+}) {
   return (
     <View style={styles.dayCol}>
       <View style={[
         styles.dayCircle,
+        { backgroundColor: c.glassInput, borderColor: primaryAlpha(0.25) },
         state === 'done'   && styles.dayCircleDone,
         state === 'today'  && styles.dayCircleToday,
         state === 'missed' && styles.dayCircleMissed,
@@ -35,19 +53,25 @@ function DayCircle({ label, state }: { label: string; state: 'done' | 'missed' |
         {state === 'done'   && <Ionicons name="checkmark" size={14} color="#fff" />}
         {state === 'missed' && <Ionicons name="close" size={12} color="#fc6b6b" />}
       </View>
-      <Text style={[styles.dayLabel, state === 'today' && { color: PRIMARY }]}>{label}</Text>
+      <Text style={[styles.dayLabel, { color: c.textMuted }, state === 'today' && { color: PRIMARY }]}>
+        {label}
+      </Text>
     </View>
   );
 }
 
-function TaskCard({ task, onToggle }: { task: ChildTask; onToggle: () => void }) {
+function TaskCard({
+  task, onToggle, c,
+}: {
+  task: ChildTask; onToggle: () => void; c: AppTheme['colors'];
+}) {
   return (
-    <View style={styles.taskCard}>
+    <View style={[styles.taskCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
       <View style={styles.taskIconBox}>
         <Text style={styles.taskEmoji}>{task.emoji}</Text>
       </View>
       <View style={styles.taskInfo}>
-        <Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>
+        <Text style={[styles.taskTitle, { color: c.textPrimary }, task.completed && styles.taskTitleDone, task.completed && { color: c.textMuted }]}>
           {task.title}
         </Text>
       </View>
@@ -64,6 +88,8 @@ function TaskCard({ task, onToggle }: { task: ChildTask; onToggle: () => void })
 
 export default function RoutinesScreen() {
   const insets = useSafeAreaInsets();
+  const { isDark } = useThemePreference();
+  const c = isDark ? darkTheme.colors : lightTheme.colors;
   const { childId } = useAppStore();
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
   const [weekDays, setWeekDays] = useState<WeekDay[]>([]);
@@ -79,7 +105,11 @@ export default function RoutinesScreen() {
       ]);
       setRoutines(r);
       setWeekDays(w);
-      if (r.length > 0 && !activeRoutineId) setActiveRoutineId(r[0].id);
+      setActiveRoutineId(prev => {
+        if (r.length === 0) return null;
+        if (prev && r.some(routine => routine.id === prev)) return prev;
+        return r[0].id;
+      });
     } catch {
       // handled by empty state
     } finally {
@@ -87,17 +117,23 @@ export default function RoutinesScreen() {
     }
   }, [childId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   async function handleToggle(task: ChildTask) {
     if (!childId) return;
-    // Optimistic update
+    const _d = new Date();
+    const todayStr = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
+    const delta = task.completed ? -1 : 1;
+    // Optimistic updates
     setRoutines(prev => prev.map(r => ({
       ...r,
       tasks: r.tasks.map(t =>
         t.id === task.id ? { ...t, completed: !t.completed } : t
       ),
     })));
+    setWeekDays(prev => prev.map(wd =>
+      wd.date === todayStr ? { ...wd, done: Math.max(0, wd.done + delta) } : wd
+    ));
     try {
       if (task.completed) {
         await uncompleteTask(task.id, childId);
@@ -105,18 +141,20 @@ export default function RoutinesScreen() {
         await completeTask(task.id, childId);
       }
     } catch {
-      // Revert on failure
+      // Revert both on failure
       setRoutines(prev => prev.map(r => ({
         ...r,
         tasks: r.tasks.map(t =>
           t.id === task.id ? { ...t, completed: task.completed } : t
         ),
       })));
+      setWeekDays(prev => prev.map(wd =>
+        wd.date === todayStr ? { ...wd, done: Math.max(0, wd.done - delta) } : wd
+      ));
     }
   }
 
   const activeRoutine = routines.find(r => r.id === activeRoutineId) ?? null;
-  const allTasks = routines.flatMap(r => r.tasks);
   const doneCount = activeRoutine?.tasks.filter(t => t.completed).length ?? 0;
   const totalCount = activeRoutine?.tasks.length ?? 0;
 
@@ -159,8 +197,8 @@ export default function RoutinesScreen() {
           transition={{ type: 'timing', duration: 340, delay: 60 }}
           style={styles.header}
         >
-          <Text style={styles.title}>Routines</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: c.textPrimary }]}>Routines</Text>
+          <Text style={[styles.subtitle, { color: c.textMuted }]}>
             {dateCapital}{activeRoutine ? ` · ${doneCount} van ${totalCount} gedaan` : ''}
           </Text>
         </MotiView>
@@ -172,9 +210,9 @@ export default function RoutinesScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 340, delay: 120 }}
           >
-            <View style={styles.weekCard}>
-              {weekDays.map((wd, i) => (
-                <DayCircle key={wd.date} label={DAYS[i]} state={getDayState(wd)} />
+            <View style={[styles.weekCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              {weekDays.map((wd) => (
+                <DayCircle key={wd.date} label={dateToLabel(wd.date)} state={getDayState(wd)} c={c} />
               ))}
             </View>
           </MotiView>
@@ -187,7 +225,7 @@ export default function RoutinesScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 340, delay: 160 }}
           >
-            <View style={styles.segmentRow}>
+            <View style={[styles.segmentRow, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
               {routines.map((r) => (
                 <TouchableOpacity
                   key={r.id}
@@ -195,7 +233,10 @@ export default function RoutinesScreen() {
                   onPress={() => setActiveRoutineId(r.id)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.segmentText, activeRoutineId === r.id && styles.segmentTextActive]}>
+                  <Text style={[
+                    styles.segmentText, { color: c.textMuted },
+                    activeRoutineId === r.id && styles.segmentTextActive,
+                  ]}>
                     {r.name}
                   </Text>
                 </TouchableOpacity>
@@ -217,12 +258,12 @@ export default function RoutinesScreen() {
             >
               <View style={styles.taskList}>
                 {activeRoutine.tasks.length === 0 ? (
-                  <View style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>Geen taken in deze routine.</Text>
+                  <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                    <Text style={[styles.emptyText, { color: c.textMuted }]}>Geen taken in deze routine.</Text>
                   </View>
                 ) : (
                   activeRoutine.tasks.map(task => (
-                    <TaskCard key={task.id} task={task} onToggle={() => handleToggle(task)} />
+                    <TaskCard key={task.id} task={task} onToggle={() => handleToggle(task)} c={c} />
                   ))
                 )}
               </View>
@@ -237,9 +278,9 @@ export default function RoutinesScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 340, delay: 160 }}
           >
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>Nog geen routines</Text>
-              <Text style={styles.emptyText}>Vraag je ouder om routines aan te maken.</Text>
+            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.emptyTitle, { color: c.textPrimary }]}>Nog geen routines</Text>
+              <Text style={[styles.emptyText, { color: c.textMuted }]}>Vraag je ouder om routines aan te maken.</Text>
             </View>
           </MotiView>
         )}

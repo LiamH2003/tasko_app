@@ -8,10 +8,13 @@ import { MoodSelector } from '@/components/mood/MoodSelector';
 import { useAppStore } from '@/store/useAppStore';
 import { submitMood, getTodayMood } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { useTheme } from '@shopify/restyle';
+import type { AppTheme } from '@/constants/restyleTheme';
 import type { MoodType } from '@/types';
 
 export default function MoodScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme<AppTheme>();
   const { childId } = useAppStore();
   const [selected, setSelected] = useState<MoodType | null>(null);
   const [saving, setSaving] = useState(false);
@@ -94,8 +97,8 @@ export default function MoodScreen() {
         transition={{ type: 'timing', duration: 340, delay: 60 }}
         style={styles.inner}
       >
-        <Text style={styles.title}>Hoe voel je je vandaag?</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Hoe voel je je vandaag?</Text>
+        <Text style={[styles.subtitle, { color: colors.textMuted }]}>
           {selected ? 'Je kunt je stemming nog wijzigen.' : 'Er is geen goed of fout antwoord.'}
         </Text>
 

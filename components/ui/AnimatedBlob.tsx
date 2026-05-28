@@ -45,6 +45,8 @@ export function AnimatedBlob({
           height: size,
           borderRadius: size / 2,
           backgroundColor: color,
+          elevation: 0,
+          zIndex: 0,
         },
         style,
         animStyle,

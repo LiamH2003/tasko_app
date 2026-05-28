@@ -1,22 +1,32 @@
 import { createTheme } from '@shopify/restyle';
 import { PRIMARY, PRIMARY_DARK, primaryAlpha } from './palette';
 
-export const theme = createTheme({
+export const lightTheme = createTheme({
   colors: {
-    background:   '#e2e4e6',
-    surface:      '#ffffff',
-    primary:      PRIMARY,
-    primaryDark:  PRIMARY_DARK,
-    textPrimary:  '#1a1918',
-    textSecondary:'#4a4845',
-    textMuted:    '#8a8885',
-    iconBg:       primaryAlpha(0.14),
-    border:       primaryAlpha(0.4),
-    borderLight:  'rgba(255,255,255,0.9)',
-    cardBg:       'rgba(255,255,255,0.45)',
-    inputBg:      'rgba(255,255,255,0.7)',
-    transparent:  'transparent',
-    error:        '#fc6b6b',
+    background:     '#e2e4e6',
+    surface:        '#ffffff',
+    primary:        PRIMARY,
+    primaryDark:    PRIMARY_DARK,
+    textPrimary:    '#1a1918',
+    textSecondary:  '#4a4845',
+    textMuted:      '#8a8885',
+    iconBg:         primaryAlpha(0.14),
+    border:         primaryAlpha(0.4),
+    borderLight:    'rgba(255,255,255,0.9)',
+    cardBg:         'rgba(255,255,255,0.45)',
+    inputBg:        'rgba(255,255,255,0.7)',
+    transparent:    'transparent',
+    error:          '#fc6b6b',
+    // Child screen glass tokens
+    glassCard:      'rgba(255,255,255,0.82)',
+    glassCardBorder:'rgba(255,255,255,0.90)',
+    glassInput:     'rgba(255,255,255,0.70)',
+    sheetBg:        '#f5f3ef',
+    tabBarBg:       'rgba(255,255,255,0.97)',
+    tabBarBorder:   'rgba(0,0,0,0.06)',
+    tabBarInactive: '#8a8885',
+    placeholder:    '#b0ada8',
+    divider:        primaryAlpha(0.12),
   },
   spacing: {
     xxs: 2, xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48,
@@ -44,4 +54,31 @@ export const theme = createTheme({
   },
 });
 
-export type AppTheme = typeof theme;
+export type AppTheme = typeof lightTheme;
+
+// Backward-compat alias used by (onboarding)/_layout.tsx
+export const theme = lightTheme;
+
+export const darkTheme: AppTheme = {
+  ...lightTheme,
+  colors: {
+    ...lightTheme.colors,
+    background:     '#0f1520',
+    surface:        '#1a2035',
+    textPrimary:    '#f0ece8',
+    textSecondary:  '#c9c5c0',
+    textMuted:      '#9ca3af',
+    cardBg:         'rgba(255,255,255,0.06)',
+    inputBg:        'rgba(255,255,255,0.07)',
+    borderLight:    'rgba(255,255,255,0.08)',
+    glassCard:      'rgba(255,255,255,0.11)',
+    glassCardBorder:'rgba(255,255,255,0.16)',
+    glassInput:     'rgba(255,255,255,0.09)',
+    sheetBg:        '#1a2035',
+    tabBarBg:       'rgba(15,21,32,0.98)',
+    tabBarBorder:   'rgba(255,255,255,0.06)',
+    tabBarInactive: '#6b7280',
+    placeholder:    '#6b7280',
+    divider:        'rgba(255,255,255,0.08)',
+  },
+};
