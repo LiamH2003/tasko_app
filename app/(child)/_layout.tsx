@@ -47,14 +47,14 @@ export default function ChildLayout() {
         name="focus"
         options={{
           title: 'Focus',
-          tabBarIcon: ({ color, size }) => <TabIcon name="radio-button-on-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <TabIcon name="timer-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="tasko"
         options={{
           title: 'Tasko',
-          tabBarIcon: ({ color, size }) => <TabIcon name="location-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <TabIcon name="paw-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -64,8 +64,9 @@ export default function ChildLayout() {
           tabBarIcon: ({ color, size }) => <TabIcon name="settings-outline" color={color} size={size} />,
         }}
       />
-      <Tabs.Screen name="tasks" options={{ href: null }} />
-      <Tabs.Screen name="mood" options={{ href: null }} />
+      <Tabs.Screen name="tasks"     options={{ href: null }} />
+      <Tabs.Screen name="mood"      options={{ href: null }} />
+      <Tabs.Screen name="wardrobe"  options={{ href: null }} />
     </Tabs>
     </ThemeProvider>
   );
