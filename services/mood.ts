@@ -15,6 +15,23 @@ export async function logMood(
   return data;
 }
 
+export async function getTodayMoodForChild(
+  childId: string,
+): Promise<MoodEntryRow['mood'] | null> {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const { data, error } = await supabase
+    .from('mood_entries')
+    .select('mood')
+    .eq('child_id', childId)
+    .gte('created_at', startOfDay.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return (data?.mood as MoodEntryRow['mood']) ?? null;
+}
+
 export async function getMoodHistory(
   childId: string,
   limit = 30,

@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { useThemePreference } from '@/store/useThemePreference';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 
 const CHILDREN = [
   { id: 'emma', name: 'Emma', avatar: '👧' },
@@ -21,6 +25,9 @@ const ALERTS = [
 ];
 
 export default function EerlijkheidScreen() {
+  const insets = useSafeAreaInsets();
+  const { isDark } = useThemePreference();
+  const c = isDark ? darkTheme.colors : lightTheme.colors;
   const [activeChild, setActiveChild] = useState('emma');
   const [autoReport, setAutoReport] = useState(true);
   const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
@@ -28,159 +35,240 @@ export default function EerlijkheidScreen() {
   const visibleAlerts = ALERTS.filter((a) => !dismissedAlerts.includes(a.id));
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.navHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={18} color={Colors.primary} />
-          <Text style={styles.backText}>Terug</Text>
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>Eerlijkheid</Text>
-        <View style={{ width: 60 }} />
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={280} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -50, right: -60 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 100, left: -50 }}
+        />
       </View>
 
+      <Box style={{ height: insets.top + 8 }} />
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {/* Header */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          style={styles.header}
+        >
+          <Text style={[styles.title, { color: c.textPrimary }]}>Eerlijkheid</Text>
+          <Text style={[styles.subtitle, { color: c.textMuted }]}>Inzicht in eerlijk gedrag</Text>
+        </MotiView>
+
         {/* Child selector */}
-        <View style={styles.childSelector}>
-          {CHILDREN.map((c) => (
-            <TouchableOpacity key={c.id} style={[styles.childBtn, activeChild === c.id && styles.childBtnActive]} onPress={() => setActiveChild(c.id)} activeOpacity={0.8}>
-              <Text style={styles.childAvatar}>{c.avatar}</Text>
-              <Text style={[styles.childName, activeChild === c.id && styles.childNameActive]}>{c.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 120 }}
+        >
+          <View style={[styles.segmentRow, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            {CHILDREN.map((child) => (
+              <TouchableOpacity
+                key={child.id}
+                style={[styles.segmentBtn, activeChild === child.id && styles.segmentBtnActive]}
+                onPress={() => setActiveChild(child.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.segmentText, { color: c.textMuted }, activeChild === child.id && styles.segmentTextActive]}>
+                  {child.avatar} {child.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </MotiView>
 
-        {/* Monster XP card */}
-        <View style={styles.xpCard}>
-          <View style={styles.xpCardHeader}>
-            <Text style={styles.xpCardTitle}>Emma — Blub</Text>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelBadgeText}>Niveau 4</Text>
+        {/* XP card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 160 }}
+        >
+          <View style={[styles.xpCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={styles.xpCardHeader}>
+              <Text style={[styles.xpCardTitle, { color: c.textPrimary }]}>Emma — Blub</Text>
+              <View style={[styles.levelBadge, { backgroundColor: primaryAlpha(0.08), borderColor: primaryAlpha(0.2) }]}>
+                <Ionicons name="trophy-outline" size={11} color={PRIMARY} />
+                <Text style={styles.levelBadgeText}>Niveau 4</Text>
+              </View>
             </View>
+            <View style={styles.xpRow}>
+              <Text style={[styles.xpLabel, { color: c.textMuted }]}>EXP voortgang</Text>
+              <Text style={styles.xpValue}>340 / 500</Text>
+            </View>
+            <ProgressBar progress={340 / 500} color="#48bb78" height={7} />
+            <Text style={[styles.xpHint, { color: c.textMuted }]}>
+              Vandaag verdiend: <Text style={styles.xpEarned}>+60 EXP</Text>
+              {' · '}Nog 160 EXP tot niveau 5
+            </Text>
           </View>
-          <View style={styles.xpRow}>
-            <Text style={styles.xpLabel}>EXP voortgang</Text>
-            <Text style={styles.xpValue}>340 / 500</Text>
-          </View>
-          <ProgressBar progress={340 / 500} color={Colors.status.success} height={7} />
-          <Text style={styles.xpHint}>
-            Vandaag verdiend: <Text style={styles.xpEarned}>+60 EXP</Text>
-            {' · '}Nog 160 EXP tot niveau 5
-          </Text>
-        </View>
+        </MotiView>
 
-        {/* Honesty info */}
-        <View style={styles.infoCard}>
-          <Ionicons name="shield-outline" size={20} color={Colors.primary} style={{ marginTop: 2 }} />
-          <Text style={styles.infoText}>
-            <Text style={styles.infoBold}>Eerlijkheid wordt beloond, niet perfectie. </Text>
-            Wanneer je een mogelijke oneerlijkheid markeert, verliest het monster een kleine hoeveelheid EXP. Houd dit subtiel en bespreek het samen.
-          </Text>
-        </View>
+        {/* Info card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 200 }}
+        >
+          <View style={[styles.infoCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={styles.infoIconBox}>
+              <Ionicons name="shield-outline" size={18} color={PRIMARY} />
+            </View>
+            <Text style={[styles.infoText, { color: c.textMuted }]}>
+              <Text style={[styles.infoBold, { color: c.textPrimary }]}>Eerlijkheid wordt beloond, niet perfectie. </Text>
+              Wanneer je een mogelijke oneerlijkheid markeert, verliest het monster een kleine hoeveelheid EXP. Houd dit subtiel en bespreek het samen.
+            </Text>
+          </View>
+        </MotiView>
 
         {/* Alerts */}
-        <View style={styles.alertsHeader}>
-          <Text style={styles.sectionTitle}>Meldingen</Text>
-          {visibleAlerts.length > 0 && (
-            <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>{visibleAlerts.length} nieuw</Text>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 240 }}
+        >
+          <View style={styles.alertsHeaderRow}>
+            <Text style={styles.sectionHeader}>MELDINGEN</Text>
+            {visibleAlerts.length > 0 && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>{visibleAlerts.length} nieuw</Text>
+              </View>
+            )}
+          </View>
+
+          {visibleAlerts.map((alert) => (
+            <View key={alert.id} style={styles.alertCard}>
+              <View style={styles.alertHeader}>
+                <Ionicons name="warning" size={18} color="#f6c644" />
+                <Text style={[styles.alertTitle, { color: c.textPrimary }]}>{alert.title}</Text>
+              </View>
+              <Text style={[styles.alertBody, { color: c.textMuted }]}>{alert.body}</Text>
+              <Text style={[styles.alertTime, { color: c.textMuted }]}>{alert.time}</Text>
+              <View style={styles.alertButtons}>
+                <TouchableOpacity
+                  style={[styles.dismissBtn, { backgroundColor: c.glassInput, borderColor: c.glassCardBorder }]}
+                  onPress={() => setDismissedAlerts((d) => [...d, alert.id])}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.dismissBtnText, { color: c.textMuted }]}>Negeren</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.penaltyBtn}
+                  onPress={() => setDismissedAlerts((d) => [...d, alert.id])}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.penaltyBtnText}>–10 EXP toepassen</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          {visibleAlerts.length === 0 && (
+            <View style={[styles.emptyAlerts, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Ionicons name="checkmark-circle-outline" size={22} color="#48bb78" />
+              <Text style={[styles.emptyAlertsText, { color: c.textMuted }]}>Geen meldingen</Text>
             </View>
           )}
-        </View>
-
-        {visibleAlerts.map((alert) => (
-          <View key={alert.id} style={styles.alertCard}>
-            <View style={styles.alertHeader}>
-              <Ionicons name="warning" size={18} color={Colors.status.warning} />
-              <Text style={styles.alertTitle}>{alert.title}</Text>
-            </View>
-            <Text style={styles.alertBody}>{alert.body}</Text>
-            <Text style={styles.alertTime}>{alert.time}</Text>
-            <View style={styles.alertButtons}>
-              <TouchableOpacity style={styles.dismissBtn} onPress={() => setDismissedAlerts((d) => [...d, alert.id])} activeOpacity={0.8}>
-                <Text style={styles.dismissBtnText}>Negeren</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.penaltyBtn} onPress={() => setDismissedAlerts((d) => [...d, alert.id])} activeOpacity={0.8}>
-                <Text style={styles.penaltyBtnText}>–10 EXP toepassen</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-
-        {visibleAlerts.length === 0 && (
-          <View style={styles.emptyAlerts}>
-            <Ionicons name="checkmark-circle-outline" size={24} color={Colors.status.success} />
-            <Text style={styles.emptyAlertsText}>Geen meldingen</Text>
-          </View>
-        )}
+        </MotiView>
 
         {/* Consequence settings */}
-        <Text style={[styles.sectionTitle, { marginTop: Spacing.md }]}>Gevolgeninstellingen</Text>
-        <View style={styles.settingsCard}>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>EXP verlies bij oneerlijkheid</Text>
-            <View style={styles.xpLossBadge}>
-              <Text style={styles.xpLossBadgeText}>–10 EXP</Text>
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 280 }}
+        >
+          <Text style={[styles.sectionHeader, { marginTop: 8 }]}>GEVOLGENINSTELLINGEN</Text>
+          <View style={[styles.settingsCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={styles.settingRow}>
+              <Text style={[styles.settingLabel, { color: c.textPrimary }]}>EXP verlies bij oneerlijkheid</Text>
+              <View style={styles.xpLossBadge}>
+                <Text style={styles.xpLossBadgeText}>–10 EXP</Text>
+              </View>
+            </View>
+            <View style={[styles.divider, { backgroundColor: c.glassCardBorder }]} />
+            <View style={styles.settingRow}>
+              <Text style={[styles.settingLabel, { color: c.textPrimary }]}>Automatisch melden</Text>
+              <Switch
+                value={autoReport}
+                onValueChange={setAutoReport}
+                trackColor={{ false: primaryAlpha(0.15), true: PRIMARY }}
+                thumbColor="#fff"
+                ios_backgroundColor="rgba(128,128,128,0.2)"
+              />
             </View>
           </View>
-          <View style={styles.divider} />
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Automatisch melden</Text>
-            <Switch value={autoReport} onValueChange={setAutoReport} trackColor={{ false: Colors.border, true: Colors.primary }} thumbColor="#fff" ios_backgroundColor={Colors.card} />
-          </View>
-        </View>
+        </MotiView>
 
-        <View style={{ height: Spacing.xl }} />
+        <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  navHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 60 },
-  backText: { fontSize: FontSize.md, color: Colors.primary, fontWeight: FontWeight.medium },
-  navTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-  childSelector: { flexDirection: 'row', backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: 4, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  childBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 8, borderRadius: Radius.md },
-  childBtnActive: { backgroundColor: Colors.card },
-  childAvatar: { fontSize: 16 },
-  childName: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.text.muted },
-  childNameActive: { color: Colors.text.primary },
-  xpCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1, borderColor: Colors.border, gap: Spacing.sm },
+  scroll: { paddingHorizontal: 24, paddingTop: 8 },
+
+  header: { marginBottom: 16 },
+  title: { fontSize: 28, fontWeight: '700' },
+  subtitle: { fontSize: 13, marginTop: 4 },
+
+  segmentRow: { flexDirection: 'row', borderRadius: 99, padding: 3, marginBottom: 16, borderWidth: 1 },
+  segmentBtn: { flex: 1, paddingVertical: 8, borderRadius: 99, alignItems: 'center' },
+  segmentBtnActive: { backgroundColor: PRIMARY },
+  segmentText: { fontSize: 13, fontWeight: '500' },
+  segmentTextActive: { color: '#fff', fontWeight: '600' },
+
+  xpCard: { borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, gap: 10 },
   xpCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpCardTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  levelBadge: { backgroundColor: Colors.card, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: Colors.border },
-  levelBadgeText: { fontSize: FontSize.xs, color: Colors.text.primary, fontWeight: FontWeight.medium },
+  xpCardTitle: { fontSize: 16, fontWeight: '700' },
+  levelBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
+  levelBadgeText: { fontSize: 11, color: PRIMARY, fontWeight: '500' },
   xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpLabel: { fontSize: FontSize.xs, color: Colors.text.muted },
-  xpValue: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.primary },
-  xpHint: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 4 },
-  xpEarned: { color: Colors.status.success, fontWeight: FontWeight.semibold },
-  infoCard: { flexDirection: 'row', gap: Spacing.sm, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  infoText: { flex: 1, fontSize: FontSize.sm, color: Colors.text.secondary, lineHeight: 20 },
-  infoBold: { fontWeight: FontWeight.bold, color: Colors.text.primary },
-  alertsHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: Spacing.sm },
-  sectionTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  newBadge: { backgroundColor: Colors.status.error, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeText: { fontSize: FontSize.xs, color: '#fff', fontWeight: FontWeight.semibold },
-  alertCard: { backgroundColor: 'rgba(252,107,107,0.08)', borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.md, borderWidth: 1, borderColor: 'rgba(252,107,107,0.25)', gap: Spacing.sm },
+  xpLabel: { fontSize: 11 },
+  xpValue: { fontSize: 16, fontWeight: '700', color: PRIMARY },
+  xpHint: { fontSize: 11, marginTop: 4 },
+  xpEarned: { color: '#48bb78', fontWeight: '600' },
+
+  infoCard: { flexDirection: 'row', gap: 12, borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, alignItems: 'flex-start' },
+  infoIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: primaryAlpha(0.08), alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  infoText: { flex: 1, fontSize: 13, lineHeight: 20 },
+  infoBold: { fontWeight: '700' },
+
+  alertsHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  sectionHeader: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8 },
+  newBadge: { backgroundColor: '#fc6b6b', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  newBadgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+
+  alertCard: {
+    backgroundColor: 'rgba(252,107,107,0.08)', borderRadius: 20, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: 'rgba(252,107,107,0.25)', gap: 10,
+  },
   alertHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  alertTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.text.primary, flex: 1 },
-  alertBody: { fontSize: FontSize.sm, color: Colors.text.secondary, lineHeight: 20 },
-  alertTime: { fontSize: FontSize.xs, color: Colors.text.muted },
-  alertButtons: { flexDirection: 'row', gap: Spacing.sm, marginTop: 4 },
-  dismissBtn: { flex: 1, backgroundColor: Colors.card, borderRadius: Radius.md, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
-  dismissBtnText: { fontSize: FontSize.sm, color: Colors.text.secondary, fontWeight: FontWeight.medium },
-  penaltyBtn: { flex: 1, backgroundColor: 'rgba(252,107,107,0.20)', borderRadius: Radius.md, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(252,107,107,0.40)' },
-  penaltyBtnText: { fontSize: FontSize.sm, color: Colors.status.error, fontWeight: FontWeight.semibold },
-  emptyAlerts: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.md, borderWidth: 1, borderColor: Colors.border },
-  emptyAlertsText: { fontSize: FontSize.sm, color: Colors.text.muted },
-  settingsCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
-  settingLabel: { fontSize: FontSize.md, color: Colors.text.primary },
-  divider: { height: 1, backgroundColor: Colors.border },
-  xpLossBadge: { backgroundColor: 'rgba(252,107,107,0.15)', borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4 },
-  xpLossBadgeText: { fontSize: FontSize.sm, color: Colors.status.error, fontWeight: FontWeight.semibold },
+  alertTitle: { fontSize: 13, fontWeight: '700', flex: 1 },
+  alertBody: { fontSize: 13, lineHeight: 20 },
+  alertTime: { fontSize: 11 },
+  alertButtons: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  dismissBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1 },
+  dismissBtnText: { fontSize: 13, fontWeight: '500' },
+  penaltyBtn: { flex: 1, backgroundColor: 'rgba(252,107,107,0.20)', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(252,107,107,0.40)' },
+  penaltyBtnText: { fontSize: 13, color: '#fc6b6b', fontWeight: '600' },
+
+  emptyAlerts: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1 },
+  emptyAlertsText: { fontSize: 13 },
+
+  settingsCard: { borderRadius: 20, marginBottom: 24, borderWidth: 1, overflow: 'hidden' },
+  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+  settingLabel: { fontSize: 14 },
+  divider: { height: 1 },
+  xpLossBadge: { backgroundColor: 'rgba(252,107,107,0.15)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
+  xpLossBadgeText: { fontSize: 13, color: '#fc6b6b', fontWeight: '600' },
 });

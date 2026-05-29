@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Clipboard } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Clipboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, FontSize, FontWeight, Radius } from '@/constants/theme';
+import { MotiView } from 'moti';
+import { Box, Text } from '@/components/ui/primitives';
+import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
+import { useThemePreference } from '@/store/useThemePreference';
 import { getChildren } from '@/services/children';
+import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildRow } from '@/lib/database.types';
 
-function SectionHeader({ label }: { label: string }) {
-  return <Text style={styles.sectionHeader}>{label}</Text>;
-}
-
 export default function ParentSettingsScreen() {
+  const insets = useSafeAreaInsets();
+  const { isDark } = useThemePreference();
+  const c = isDark ? darkTheme.colors : lightTheme.colors;
   const { session, signOut } = useAppStore();
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,183 +32,256 @@ export default function ParentSettingsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.navHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={18} color={Colors.primary} />
-          <Text style={styles.backText}>Terug</Text>
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>Instellingen</Text>
-        <View style={{ width: 60 }} />
+    <Box flex={1} backgroundColor="background">
+
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <AnimatedBlob
+          size={260} color={primaryAlpha(0.13)}
+          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -50, right: -50 }}
+        />
+        <AnimatedBlob
+          size={160} color={primaryAlpha(0.08)}
+          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 120, left: -50 }}
+        />
       </View>
+
+      <Box style={{ height: insets.top + 8 }} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Family profile */}
-        <View style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarEmoji}>👨‍👩‍👧‍👦</Text>
-          </View>
-          <View>
-            <Text style={styles.profileName}>{familyName || 'Jouw gezin'}</Text>
-            <Text style={styles.profileEmail}>{email}</Text>
-          </View>
-        </View>
+        {/* Header */}
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          style={styles.header}
+        >
+          <Text style={[styles.title, { color: c.textPrimary }]}>Instellingen</Text>
+          <Text style={[styles.subtitle, { color: c.textMuted }]}>Beheer je gezin en account</Text>
+        </MotiView>
 
-        {/* Access codes — same code works for child and second parent */}
-        <SectionHeader label="CODE VOOR KIND & PARTNER" />
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginBottom: Spacing.lg }} />
-        ) : children.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyCardText}>Nog geen kinderen. Maak een gezin aan tijdens de setup.</Text>
+        {/* Family profile card */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 100 }}
+        >
+          <View style={[styles.profileCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={[styles.profileAvatar, { backgroundColor: primaryAlpha(0.1), borderColor: primaryAlpha(0.2) }]}>
+              <Text style={styles.profileAvatarEmoji}>👨‍👩‍👧‍👦</Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={[styles.profileName, { color: c.textPrimary }]}>{familyName || 'Jouw gezin'}</Text>
+              <Text style={[styles.profileEmail, { color: c.textMuted }]}>{email}</Text>
+            </View>
           </View>
-        ) : (
-          <View style={styles.codeCard}>
-            <Text style={styles.codeInfo}>
-              Kinderen voeren deze code in bij eerste aanmelding op hun toestel.
-            </Text>
-            {children.map((child, i) => (
-              <View key={child.id}>
-                {i > 0 && <View style={styles.codeDivider} />}
-                <View style={styles.codeRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.codeChildName}>{child.name}</Text>
-                    <Text style={styles.codeText}>{child.invite_code ?? '—'}</Text>
+        </MotiView>
+
+        {/* Invite codes */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 140 }}
+        >
+          <Text style={styles.sectionHeader}>CODE VOOR KIND & PARTNER</Text>
+          {loading ? (
+            <ActivityIndicator color={PRIMARY} style={{ marginBottom: 20 }} />
+          ) : children.length === 0 ? (
+            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: c.textMuted }]}>Nog geen kinderen. Maak een gezin aan tijdens de setup.</Text>
+            </View>
+          ) : (
+            <View style={[styles.codeCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.codeInfo, { color: c.textMuted }]}>
+                Kinderen voeren deze code in bij eerste aanmelding op hun toestel.
+              </Text>
+              {children.map((child, i) => (
+                <View key={child.id}>
+                  {i > 0 && <View style={[styles.codeDivider, { backgroundColor: c.glassCardBorder }]} />}
+                  <View style={[styles.codeRow, { backgroundColor: c.glassInput }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.codeChildName, { color: c.textMuted }]}>{child.name}</Text>
+                      <Text style={[styles.codeText, { color: c.textPrimary }]}>{child.invite_code ?? '—'}</Text>
+                    </View>
+                    {child.invite_code && (
+                      <TouchableOpacity
+                        style={styles.copyBtn}
+                        activeOpacity={0.8}
+                        onPress={() => Clipboard.setString(child.invite_code!)}
+                      >
+                        <Text style={styles.copyBtnText}>Kopieer</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  {child.invite_code && (
-                    <TouchableOpacity
-                      style={styles.copyBtn}
-                      activeOpacity={0.8}
-                      onPress={() => Clipboard.setString(child.invite_code!)}
-                    >
-                      <Text style={styles.copyBtnText}>Kopieer</Text>
-                    </TouchableOpacity>
-                  )}
                 </View>
-              </View>
-            ))}
-          </View>
-        )}
+              ))}
+            </View>
+          )}
+        </MotiView>
 
         {/* Subscription */}
-        <SectionHeader label="SUBSCRIPTIE" />
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
-            <View style={styles.linkIconBox}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.text.muted} />
-            </View>
-            <View style={styles.linkText}>
-              <Text style={styles.linkLabel}>Subscriptie aanpassen</Text>
-              <Text style={styles.linkSub}>Gratis plan</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.text.muted} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Children */}
-        <SectionHeader label="KINDEREN" />
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} style={{ marginBottom: Spacing.lg }} />
-        ) : children.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyCardText}>Nog geen kinderen toegevoegd.</Text>
-          </View>
-        ) : (
-          <View style={styles.section}>
-            {children.map((child, i) => (
-              <View key={child.id}>
-                {i > 0 && <View style={styles.divider} />}
-                <View style={styles.memberRow}>
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberAvatarEmoji}>🧒</Text>
-                  </View>
-                  <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>{child.name}</Text>
-                    <Text style={styles.memberSub}>Niveau {child.level} · {child.xp} XP</Text>
-                  </View>
-                  <TouchableOpacity style={styles.editBtn} activeOpacity={0.8}>
-                    <Text style={styles.editBtnText}>Bewerken</Text>
-                  </TouchableOpacity>
-                </View>
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 180 }}
+        >
+          <Text style={styles.sectionHeader}>SUBSCRIPTIE</Text>
+          <View style={[styles.section, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <TouchableOpacity style={styles.linkRow} activeOpacity={0.8}>
+              <View style={[styles.linkIconBox, { backgroundColor: primaryAlpha(0.08) }]}>
+                <Ionicons name="lock-closed-outline" size={18} color={c.textMuted} />
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* Parents */}
-        <SectionHeader label="OUDERS" />
-        <View style={styles.section}>
-          <View style={styles.memberRow}>
-            <View style={styles.memberAvatar}>
-              <Text style={styles.memberAvatarEmoji}>👤</Text>
-            </View>
-            <View style={styles.memberInfo}>
-              <Text style={styles.memberName}>{firstName || email.split('@')[0]}</Text>
-              <Text style={styles.memberSub}>Admin (Uw account)</Text>
-            </View>
-            <TouchableOpacity style={styles.editBtn} activeOpacity={0.8}>
-              <Text style={styles.editBtnText}>Bewerken</Text>
+              <View style={styles.linkText}>
+                <Text style={[styles.linkLabel, { color: c.textPrimary }]}>Subscriptie aanpassen</Text>
+                <Text style={[styles.linkSub, { color: c.textMuted }]}>Gratis plan</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={c.textMuted} />
             </TouchableOpacity>
           </View>
-        </View>
+        </MotiView>
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={18} color={Colors.status.error} />
-          <Text style={styles.signOutText}>Uitloggen</Text>
-        </TouchableOpacity>
+        {/* Children */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 220 }}
+        >
+          <Text style={styles.sectionHeader}>KINDEREN</Text>
+          {loading ? (
+            <ActivityIndicator color={PRIMARY} style={{ marginBottom: 20 }} />
+          ) : children.length === 0 ? (
+            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.emptyCardText, { color: c.textMuted }]}>Nog geen kinderen toegevoegd.</Text>
+            </View>
+          ) : (
+            <View style={[styles.section, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              {children.map((child, i) => (
+                <View key={child.id}>
+                  {i > 0 && <View style={[styles.divider, { backgroundColor: c.glassCardBorder }]} />}
+                  <View style={styles.memberRow}>
+                    <View style={[styles.memberAvatar, { backgroundColor: primaryAlpha(0.1), borderColor: primaryAlpha(0.2) }]}>
+                      <Text style={styles.memberAvatarEmoji}>🧒</Text>
+                    </View>
+                    <View style={styles.memberInfo}>
+                      <Text style={[styles.memberName, { color: c.textPrimary }]}>{child.name}</Text>
+                      <Text style={[styles.memberSub, { color: c.textMuted }]}>Niveau {child.level} · {child.xp} XP</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.editBtn, { backgroundColor: c.glassInput, borderColor: c.glassCardBorder }]}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.editBtnText, { color: c.textMuted }]}>Bewerken</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </MotiView>
 
-        <View style={{ height: Spacing.xl }} />
+        {/* Parents */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 260 }}
+        >
+          <Text style={styles.sectionHeader}>OUDERS</Text>
+          <View style={[styles.section, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={styles.memberRow}>
+              <View style={[styles.memberAvatar, { backgroundColor: primaryAlpha(0.1), borderColor: primaryAlpha(0.2) }]}>
+                <Text style={styles.memberAvatarEmoji}>👤</Text>
+              </View>
+              <View style={styles.memberInfo}>
+                <Text style={[styles.memberName, { color: c.textPrimary }]}>{firstName || email.split('@')[0]}</Text>
+                <Text style={[styles.memberSub, { color: c.textMuted }]}>Admin (Uw account)</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.editBtn, { backgroundColor: c.glassInput, borderColor: c.glassCardBorder }]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.editBtnText, { color: c.textMuted }]}>Bewerken</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </MotiView>
+
+        {/* Sign out */}
+        <MotiView
+          from={{ opacity: 0, translateY: 16 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 340, delay: 300 }}
+        >
+          <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.8}>
+            <Ionicons name="log-out-outline" size={18} color="#fc6b6b" />
+            <Text style={styles.signOutText}>Uitloggen</Text>
+          </TouchableOpacity>
+        </MotiView>
+
+        <View style={{ height: 24 }} />
       </ScrollView>
-    </SafeAreaView>
+    </Box>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  navHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, minWidth: 60 },
-  backText: { fontSize: FontSize.md, color: Colors.primary, fontWeight: FontWeight.medium },
-  navTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  scroll: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  scroll: { paddingHorizontal: 24, paddingTop: 8 },
 
-  profileCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  profileAvatar: { width: 52, height: 52, borderRadius: 12, backgroundColor: Colors.primaryDeepest, alignItems: 'center', justifyContent: 'center' },
-  profileAvatarEmoji: { fontSize: 26 },
-  profileName: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  profileEmail: { fontSize: FontSize.sm, color: Colors.text.muted, marginTop: 2 },
+  header: { marginBottom: 20 },
+  title: { fontSize: 28, fontWeight: '700' },
+  subtitle: { fontSize: 13, marginTop: 4 },
 
-  sectionHeader: { fontSize: FontSize.xs, fontWeight: FontWeight.semibold, color: Colors.primary, letterSpacing: 0.8, marginBottom: Spacing.sm },
-  section: { backgroundColor: Colors.surface, borderRadius: Radius.lg, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
-  divider: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing.md },
+  profileCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    borderRadius: 20, padding: 18, marginBottom: 24, borderWidth: 1,
+  },
+  profileAvatar: {
+    width: 52, height: 52, borderRadius: 26,
+    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
+  },
+  profileAvatarEmoji: { fontSize: 24 },
+  profileInfo: { flex: 1 },
+  profileName: { fontSize: 18, fontWeight: '700' },
+  profileEmail: { fontSize: 12, marginTop: 2 },
 
-  codeCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border, gap: Spacing.sm },
-  codeInfo: { fontSize: FontSize.xs, color: Colors.text.muted, lineHeight: 18, marginBottom: 4 },
-  codeDivider: { height: 1, backgroundColor: Colors.border },
-  codeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: Radius.md, padding: Spacing.md, gap: Spacing.md },
-  codeChildName: { fontSize: FontSize.xs, color: Colors.text.muted, marginBottom: 2 },
-  codeText: { fontSize: 20, fontWeight: FontWeight.bold, color: Colors.text.primary, letterSpacing: 2 },
-  copyBtn: { backgroundColor: Colors.primary, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 8 },
-  copyBtnText: { fontSize: FontSize.sm, color: Colors.background, fontWeight: FontWeight.semibold },
+  sectionHeader: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8, marginBottom: 10 },
 
-  linkRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
-  linkIconBox: { width: 36, height: 36, borderRadius: Radius.sm, backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center' },
+  section: { borderRadius: 20, marginBottom: 20, borderWidth: 1, overflow: 'hidden' },
+  divider: { height: 1, marginHorizontal: 16 },
+
+  codeCard: { borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, gap: 12 },
+  codeInfo: { fontSize: 11, lineHeight: 18, marginBottom: 4 },
+  codeDivider: { height: 1 },
+  codeRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 14, padding: 14, gap: 12 },
+  codeChildName: { fontSize: 11, marginBottom: 2 },
+  codeText: { fontSize: 20, fontWeight: '700', letterSpacing: 2 },
+  copyBtn: { backgroundColor: PRIMARY, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 8 },
+  copyBtnText: { fontSize: 13, color: '#fff', fontWeight: '600' },
+
+  linkRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  linkIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   linkText: { flex: 1 },
-  linkLabel: { fontSize: FontSize.md, fontWeight: FontWeight.medium, color: Colors.text.primary },
-  linkSub: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
+  linkLabel: { fontSize: 14, fontWeight: '500' },
+  linkSub: { fontSize: 11, marginTop: 2 },
 
-  memberRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.sm },
-  memberAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryDeepest, alignItems: 'center', justifyContent: 'center' },
+  memberRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
+  memberAvatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   memberAvatarEmoji: { fontSize: 20 },
   memberInfo: { flex: 1 },
-  memberName: { fontSize: FontSize.md, fontWeight: FontWeight.semibold, color: Colors.text.primary },
-  memberSub: { fontSize: FontSize.xs, color: Colors.text.muted, marginTop: 2 },
-  editBtn: { backgroundColor: Colors.card, borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: Colors.border },
-  editBtnText: { fontSize: FontSize.xs, color: Colors.text.secondary, fontWeight: FontWeight.medium },
+  memberName: { fontSize: 14, fontWeight: '600' },
+  memberSub: { fontSize: 11, marginTop: 2 },
+  editBtn: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1 },
+  editBtnText: { fontSize: 11, fontWeight: '500' },
 
-  emptyCard: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.lg, borderWidth: 1, borderColor: Colors.border },
-  emptyCardText: { fontSize: FontSize.sm, color: Colors.text.muted },
+  emptyCard: { borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1 },
+  emptyCardText: { fontSize: 13 },
 
-  signOutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: Radius.md, borderWidth: 1, borderColor: 'rgba(252,107,107,0.35)', backgroundColor: 'rgba(252,107,107,0.08)' },
-  signOutText: { fontSize: FontSize.md, color: Colors.status.error, fontWeight: FontWeight.medium },
+  signOutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 14, borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(252,107,107,0.35)',
+    backgroundColor: 'rgba(252,107,107,0.08)',
+  },
+  signOutText: { fontSize: 14, color: '#fc6b6b', fontWeight: '500' },
 });
