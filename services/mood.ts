@@ -1,19 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { MoodEntryRow } from '@/lib/database.types';
 
-export async function logMood(
-  childId: string,
-  mood: MoodEntryRow['mood'],
-  note?: string,
-): Promise<MoodEntryRow> {
-  const { data, error } = await supabase
-    .from('mood_entries')
-    .insert({ child_id: childId, mood, note: note ?? null })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
 
 export async function getTodayMoodForChild(
   childId: string,
