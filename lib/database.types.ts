@@ -44,21 +44,27 @@ export type Database = {
           id: string;
           child_id: string;
           name: string;
+          emoji: string;
           scheduled_time: string | null;
+          days_of_week: number[];
           created_at: string;
         };
         Insert: {
           id?: string;
           child_id: string;
           name: string;
+          emoji?: string;
           scheduled_time?: string | null;
+          days_of_week?: number[];
           created_at?: string;
         };
         Update: {
           id?: string;
           child_id?: string;
           name?: string;
+          emoji?: string;
           scheduled_time?: string | null;
+          days_of_week?: number[];
           created_at?: string;
         };
       };

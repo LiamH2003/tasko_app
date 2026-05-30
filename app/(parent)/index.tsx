@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
+import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
 import { getChildren } from '@/services/children';
@@ -26,16 +28,25 @@ const MOOD_MAP: Record<MoodKey, { emoji: string; label: string; color: string }>
   angry: { emoji: '😔', label: 'Slecht',   color: '#fc6b6b' },
 };
 
+const STAGE_LABEL: Record<ChildRow['stage'], string> = {
+  egg:   'Ei',
+  baby:  'Baby',
+  child: 'Kind',
+  teen:  'Tiener',
+  adult: 'Volwassen',
+};
+
 export default function ParentOverview() {
   const insets = useSafeAreaInsets();
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
   const { session } = useAppStore();
-  const [children, setChildren] = useState<ChildRow[]>([]);
-  const [activeChildId, setActiveChildId] = useState<string | null>(null);
-  const [routines, setRoutines] = useState<RoutineWithTasks[]>([]);
-  const [todayMood, setTodayMood] = useState<MoodKey | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [children, setChildren]             = useState<ChildRow[]>([]);
+  const [activeChildId, setActiveChildId]   = useState<string | null>(null);
+  const [routines, setRoutines]             = useState<RoutineWithTasks[]>([]);
+  const [todayMood, setTodayMood]           = useState<MoodKey | null>(null);
+  const [loading, setLoading]               = useState(true);
   const [childDataLoading, setChildDataLoading] = useState(false);
 
   const firstName = session?.user.user_metadata?.first_name
@@ -46,9 +57,8 @@ export default function ParentOverview() {
     try {
       const data = await getChildren();
       setChildren(data);
-      // Keep current selection if still valid, otherwise pick first child
       setActiveChildId(prev =>
-        prev && data.some(c => c.id === prev) ? prev : (data[0]?.id ?? null)
+        prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
       );
     } catch {
       // show empty state
@@ -66,31 +76,32 @@ export default function ParentOverview() {
       getRoutines(activeChildId),
       getTodayMoodForChild(activeChildId),
     ])
-      .then(([r, mood]) => {
-        setRoutines(r);
-        setTodayMood(mood);
-      })
+      .then(([r, mood]) => { setRoutines(r); setTodayMood(mood); })
       .catch(() => {})
       .finally(() => setChildDataLoading(false));
   }, [activeChildId]);
 
-  const activeChild = children.find(ch => ch.id === activeChildId);
-  const allTasks = routines.flatMap(r => r.tasks);
-  const doneCount = allTasks.filter(t => t.completed).length;
+  const activeChild = children.find(ch => ch.id === activeChildId) ?? null;
+  const allTasks    = routines.flatMap(r => r.tasks);
+  const doneCount   = allTasks.filter(t => t.completed).length;
+  const xpProgress  = activeChild
+    ? Math.min(activeChild.xp / (activeChild.xp_to_next_level || 1), 1)
+    : 0;
 
   return (
     <Box flex={1} backgroundColor="background">
 
+      {/* Background blobs */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         <AnimatedBlob
-          size={300} color={primaryAlpha(0.13)}
-          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
-          style={{ top: -60, left: -70 }}
+          size={320} color={primaryAlpha(0.12)}
+          duration={3500} opacityFrom={0.6} opacityTo={1} scaleTarget={1.12}
+          style={{ top: -80, right: -80 }}
         />
         <AnimatedBlob
-          size={180} color={primaryAlpha(0.08)}
-          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
-          style={{ bottom: 160, right: -60 }}
+          size={200} color={primaryAlpha(0.07)}
+          duration={2700} delay={600} opacityFrom={0.3} opacityTo={0.65} scaleTarget={1.07}
+          style={{ bottom: 180, left: -70 }}
         />
       </View>
 
@@ -98,11 +109,11 @@ export default function ParentOverview() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <MotiView
           from={{ opacity: 0, translateY: 12 }}
           animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 60 }}
+          transition={{ type: 'timing', duration: 340, delay: 40 }}
           style={styles.headerRow}
         >
           <View>
@@ -117,15 +128,17 @@ export default function ParentOverview() {
           </TouchableOpacity>
         </MotiView>
 
+        {/* ── Loading / empty ── */}
         {loading ? (
-          <ActivityIndicator color={PRIMARY} style={{ marginTop: 40 }} />
+          <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
         ) : children.length === 0 ? (
           <MotiView
             from={{ opacity: 0, translateY: 16 }}
             animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 340, delay: 160 }}
+            transition={{ type: 'timing', duration: 340, delay: 120 }}
           >
-            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <View style={[styles.emptyHero, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <MonsterSvg size={90} />
               <Text style={[styles.emptyTitle, { color: c.textPrimary }]}>Nog geen kinderen</Text>
               <Text style={[styles.emptyBody, { color: c.textMuted }]}>
                 Deel de uitnodigingscode met je kind zodat hij kan inloggen op zijn toestel.
@@ -134,62 +147,126 @@ export default function ParentOverview() {
           </MotiView>
         ) : (
           <>
-            {/* Child selector */}
-            <MotiView
-              from={{ opacity: 0, translateY: 12 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 340, delay: 140 }}
-            >
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.childScroll}
-                contentContainerStyle={styles.childScrollContent}
+            {/* ── Child tabs (only when 2+ children) ── */}
+            {children.length > 1 && (
+              <MotiView
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 300, delay: 80 }}
               >
-                {children.map((child) => {
-                  const isActive = child.id === activeChildId;
-                  return (
-                    <TouchableOpacity
-                      key={child.id}
-                      style={[
-                        styles.childCard,
-                        { backgroundColor: c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder },
-                      ]}
-                      onPress={() => setActiveChildId(child.id)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={[styles.childAvatar, { backgroundColor: isActive ? PRIMARY : primaryAlpha(0.08) }]}>
-                        <Text style={styles.childAvatarEmoji}>🧒</Text>
-                      </View>
-                      <Text style={[styles.childName, { color: isActive ? c.textPrimary : c.textMuted }]} numberOfLines={1}>
-                        {child.name}
-                      </Text>
-                      {isActive && allTasks.length > 0 ? (
-                        <Text style={styles.childProgress}>{doneCount}/{allTasks.length} gedaan</Text>
-                      ) : (
-                        <Text style={styles.childProgressEmpty}>Geen taken</Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </MotiView>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.tabScroll}
+                  contentContainerStyle={styles.tabScrollContent}
+                >
+                  {children.map((child) => {
+                    const isActive = child.id === activeChildId;
+                    return (
+                      <TouchableOpacity
+                        key={child.id}
+                        style={[
+                          styles.childTab,
+                          { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder },
+                        ]}
+                        onPress={() => setActiveChildId(child.id)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.childTabText, { color: isActive ? '#fff' : c.textMuted }]}>
+                          🧒 {child.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </MotiView>
+            )}
 
-            {/* Routines section */}
+            {/* ── Monster hero card ── */}
+            {activeChild && (
+              <MotiView
+                from={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', damping: 16, stiffness: 120, delay: 120 }}
+              >
+                <View style={[styles.heroCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                  <View style={styles.heroContent}>
+
+                    {/* Monster */}
+                    <View style={[styles.heroMonsterBg, { backgroundColor: primaryAlpha(0.07) }]}>
+                      <MonsterSvg size={110} />
+                    </View>
+
+                    {/* Info */}
+                    <View style={styles.heroInfo}>
+                      <Text style={[styles.heroMonsterName, { color: c.textPrimary }]} numberOfLines={1}>
+                        {activeChild.monster_name}
+                      </Text>
+                      <Text style={[styles.heroChildTag, { color: c.textMuted }]}>
+                        {activeChild.name}'s monster
+                      </Text>
+
+                      <View style={styles.heroBadgeRow}>
+                        <View style={[styles.heroBadge, { backgroundColor: primaryAlpha(0.08), borderColor: primaryAlpha(0.2) }]}>
+                          <Ionicons name="trophy-outline" size={10} color={PRIMARY} />
+                          <Text style={styles.heroBadgeText}>Niveau {activeChild.level}</Text>
+                        </View>
+                        <View style={[styles.heroBadge, { backgroundColor: primaryAlpha(0.08), borderColor: primaryAlpha(0.2) }]}>
+                          <Ionicons name="sparkles-outline" size={10} color={PRIMARY} />
+                          <Text style={styles.heroBadgeText}>{STAGE_LABEL[activeChild.stage]}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.xpSection}>
+                        <View style={styles.xpLabelRow}>
+                          <Text style={[styles.xpLabel, { color: c.textMuted }]}>EXP</Text>
+                          <Text style={[styles.xpValue, { color: c.textPrimary }]}>
+                            {activeChild.xp}
+                            <Text style={[styles.xpMax, { color: c.textMuted }]}>/{activeChild.xp_to_next_level}</Text>
+                          </Text>
+                        </View>
+                        <ProgressBar progress={xpProgress} color="#48bb78" height={5} />
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Task progress footer */}
+                  {!childDataLoading && allTasks.length > 0 && (
+                    <>
+                      <View style={[styles.heroDivider, { backgroundColor: c.glassCardBorder }]} />
+                      <View style={styles.heroFooter}>
+                        <View style={styles.heroFooterLeft}>
+                          <View style={[styles.taskProgressDot, { backgroundColor: '#48bb78' }]} />
+                          <Text style={[styles.heroFooterText, { color: c.textMuted }]}>
+                            <Text style={{ color: '#48bb78', fontWeight: '700' }}>{doneCount}</Text>
+                            /{allTasks.length} taken klaar vandaag
+                          </Text>
+                        </View>
+                        <TouchableOpacity onPress={() => router.push('/(parent)/routines')} activeOpacity={0.7}>
+                          <Text style={styles.heroFooterLink}>Beheer →</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                </View>
+              </MotiView>
+            )}
+
+            {/* ── Routines section ── */}
             <MotiView
               from={{ opacity: 0, translateY: 12 }}
               animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 340, delay: 180 }}
+              transition={{ type: 'timing', duration: 340, delay: 200 }}
             >
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionHeader}>ROUTINES VANDAAG</Text>
                 <TouchableOpacity onPress={() => router.push('/(parent)/routines')}>
-                  <Text style={styles.sectionLink}>Beheer →</Text>
+                  <Text style={styles.sectionLink}>Alle routines →</Text>
                 </TouchableOpacity>
               </View>
 
               {childDataLoading ? (
-                <ActivityIndicator color={PRIMARY} style={{ marginVertical: 16 }} />
+                <ActivityIndicator color={PRIMARY} style={{ marginVertical: 20 }} />
               ) : allTasks.length === 0 ? (
                 <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
                   <Text style={[styles.emptyBody, { color: c.textMuted }]}>
@@ -200,39 +277,58 @@ export default function ParentOverview() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={[styles.taskList, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                  {allTasks.map((t, i) => {
-                    const routineName = routines.find(r => r.id === t.routine_id)?.name ?? '';
-                    return (
-                      <View
-                        key={t.id}
-                        style={[styles.taskRow, i < allTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.glassCardBorder }]}
-                      >
-                        <View style={styles.taskIconBox}>
-                          <Text style={styles.taskEmoji}>{t.emoji}</Text>
+                <>
+                  {/* Stat chips */}
+                  <View style={styles.statsRow}>
+                    <View style={[styles.statChip, { backgroundColor: '#48bb7812', borderColor: '#48bb7840' }]}>
+                      <Ionicons name="checkmark-circle" size={18} color="#48bb78" />
+                      <Text style={[styles.statNum, { color: '#48bb78' }]}>{doneCount}</Text>
+                      <Text style={[styles.statLbl, { color: '#48bb78' }]}>Gedaan</Text>
+                    </View>
+                    <View style={[styles.statChip, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.2) }]}>
+                      <Ionicons name="ellipse-outline" size={18} color={PRIMARY} />
+                      <Text style={[styles.statNum, { color: PRIMARY }]}>{allTasks.length - doneCount}</Text>
+                      <Text style={[styles.statLbl, { color: PRIMARY }]}>Te doen</Text>
+                    </View>
+                  </View>
+
+                  {/* Task list */}
+                  <View style={[styles.taskList, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                    {allTasks.map((t, i) => {
+                      const routineName = routines.find(r => r.id === t.routine_id)?.name ?? '';
+                      return (
+                        <View
+                          key={t.id}
+                          style={[
+                            styles.taskRow,
+                            i < allTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.glassCardBorder },
+                          ]}
+                        >
+                          <View style={[styles.taskIconBox, { backgroundColor: t.completed ? '#48bb7820' : primaryAlpha(0.08) }]}>
+                            <Text style={styles.taskEmoji}>{t.emoji}</Text>
+                          </View>
+                          <View style={styles.taskMeta}>
+                            <Text style={[styles.taskTitle, { color: t.completed ? c.textMuted : c.textPrimary }, t.completed && styles.taskDone]}>
+                              {t.title}
+                            </Text>
+                            <Text style={[styles.taskSub, { color: c.textMuted }]}>{routineName}</Text>
+                          </View>
+                          <View style={[styles.taskCheck, { backgroundColor: t.completed ? '#48bb78' : c.glassInput, borderColor: t.completed ? '#48bb78' : c.glassCardBorder }]}>
+                            {t.completed && <Ionicons name="checkmark" size={12} color="#fff" />}
+                          </View>
                         </View>
-                        <View style={styles.taskMeta}>
-                          <Text style={[styles.taskTitle, { color: c.textPrimary }]}>{t.title}</Text>
-                          <Text style={[styles.taskTime, { color: c.textMuted }]}>{routineName}</Text>
-                        </View>
-                        <View style={styles.taskStatus}>
-                          <View style={[styles.statusDot, { backgroundColor: t.completed ? '#48bb78' : '#f6c644' }]} />
-                          <Text style={[styles.statusText, { color: t.completed ? '#48bb78' : '#f6c644' }]}>
-                            {t.completed ? 'Klaar' : 'Nog niet'}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
+                      );
+                    })}
+                  </View>
+                </>
               )}
             </MotiView>
 
-            {/* Gevoel section */}
+            {/* ── Gevoel section ── */}
             <MotiView
               from={{ opacity: 0, translateY: 12 }}
               animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 340, delay: 220 }}
+              transition={{ type: 'timing', duration: 340, delay: 260 }}
             >
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionHeader}>GEVOEL VANDAAG</Text>
@@ -242,21 +338,27 @@ export default function ParentOverview() {
               </View>
 
               {todayMood ? (
-                <View style={[styles.moodCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder, flexDirection: 'row', alignItems: 'center', gap: 14 }]}>
-                  <Text style={styles.moodEmoji}>{MOOD_MAP[todayMood].emoji}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.moodName, { color: c.textMuted }]}>{activeChild?.name} voelt zich vandaag</Text>
-                    <Text style={[styles.moodLabel, { color: MOOD_MAP[todayMood].color }]}>{MOOD_MAP[todayMood].label}</Text>
+                <TouchableOpacity
+                  style={[styles.moodCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}
+                  onPress={() => router.push('/(parent)/gevoel')}
+                  activeOpacity={0.85}
+                >
+                  <View style={[styles.moodEmojiBox, { backgroundColor: `${MOOD_MAP[todayMood].color}20` }]}>
+                    <Text style={styles.moodEmoji}>{MOOD_MAP[todayMood].emoji}</Text>
                   </View>
-                  <TouchableOpacity onPress={() => router.push('/(parent)/gevoel')}>
-                    <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
-                  </TouchableOpacity>
-                </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.moodChild, { color: c.textMuted }]}>{activeChild?.name} voelt zich vandaag</Text>
+                    <Text style={[styles.moodLabel, { color: MOOD_MAP[todayMood].color }]}>
+                      {MOOD_MAP[todayMood].label}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+                </TouchableOpacity>
               ) : (
-                <View style={[styles.moodCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                  <Ionicons name="happy-outline" size={28} color={c.textMuted} style={{ marginBottom: 8 }} />
+                <View style={[styles.moodCardEmpty, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                  <Ionicons name="happy-outline" size={26} color={c.textMuted} />
                   <Text style={[styles.moodEmpty, { color: c.textMuted }]}>
-                    {activeChild?.name ?? 'Je kind'} heeft vandaag nog geen gevoel ingecheckt.
+                    {activeChild?.name ?? 'Je kind'} heeft nog niet ingecheckt vandaag.
                   </Text>
                 </View>
               )}
@@ -264,7 +366,7 @@ export default function ParentOverview() {
           </>
         )}
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </Box>
   );
@@ -273,52 +375,89 @@ export default function ParentOverview() {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 24, paddingTop: 8 },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  // Header
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   pageTitle: { fontSize: 28, fontWeight: '700', marginTop: 2 },
   planBadge: { borderWidth: 1.5, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, marginTop: 6 },
   planText: { fontSize: 11, color: PRIMARY, fontWeight: '500' },
 
-  childScroll: { marginHorizontal: -24, marginBottom: 20 },
-  childScrollContent: { paddingHorizontal: 24, gap: 10 },
-  childCard: {
-    width: 100, borderRadius: 18, padding: 14,
-    alignItems: 'center', gap: 6, borderWidth: 1.5,
-  },
-  childAvatar: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  childAvatarEmoji: { fontSize: 22 },
-  childName: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  childProgress: { fontSize: 11, color: PRIMARY, fontWeight: '500' },
-  childProgressEmpty: { fontSize: 11, color: 'transparent' },
+  // Child tabs (multi-child only)
+  tabScroll: { marginHorizontal: -24, marginBottom: 16 },
+  tabScrollContent: { paddingHorizontal: 24, gap: 8 },
+  childTab: { borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1.5 },
+  childTabText: { fontSize: 13, fontWeight: '600' },
 
+  // Monster hero card
+  heroCard: { borderRadius: 24, borderWidth: 1, marginBottom: 24, overflow: 'hidden' },
+  heroContent: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 18 },
+  heroMonsterBg: {
+    width: 120, height: 120, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroInfo: { flex: 1, gap: 6 },
+  heroMonsterName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  heroChildTag: { fontSize: 12, marginTop: -2 },
+  heroBadgeRow: { flexDirection: 'row', gap: 6, marginTop: 2 },
+  heroBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    borderRadius: 99, paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1,
+  },
+  heroBadgeText: { fontSize: 10, color: PRIMARY, fontWeight: '600' },
+  xpSection: { gap: 5, marginTop: 2 },
+  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  xpLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
+  xpValue: { fontSize: 13, fontWeight: '700' },
+  xpMax: { fontSize: 11, fontWeight: '400' },
+  heroDivider: { height: 1 },
+  heroFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
+  heroFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  taskProgressDot: { width: 7, height: 7, borderRadius: 4 },
+  heroFooterText: { fontSize: 12 },
+  heroFooterLink: { fontSize: 12, color: PRIMARY, fontWeight: '600' },
+
+  // Section rows
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionHeader: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8 },
   sectionLink: { fontSize: 12, color: PRIMARY, fontWeight: '500' },
 
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  statChip: { flex: 1, borderRadius: 16, borderWidth: 1, paddingVertical: 14, alignItems: 'center', gap: 3 },
+  statNum: { fontSize: 22, fontWeight: '800' },
+  statLbl: { fontSize: 10, fontWeight: '500' },
+
+  // Task list
   taskList: { borderRadius: 20, marginBottom: 20, borderWidth: 1, overflow: 'hidden' },
-  taskRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  taskIconBox: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: primaryAlpha(0.08),
-    alignItems: 'center', justifyContent: 'center',
-  },
+  taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
+  taskIconBox: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   taskEmoji: { fontSize: 17 },
   taskMeta: { flex: 1 },
   taskTitle: { fontSize: 14, fontWeight: '600' },
-  taskTime: { fontSize: 11, marginTop: 1 },
-  taskStatus: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 11, fontWeight: '500' },
-
-  moodCard: { borderRadius: 20, padding: 18, marginBottom: 20, borderWidth: 1, alignItems: 'center' },
-  moodEmoji: { fontSize: 36 },
-  moodName: { fontSize: 12, marginBottom: 2 },
-  moodLabel: { fontSize: 18, fontWeight: '700' },
-  moodEmpty: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-
-  emptyCard: {
-    borderRadius: 20, padding: 24, marginBottom: 20,
-    borderWidth: 1, alignItems: 'center', gap: 8,
+  taskDone: { textDecorationLine: 'line-through' },
+  taskSub: { fontSize: 11, marginTop: 1 },
+  taskCheck: {
+    width: 24, height: 24, borderRadius: 12,
+    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 2 },
+
+  // Mood
+  moodCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
+  },
+  moodEmojiBox: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  moodEmoji: { fontSize: 26 },
+  moodChild: { fontSize: 12, marginBottom: 2 },
+  moodLabel: { fontSize: 18, fontWeight: '700' },
+  moodCardEmpty: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
+  },
+  moodEmpty: { fontSize: 13, flex: 1, lineHeight: 19 },
+
+  // Empty states
+  emptyHero: { borderRadius: 24, padding: 36, borderWidth: 1, alignItems: 'center', gap: 12, marginBottom: 20 },
+  emptyCard: { borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, alignItems: 'center', gap: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: '700' },
   emptyBody: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });
