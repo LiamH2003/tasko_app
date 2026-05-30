@@ -1,53 +1,215 @@
-import { useState } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useThemePreference } from '@/store/useThemePreference';
+import { getChildren } from '@/services/children';
+import {
+  getCompletionsForParent, getDismissedFlags,
+  dismissHonestyFlag, detectFlags,
+} from '@/services/honesty';
+import type { HonestyFlag } from '@/services/honesty';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import type { ChildRow } from '@/lib/database.types';
 
-const CHILDREN = [
-  { id: 'emma', name: 'Emma', avatar: '👧' },
-  { id: 'luca', name: 'Luca', avatar: '👦' },
-];
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const ALERTS = [
-  {
-    id: 'a1',
-    title: 'Snelle afvinkt — "Tanden poetsen"',
-    body: 'Emma vinkte deze taak af in slechts 3 seconden. De normale duur is 5 minuten. Mogelijk is het overgeslagen.',
-    time: 'Vandaag om 07:17',
-  },
-];
+const MONTHS_NL  = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+const DAYS_FULL  = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
+
+const FLAG_META: Record<HonestyFlag['type'], {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  title: string;
+  badge: string;
+}> = {
+  burst:     { icon: 'flash-outline',  color: '#f6c644', title: 'Snelle afvinkactie', badge: 'Snelheid' },
+  off_hours: { icon: 'moon-outline',   color: '#b57be6', title: 'Nachtelijke activiteit', badge: 'Tijdstip' },
+};
+
+const PROMPTS: Record<HonestyFlag['type'], (name: string) => string> = {
+  burst: (name) =>
+    `Kies een rustig moment en vraag aan ${name} hoe het ging. Luister zonder te oordelen — eerlijkheid groeit door vertrouwen, niet door straf.`,
+  off_hours: (name) =>
+    `Vraag nieuwsgierig aan ${name} waarom de taak 's nachts werd afgevinkt. Er kan een goede reden zijn.`,
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatFlagDate(dateStr: string): string {
+  const d         = new Date(dateStr + 'T12:00:00');
+  const today     = new Date();
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === today.toDateString())     return 'Vandaag';
+  if (d.toDateString() === yesterday.toDateString()) return 'Gisteren';
+  const dow = (d.getDay() + 6) % 7;
+  return `${DAYS_FULL[dow]} ${d.getDate()} ${MONTHS_NL[d.getMonth()]}`;
+}
+
+function flagBody(flag: HonestyFlag): string {
+  if (flag.type === 'burst') {
+    const names = flag.taskNames.slice(0, 3).join(', ');
+    const more  = flag.taskNames.length > 3 ? ` +${flag.taskNames.length - 3}` : '';
+    return `${flag.taskNames.length} taken afgevinkt in ${flag.durationSeconds} seconden: ${names}${more}.`;
+  }
+  return `Taak "${flag.taskNames[0]}" afgevinkt om ${flag.time} 's nachts.`;
+}
+
+// ── FlagCard ──────────────────────────────────────────────────────────────────
+
+function FlagCard({
+  flag, childName, c, onDismiss,
+}: {
+  flag: HonestyFlag;
+  childName: string;
+  c: AppTheme['colors'];
+  onDismiss: () => void;
+}) {
+  const [discussing, setDiscussing] = useState(false);
+  const meta = FLAG_META[flag.type];
+
+  return (
+    <View style={[fc.card, { backgroundColor: c.glassCard, borderColor: `${meta.color}45` }]}>
+
+      {/* Header row */}
+      <View style={fc.header}>
+        <View style={[fc.iconBox, { backgroundColor: `${meta.color}18` }]}>
+          <Ionicons name={meta.icon} size={16} color={meta.color} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[fc.title, { color: c.textPrimary }]}>{meta.title}</Text>
+          <Text style={[fc.dateLabel, { color: c.textMuted }]}>{formatFlagDate(flag.date)}</Text>
+        </View>
+        <View style={[fc.badge, { backgroundColor: `${meta.color}15`, borderColor: `${meta.color}35` }]}>
+          <Text style={[fc.badgeText, { color: meta.color }]}>{meta.badge}</Text>
+        </View>
+      </View>
+
+      {/* Body */}
+      <Text style={[fc.body, { color: c.textMuted }]}>{flagBody(flag)}</Text>
+
+      {/* Conversation prompt — shown after tapping Bespreek dit */}
+      {discussing && (
+        <MotiView
+          from={{ opacity: 0, translateY: -6 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 200 }}
+        >
+          <View style={[fc.promptBox, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.15) }]}>
+            <Ionicons name="chatbubble-outline" size={13} color={PRIMARY} style={{ marginTop: 1, flexShrink: 0 }} />
+            <Text style={[fc.promptText, { color: c.textPrimary }]}>
+              {PROMPTS[flag.type](childName)}
+            </Text>
+          </View>
+        </MotiView>
+      )}
+
+      {/* Actions */}
+      <View style={fc.actions}>
+        {!discussing ? (
+          <>
+            <TouchableOpacity
+              style={[fc.dismissBtn, { backgroundColor: c.glassInput, borderColor: c.glassCardBorder }]}
+              onPress={onDismiss}
+              activeOpacity={0.8}
+            >
+              <Text style={[fc.dismissText, { color: c.textMuted }]}>Negeren</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[fc.discussBtn, { backgroundColor: PRIMARY }]}
+              onPress={() => setDiscussing(true)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={14} color="#fff" />
+              <Text style={fc.discussText}>Bespreek dit</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <TouchableOpacity
+            style={[fc.fullDismissBtn, { backgroundColor: PRIMARY }]}
+            onPress={onDismiss}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="checkmark" size={15} color="#fff" />
+            <Text style={fc.discussText}>Begrepen, verwijder melding</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function EerlijkheidScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
-  const [activeChild, setActiveChild] = useState('emma');
-  const [autoReport, setAutoReport] = useState(true);
-  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([]);
 
-  const visibleAlerts = ALERTS.filter((a) => !dismissedAlerts.includes(a.id));
+  const [children,      setChildren]      = useState<ChildRow[]>([]);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [flags,         setFlags]         = useState<HonestyFlag[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [flagsLoading,  setFlagsLoading]  = useState(false);
+
+  // ── Data ──────────────────────────────────────────────────────────────────
+
+  const loadFlags = useCallback(async (childId: string) => {
+    setFlagsLoading(true);
+    try {
+      const [completions, dismissed] = await Promise.all([
+        getCompletionsForParent(childId, 14),
+        getDismissedFlags(childId),
+      ]);
+      setFlags(detectFlags(completions, dismissed));
+    } catch {
+      setFlags([]);
+    } finally {
+      setFlagsLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    getChildren()
+      .then(data => {
+        setChildren(data);
+        setActiveChildId(prev =>
+          prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
+        );
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []));
+
+  useEffect(() => {
+    if (activeChildId) loadFlags(activeChildId);
+  }, [activeChildId, loadFlags]);
+
+  // ── Dismiss ───────────────────────────────────────────────────────────────
+
+  async function handleDismiss(flag: HonestyFlag) {
+    if (!activeChildId) return;
+    setFlags(prev => prev.filter(f => !(f.type === flag.type && f.date === flag.date)));
+    try {
+      await dismissHonestyFlag(activeChildId, flag.type, flag.date);
+    } catch {
+      // optimistic — if it fails it'll reappear on next load
+    }
+  }
+
+  const activeChild = children.find(ch => ch.id === activeChildId) ?? null;
 
   return (
     <Box flex={1} backgroundColor="background">
 
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        <AnimatedBlob
-          size={280} color={primaryAlpha(0.13)}
-          duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12}
-          style={{ top: -50, right: -60 }}
-        />
-        <AnimatedBlob
-          size={160} color={primaryAlpha(0.08)}
-          duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07}
-          style={{ bottom: 100, left: -50 }}
-        />
+        <AnimatedBlob size={280} color={primaryAlpha(0.13)} duration={3500} opacityFrom={0.65} opacityTo={1} scaleTarget={1.12} style={{ top: -50, right: -60 }} />
+        <AnimatedBlob size={160} color={primaryAlpha(0.08)} duration={2700} delay={600} opacityFrom={0.35} opacityTo={0.65} scaleTarget={1.07} style={{ bottom: 100, left: -50 }} />
       </View>
 
       <Box style={{ height: insets.top + 8 }} />
@@ -55,220 +217,160 @@ export default function EerlijkheidScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* Header */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 60 }}
-          style={styles.header}
-        >
-          <Text style={[styles.title, { color: c.textPrimary }]}>Eerlijkheid</Text>
-          <Text style={[styles.subtitle, { color: c.textMuted }]}>Inzicht in eerlijk gedrag</Text>
-        </MotiView>
-
-        {/* Child selector */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 120 }}
-        >
-          <View style={[styles.segmentRow, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            {CHILDREN.map((child) => (
-              <TouchableOpacity
-                key={child.id}
-                style={[styles.segmentBtn, activeChild === child.id && styles.segmentBtnActive]}
-                onPress={() => setActiveChild(child.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.segmentText, { color: c.textMuted }, activeChild === child.id && styles.segmentTextActive]}>
-                  {child.avatar} {child.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 40 }}>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.title, { color: c.textPrimary }]}>Eerlijkheid</Text>
+              <Text style={[styles.subtitle, { color: c.textMuted }]}>
+                {activeChild ? `${activeChild.name} · gedragsignalen` : 'Inzicht in eerlijk gedrag'}
+              </Text>
+            </View>
           </View>
         </MotiView>
 
-        {/* XP card */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 160 }}
-        >
-          <View style={[styles.xpCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            <View style={styles.xpCardHeader}>
-              <Text style={[styles.xpCardTitle, { color: c.textPrimary }]}>Emma — Blub</Text>
-              <View style={[styles.levelBadge, { backgroundColor: primaryAlpha(0.08), borderColor: primaryAlpha(0.2) }]}>
-                <Ionicons name="trophy-outline" size={11} color={PRIMARY} />
-                <Text style={styles.levelBadgeText}>Niveau 4</Text>
-              </View>
-            </View>
-            <View style={styles.xpRow}>
-              <Text style={[styles.xpLabel, { color: c.textMuted }]}>EXP voortgang</Text>
-              <Text style={styles.xpValue}>340 / 500</Text>
-            </View>
-            <ProgressBar progress={340 / 500} color="#48bb78" height={7} />
-            <Text style={[styles.xpHint, { color: c.textMuted }]}>
-              Vandaag verdiend: <Text style={styles.xpEarned}>+60 EXP</Text>
-              {' · '}Nog 160 EXP tot niveau 5
-            </Text>
+        {loading ? (
+          <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
+        ) : children.length === 0 ? (
+          <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <Ionicons name="people-outline" size={30} color={c.textMuted} />
+            <Text style={[styles.emptyTitle, { color: c.textPrimary }]}>Geen kinderen gevonden</Text>
+            <Text style={[styles.emptyBody, { color: c.textMuted }]}>Voeg een kind toe via Instellingen.</Text>
           </View>
-        </MotiView>
-
-        {/* Info card */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 200 }}
-        >
-          <View style={[styles.infoCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            <View style={styles.infoIconBox}>
-              <Ionicons name="shield-outline" size={18} color={PRIMARY} />
-            </View>
-            <Text style={[styles.infoText, { color: c.textMuted }]}>
-              <Text style={[styles.infoBold, { color: c.textPrimary }]}>Eerlijkheid wordt beloond, niet perfectie. </Text>
-              Wanneer je een mogelijke oneerlijkheid markeert, verliest het monster een kleine hoeveelheid EXP. Houd dit subtiel en bespreek het samen.
-            </Text>
-          </View>
-        </MotiView>
-
-        {/* Alerts */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 240 }}
-        >
-          <View style={styles.alertsHeaderRow}>
-            <Text style={styles.sectionHeader}>MELDINGEN</Text>
-            {visibleAlerts.length > 0 && (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>{visibleAlerts.length} nieuw</Text>
-              </View>
+        ) : (
+          <>
+            {/* Child tabs */}
+            {children.length > 1 && (
+              <MotiView from={{ opacity: 0, translateY: 10 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 80 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
+                  {children.map(child => {
+                    const isActive = child.id === activeChildId;
+                    return (
+                      <TouchableOpacity
+                        key={child.id}
+                        style={[styles.tab, { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder }]}
+                        onPress={() => setActiveChildId(child.id)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={[styles.tabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
+                        <Text style={[styles.tabText, { color: isActive ? '#fff' : c.textMuted }]}>{child.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </MotiView>
             )}
-          </View>
 
-          {visibleAlerts.map((alert) => (
-            <View key={alert.id} style={styles.alertCard}>
-              <View style={styles.alertHeader}>
-                <Ionicons name="warning" size={18} color="#f6c644" />
-                <Text style={[styles.alertTitle, { color: c.textPrimary }]}>{alert.title}</Text>
+            {/* Flags section */}
+            <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 100 }}>
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionHeader}>MELDINGEN</Text>
+                {flags.length > 0 && (
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>{flags.length}</Text>
+                  </View>
+                )}
               </View>
-              <Text style={[styles.alertBody, { color: c.textMuted }]}>{alert.body}</Text>
-              <Text style={[styles.alertTime, { color: c.textMuted }]}>{alert.time}</Text>
-              <View style={styles.alertButtons}>
-                <TouchableOpacity
-                  style={[styles.dismissBtn, { backgroundColor: c.glassInput, borderColor: c.glassCardBorder }]}
-                  onPress={() => setDismissedAlerts((d) => [...d, alert.id])}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.dismissBtnText, { color: c.textMuted }]}>Negeren</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.penaltyBtn}
-                  onPress={() => setDismissedAlerts((d) => [...d, alert.id])}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.penaltyBtnText}>–10 EXP toepassen</Text>
-                </TouchableOpacity>
+
+              {flagsLoading ? (
+                <ActivityIndicator color={PRIMARY} style={{ marginTop: 24 }} />
+              ) : flags.length === 0 ? (
+                <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                  <View style={[styles.emptyIconBox, { backgroundColor: '#48bb7812' }]}>
+                    <Ionicons name="checkmark-circle-outline" size={26} color="#48bb78" />
+                  </View>
+                  <Text style={[styles.emptyTitle, { color: c.textPrimary }]}>Geen meldingen</Text>
+                  <Text style={[styles.emptyBody, { color: c.textMuted }]}>
+                    {activeChild?.name ?? 'Je kind'} heeft de afgelopen 2 weken geen verdacht gedrag vertoond.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.flagsList}>
+                  {flags.map(flag => (
+                    <FlagCard
+                      key={`${flag.type}_${flag.date}`}
+                      flag={flag}
+                      childName={activeChild?.name ?? 'je kind'}
+                      c={c}
+                      onDismiss={() => handleDismiss(flag)}
+                    />
+                  ))}
+                </View>
+              )}
+            </MotiView>
+
+            {/* Philosophy card */}
+            <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 160 }}>
+              <View style={[styles.infoCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                <View style={[styles.infoIconBox, { backgroundColor: primaryAlpha(0.08) }]}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={PRIMARY} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.infoTitle, { color: c.textPrimary }]}>Eerlijkheid wordt beloond</Text>
+                  <Text style={[styles.infoBody, { color: c.textMuted }]}>
+                    Meldingen zijn geen bewijs van liegen — ze zijn een aanleiding voor een gesprek. Benadering met nieuwsgierigheid werkt beter dan straf.
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
+            </MotiView>
+          </>
+        )}
 
-          {visibleAlerts.length === 0 && (
-            <View style={[styles.emptyAlerts, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-              <Ionicons name="checkmark-circle-outline" size={22} color="#48bb78" />
-              <Text style={[styles.emptyAlertsText, { color: c.textMuted }]}>Geen meldingen</Text>
-            </View>
-          )}
-        </MotiView>
-
-        {/* Consequence settings */}
-        <MotiView
-          from={{ opacity: 0, translateY: 12 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 280 }}
-        >
-          <Text style={[styles.sectionHeader, { marginTop: 8 }]}>GEVOLGENINSTELLINGEN</Text>
-          <View style={[styles.settingsCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            <View style={styles.settingRow}>
-              <Text style={[styles.settingLabel, { color: c.textPrimary }]}>EXP verlies bij oneerlijkheid</Text>
-              <View style={styles.xpLossBadge}>
-                <Text style={styles.xpLossBadgeText}>–10 EXP</Text>
-              </View>
-            </View>
-            <View style={[styles.divider, { backgroundColor: c.glassCardBorder }]} />
-            <View style={styles.settingRow}>
-              <Text style={[styles.settingLabel, { color: c.textPrimary }]}>Automatisch melden</Text>
-              <Switch
-                value={autoReport}
-                onValueChange={setAutoReport}
-                trackColor={{ false: primaryAlpha(0.15), true: PRIMARY }}
-                thumbColor="#fff"
-                ios_backgroundColor="rgba(128,128,128,0.2)"
-              />
-            </View>
-          </View>
-        </MotiView>
-
-        <View style={{ height: 24 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
     </Box>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 8 },
+  scroll:    { paddingHorizontal: 24, paddingTop: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
+  title:     { fontSize: 28, fontWeight: '700' },
+  subtitle:  { fontSize: 13, marginTop: 4 },
 
-  header: { marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 13, marginTop: 4 },
+  tabScroll:  { marginHorizontal: -24, marginBottom: 16 },
+  tabContent: { paddingHorizontal: 24, gap: 8 },
+  tab:     { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5 },
+  tabDot:  { width: 6, height: 6, borderRadius: 3 },
+  tabText: { fontSize: 13, fontWeight: '600' },
 
-  segmentRow: { flexDirection: 'row', borderRadius: 99, padding: 3, marginBottom: 16, borderWidth: 1 },
-  segmentBtn: { flex: 1, paddingVertical: 8, borderRadius: 99, alignItems: 'center' },
-  segmentBtnActive: { backgroundColor: PRIMARY },
-  segmentText: { fontSize: 13, fontWeight: '500' },
-  segmentTextActive: { color: '#fff', fontWeight: '600' },
+  sectionRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  sectionHeader:    { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8 },
+  countBadge:       { backgroundColor: '#fc6b6b', borderRadius: 99, width: 20, height: 20, alignItems: 'center', justifyContent: 'center' },
+  countBadgeText:   { fontSize: 11, color: '#fff', fontWeight: '700' },
 
-  xpCard: { borderRadius: 20, padding: 16, marginBottom: 12, borderWidth: 1, gap: 10 },
-  xpCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpCardTitle: { fontSize: 16, fontWeight: '700' },
-  levelBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1 },
-  levelBadgeText: { fontSize: 11, color: PRIMARY, fontWeight: '500' },
-  xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  xpLabel: { fontSize: 11 },
-  xpValue: { fontSize: 16, fontWeight: '700', color: PRIMARY },
-  xpHint: { fontSize: 11, marginTop: 4 },
-  xpEarned: { color: '#48bb78', fontWeight: '600' },
+  flagsList: { gap: 12, marginBottom: 24 },
 
-  infoCard: { flexDirection: 'row', gap: 12, borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, alignItems: 'flex-start' },
-  infoIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: primaryAlpha(0.08), alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-  infoText: { flex: 1, fontSize: 13, lineHeight: 20 },
-  infoBold: { fontWeight: '700' },
+  infoCard:    { flexDirection: 'row', gap: 14, borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1, alignItems: 'flex-start' },
+  infoIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
+  infoTitle:   { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  infoBody:    { fontSize: 12, lineHeight: 18 },
 
-  alertsHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  sectionHeader: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8 },
-  newBadge: { backgroundColor: '#fc6b6b', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+  emptyCard:    { borderRadius: 20, padding: 32, borderWidth: 1, alignItems: 'center', gap: 10, marginBottom: 24 },
+  emptyIconBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  emptyTitle:   { fontSize: 17, fontWeight: '700' },
+  emptyBody:    { fontSize: 13, textAlign: 'center', lineHeight: 20 },
+});
 
-  alertCard: {
-    backgroundColor: 'rgba(252,107,107,0.08)', borderRadius: 20, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: 'rgba(252,107,107,0.25)', gap: 10,
-  },
-  alertHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  alertTitle: { fontSize: 13, fontWeight: '700', flex: 1 },
-  alertBody: { fontSize: 13, lineHeight: 20 },
-  alertTime: { fontSize: 11 },
-  alertButtons: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  dismissBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1 },
-  dismissBtnText: { fontSize: 13, fontWeight: '500' },
-  penaltyBtn: { flex: 1, backgroundColor: 'rgba(252,107,107,0.20)', borderRadius: 12, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(252,107,107,0.40)' },
-  penaltyBtnText: { fontSize: 13, color: '#fc6b6b', fontWeight: '600' },
+// Flag card
+const fc = StyleSheet.create({
+  card:      { borderRadius: 20, borderWidth: 1, padding: 16, gap: 10 },
+  header:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconBox:   { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  title:     { fontSize: 14, fontWeight: '700' },
+  dateLabel: { fontSize: 11, marginTop: 2 },
+  badge:     { borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3, borderWidth: 1 },
+  badgeText: { fontSize: 10, fontWeight: '700' },
+  body:      { fontSize: 13, lineHeight: 19 },
 
-  emptyAlerts: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1 },
-  emptyAlertsText: { fontSize: 13 },
+  promptBox:  { flexDirection: 'row', gap: 8, borderRadius: 12, padding: 12, borderWidth: 1, alignItems: 'flex-start' },
+  promptText: { flex: 1, fontSize: 13, lineHeight: 19 },
 
-  settingsCard: { borderRadius: 20, marginBottom: 24, borderWidth: 1, overflow: 'hidden' },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  settingLabel: { fontSize: 14 },
-  divider: { height: 1 },
-  xpLossBadge: { backgroundColor: 'rgba(252,107,107,0.15)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-  xpLossBadgeText: { fontSize: 13, color: '#fc6b6b', fontWeight: '600' },
+  actions:       { flexDirection: 'row', gap: 8, marginTop: 2 },
+  dismissBtn:    { flex: 1, borderRadius: 12, paddingVertical: 11, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  dismissText:   { fontSize: 13, fontWeight: '500' },
+  discussBtn:    { flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 11 },
+  discussText:   { fontSize: 13, color: '#fff', fontWeight: '600' },
+  fullDismissBtn:{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, paddingVertical: 11 },
 });
