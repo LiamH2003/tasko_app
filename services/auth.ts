@@ -37,6 +37,13 @@ export async function completeOnboarding() {
   if (error) throw error;
 }
 
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) throw error;
+  // Session is now invalid server-side; clear it locally too
+  try { await supabase.auth.signOut(); } catch { /* already gone */ }
+}
+
 // Looks up a family by its family_code and links the current (authenticated) user as a parent member.
 // Returns the family name for display on the success screen.
 export async function joinFamilyByCode(code: string, parentName: string): Promise<string> {
@@ -60,7 +67,7 @@ export async function joinFamilyByCode(code: string, parentName: string): Promis
   if (memberError) throw memberError;
 
   await supabase.auth.updateUser({
-    data: { first_name: parentName, family_name: familyName },
+    data: { first_name: parentName, family_name: familyName, family_code: code, family_id: familyId, role: 'parent' },
   });
 
   return familyName;

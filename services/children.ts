@@ -63,6 +63,11 @@ export async function deleteChild(childId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function resetChildPin(childId: string): Promise<void> {
+  const { error } = await supabase.rpc('reset_child_pin', { p_child_id: childId });
+  if (error) throw error;
+}
+
 export async function updateChild(id: string, updates: Partial<ChildRow>): Promise<ChildRow> {
   const { data, error } = await supabase
     .from('children')
