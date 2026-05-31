@@ -114,7 +114,7 @@ export default function ParentSuccessScreen() {
                     <Ionicons name="key-outline" size={20} color={PRIMARY} />
                   </Box>
                   <Box flex={1}>
-                    <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>CODE VOOR KIND & PARTNER</Text>
+                    <Text variant="label" style={{ color: '#6b6560', marginBottom: 2 }}>GEZINSCODE</Text>
                     <Text style={styles.cardValue}>{inviteCode}</Text>
                   </Box>
                 </Box>

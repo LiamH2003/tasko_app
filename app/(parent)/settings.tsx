@@ -7,7 +7,8 @@ import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
-import { getChildren } from '@/services/children';
+import { getChildren, createChild } from '@/services/children';
+import { getMyFamilyCode } from '@/services/families';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildRow } from '@/lib/database.types';
@@ -17,16 +18,17 @@ export default function ParentSettingsScreen() {
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
   const { session, signOut } = useAppStore();
-  const [children, setChildren] = useState<ChildRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [children,   setChildren]   = useState<ChildRow[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [familyCode, setFamilyCode] = useState<string | null>(null);
 
-  const email = session?.user.email ?? '';
+  const email      = session?.user.email ?? '';
   const familyName = session?.user.user_metadata?.family_name ?? '';
-  const firstName = session?.user.user_metadata?.first_name ?? '';
+  const firstName  = session?.user.user_metadata?.first_name ?? '';
 
   useEffect(() => {
-    getChildren()
-      .then(setChildren)
+    Promise.all([getChildren(), getMyFamilyCode()])
+      .then(([kids, code]) => { setChildren(kids); setFamilyCode(code); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -79,46 +81,32 @@ export default function ParentSettingsScreen() {
           </View>
         </MotiView>
 
-        {/* Invite codes */}
+        {/* Family code */}
         <MotiView
           from={{ opacity: 0, translateY: 16 }}
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 340, delay: 140 }}
         >
-          <Text style={styles.sectionHeader}>CODE VOOR KIND & PARTNER</Text>
-          {loading ? (
-            <ActivityIndicator color={PRIMARY} style={{ marginBottom: 20 }} />
-          ) : children.length === 0 ? (
-            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-              <Text style={[styles.emptyCardText, { color: c.textMuted }]}>Nog geen kinderen. Maak een gezin aan tijdens de setup.</Text>
-            </View>
-          ) : (
-            <View style={[styles.codeCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-              <Text style={[styles.codeInfo, { color: c.textMuted }]}>
-                Kinderen voeren deze code in bij eerste aanmelding op hun toestel.
+          <Text style={styles.sectionHeader}>GEZINSCODE</Text>
+          <View style={[styles.codeCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+            <Text style={[styles.codeInfo, { color: c.textMuted }]}>
+              Kinderen en co-ouders voeren deze code in om toegang te krijgen tot het gezin.
+            </Text>
+            <View style={[styles.codeRow, { backgroundColor: c.glassInput }]}>
+              <Text style={[styles.codeText, { color: c.textPrimary }]}>
+                {loading ? '...' : (familyCode ?? '—')}
               </Text>
-              {children.map((child, i) => (
-                <View key={child.id}>
-                  {i > 0 && <View style={[styles.codeDivider, { backgroundColor: c.glassCardBorder }]} />}
-                  <View style={[styles.codeRow, { backgroundColor: c.glassInput }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.codeChildName, { color: c.textMuted }]}>{child.name}</Text>
-                      <Text style={[styles.codeText, { color: c.textPrimary }]}>{child.invite_code ?? '—'}</Text>
-                    </View>
-                    {child.invite_code && (
-                      <TouchableOpacity
-                        style={styles.copyBtn}
-                        activeOpacity={0.8}
-                        onPress={() => Clipboard.setString(child.invite_code!)}
-                      >
-                        <Text style={styles.copyBtnText}>Kopieer</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              ))}
+              {familyCode && (
+                <TouchableOpacity
+                  style={styles.copyBtn}
+                  activeOpacity={0.8}
+                  onPress={() => Clipboard.setString(familyCode)}
+                >
+                  <Text style={styles.copyBtnText}>Kopieer</Text>
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          </View>
         </MotiView>
 
         {/* Subscription */}

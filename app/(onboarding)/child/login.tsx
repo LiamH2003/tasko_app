@@ -9,7 +9,7 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { getFamilyByInviteCode } from '@/services/child-device';
+import { getFamilyByCode } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ChildLoginScreen() {
@@ -27,7 +27,7 @@ export default function ChildLoginScreen() {
     setError('');
     setLoading(true);
     try {
-      const family = await getFamilyByInviteCode(fullCode);
+      const family = await getFamilyByCode(fullCode);
       if (!family || family.children.length === 0) {
         setError('Ongeldige code. Controleer de code bij je ouder.');
         return;

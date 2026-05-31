@@ -10,7 +10,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { createChildWithCode } from '@/services/children';
+import { createFamily } from '@/services/families';
 import { saveParentProfile } from '@/services/auth';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
@@ -121,8 +121,8 @@ export default function ParentFamilySetupScreen() {
             setError('');
             setLoading(true);
             try {
-              const [child] = await Promise.all([
-                createChildWithCode(familyName.trim()),
+              const [family] = await Promise.all([
+                createFamily(familyName.trim()),
                 saveParentProfile(parentName.trim(), familyName.trim()),
               ]);
               router.push({
@@ -130,7 +130,7 @@ export default function ParentFamilySetupScreen() {
                 params: {
                   parentName: parentName.trim(),
                   familyName: familyName.trim(),
-                  inviteCode: child.invite_code ?? '',
+                  inviteCode: family.family_code,
                 },
               });
             } catch (e: any) {

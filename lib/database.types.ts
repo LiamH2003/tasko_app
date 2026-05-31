@@ -1,41 +1,90 @@
 export type Database = {
   public: {
     Tables: {
+      families: {
+        Row: {
+          id: string;
+          family_code: string;
+          name: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_code: string;
+          name: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_code?: string;
+          name?: string;
+          created_by?: string;
+          created_at?: string;
+        };
+      };
+      family_members: {
+        Row: {
+          id: string;
+          family_id: string;
+          user_id: string;
+          role: 'admin' | 'parent';
+          joined_at: string;
+        };
+        Insert: {
+          id?: string;
+          family_id: string;
+          user_id: string;
+          role?: 'admin' | 'parent';
+          joined_at?: string;
+        };
+        Update: {
+          id?: string;
+          family_id?: string;
+          user_id?: string;
+          role?: 'admin' | 'parent';
+          joined_at?: string;
+        };
+      };
       children: {
         Row: {
           id: string;
-          parent_id: string;
+          family_id: string;
           name: string;
           monster_name: string;
           level: number;
           xp: number;
           xp_to_next_level: number;
           stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
-          invite_code: string | null;
+          pin_code: string | null;
+          avatar_url: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
-          parent_id: string;
+          family_id: string;
           name: string;
           monster_name?: string;
           level?: number;
           xp?: number;
           xp_to_next_level?: number;
           stage?: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
-          invite_code?: string | null;
+          pin_code?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
-          parent_id?: string;
+          family_id?: string;
           name?: string;
           monster_name?: string;
           level?: number;
           xp?: number;
           xp_to_next_level?: number;
           stage?: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
-          invite_code?: string | null;
+          pin_code?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
         };
       };
@@ -121,11 +170,11 @@ export type Database = {
   };
 };
 
-// Convenience row types
-export type ChildRow = Database['public']['Tables']['children']['Row'];
-export type RoutineRow = Database['public']['Tables']['routines']['Row'];
-export type TaskRow = Database['public']['Tables']['tasks']['Row'];
-export type MoodEntryRow = Database['public']['Tables']['mood_entries']['Row'];
+export type FamilyRow       = Database['public']['Tables']['families']['Row'];
+export type FamilyMemberRow = Database['public']['Tables']['family_members']['Row'];
+export type ChildRow        = Database['public']['Tables']['children']['Row'];
+export type RoutineRow      = Database['public']['Tables']['routines']['Row'];
+export type TaskRow         = Database['public']['Tables']['tasks']['Row'];
+export type MoodEntryRow    = Database['public']['Tables']['mood_entries']['Row'];
 
-// Routine with its tasks joined
 export type RoutineWithTasks = RoutineRow & { tasks: TaskRow[] };

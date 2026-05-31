@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
+import * as SecureStore from 'expo-secure-store';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
@@ -28,13 +29,23 @@ export default function WhoAmIScreen() {
 
   const children: FamilyChild[] = childrenJson ? JSON.parse(childrenJson) : [];
 
-  const handleSelect = (child: FamilyChild) => {
+  const handleSelect = async (child: FamilyChild) => {
     setLoadingId(child.id);
-    router.push({
-      pathname: '/(onboarding)/child/enter-pin',
-      params: { childId: child.id, childName: child.name },
-    });
-    setLoadingId(null);
+    try {
+      await SecureStore.setItemAsync('pendingChildId', child.id);
+      await SecureStore.setItemAsync('pendingChildName', child.name);
+
+      if (child.has_pin) {
+        router.push({
+          pathname: '/(onboarding)/child/enter-pin',
+          params: { childId: child.id, childName: child.name },
+        });
+      } else {
+        router.push('/(onboarding)/child/monster-select');
+      }
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const stageColor = (stage: string) => STAGE_COLORS[stage] ?? PRIMARY;
@@ -97,7 +108,7 @@ export default function WhoAmIScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={[styles.avatar, { backgroundColor: color + '33' }]}>
-                    <Text style={[styles.avatarEmoji]}>
+                    <Text style={styles.avatarEmoji}>
                       {child.stage === 'egg' ? '🥚' : child.stage === 'adult' ? '🐉' : '👾'}
                     </Text>
                   </View>

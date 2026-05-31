@@ -8,7 +8,6 @@ export type ChildProfile = {
   xp: number;
   xp_to_next_level: number;
   stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
-  invite_code: string | null;
   avatar_url: string | null;
 };
 
@@ -93,6 +92,7 @@ export type FamilyChild = {
   monster_name: string;
   level: number;
   stage: string;
+  has_pin: boolean;
 };
 
 export type FamilyData = {
@@ -100,8 +100,8 @@ export type FamilyData = {
   children: FamilyChild[];
 };
 
-export async function getFamilyByInviteCode(code: string): Promise<FamilyData | null> {
-  const { data, error } = await supabase.rpc('get_family_by_invite_code', { p_code: code });
+export async function getFamilyByCode(code: string): Promise<FamilyData | null> {
+  const { data, error } = await supabase.rpc('get_family_by_code', { p_code: code });
   if (error) throw error;
   return (data as FamilyData) ?? null;
 }

@@ -4,14 +4,13 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { getChildByInviteCode } from '@/services/children';
+import { getFamilyByCode } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 export default function ChildInviteCodeScreen() {
@@ -28,13 +27,18 @@ export default function ChildInviteCodeScreen() {
     setError('');
     setLoading(true);
     try {
-      const child = await getChildByInviteCode(`TASKO-${code}`);
-      if (!child) {
+      const family = await getFamilyByCode(`TASKO-${code}`);
+      if (!family) {
         setError('Onbekende code. Controleer de code bij je ouder.');
         return;
       }
-      await SecureStore.setItemAsync('pendingChildId', child.id);
-      router.push('/(onboarding)/child/profile');
+      router.push({
+        pathname: '/(onboarding)/child/who-am-i',
+        params: {
+          familyName: family.family_name,
+          children: JSON.stringify(family.children),
+        },
+      });
     } catch (e: any) {
       setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');
     } finally {
@@ -77,7 +81,7 @@ export default function ChildInviteCodeScreen() {
             style={{ marginBottom: 28 }}
           >
             <Text variant="title" marginBottom="xs">Heb je een code?</Text>
-            <Text variant="subtitle">Jouw ouder heeft een code aangemaakt. Type hem hieronder in!</Text>
+            <Text variant="subtitle">Jouw ouder heeft een gezinscode. Type hem hieronder in!</Text>
           </MotiView>
 
           <MotiView
@@ -92,7 +96,6 @@ export default function ChildInviteCodeScreen() {
               </Text>
 
               <View style={{ position: 'relative' }}>
-                {/* Input first = paints behind the visual layer */}
                 <TextInput
                   ref={inputRef}
                   value={code}
@@ -105,7 +108,6 @@ export default function ChildInviteCodeScreen() {
                   caretHidden
                   style={styles.overlayInput}
                 />
-                {/* Visual layer on top — pointerEvents none so taps reach the input */}
                 <Box flexDirection="row" alignItems="center" gap="sm" pointerEvents="none">
                   <Text style={styles.prefix}>TASKO–</Text>
                   <Box flexDirection="row" gap="sm" style={{ flex: 1 }}>

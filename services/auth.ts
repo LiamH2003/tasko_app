@@ -30,7 +30,6 @@ export async function saveParentProfile(firstName: string, familyName: string) {
   if (error) throw error;
 }
 
-// Called at the end of parent onboarding (success screen) to unlock the parent dashboard.
 export async function completeOnboarding() {
   const { error } = await supabase.auth.updateUser({
     data: { onboarding_complete: true },
@@ -38,17 +37,31 @@ export async function completeOnboarding() {
   if (error) throw error;
 }
 
-// Looks up a family by the child invite code and links the current user to that family.
-// Returns the family name so it can be shown on the success screen.
+// Looks up a family by its family_code and links the current (authenticated) user as a parent member.
+// Returns the family name for display on the success screen.
 export async function joinFamilyByCode(code: string, parentName: string): Promise<string> {
-  const { data, error } = await supabase.rpc('get_child_by_invite_code', { code });
-  if (error) throw error;
-  const rows = data as { parent_id: string; name: string }[] | null;
-  if (!rows || rows.length === 0) throw new Error('Onbekende code. Controleer de code bij je partner.');
-  const { parent_id, name: familyName } = rows[0];
-  const { error: updateError } = await supabase.auth.updateUser({
-    data: { first_name: parentName, family_name: familyName, linked_parent_id: parent_id },
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error('Niet ingelogd');
+
+  const { data: families, error: familyError } = await supabase
+    .from('families')
+    .select('id, name')
+    .eq('family_code', code)
+    .limit(1);
+  if (familyError) throw familyError;
+  if (!families || families.length === 0)
+    throw new Error('Onbekende code. Controleer de code bij je partner.');
+
+  const { id: familyId, name: familyName } = families[0];
+
+  const { error: memberError } = await supabase
+    .from('family_members')
+    .insert({ family_id: familyId, user_id: user.id, role: 'parent' });
+  if (memberError) throw memberError;
+
+  await supabase.auth.updateUser({
+    data: { first_name: parentName, family_name: familyName },
   });
-  if (updateError) throw updateError;
+
   return familyName;
 }

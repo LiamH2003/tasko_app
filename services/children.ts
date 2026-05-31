@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { ChildRow } from '@/lib/database.types';
+import { getMyFamilyId } from '@/services/families';
 
 export async function getChildren(): Promise<ChildRow[]> {
   const { data, error } = await supabase.rpc('get_children_for_parent');
@@ -18,46 +19,16 @@ export async function getChild(id: string): Promise<ChildRow> {
 }
 
 export async function createChild(name: string, monsterName: string): Promise<ChildRow> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error('Niet ingelogd');
+  const familyId = await getMyFamilyId();
+  if (!familyId) throw new Error('Geen gezin gevonden');
 
   const { data, error } = await supabase
     .from('children')
-    .insert({ parent_id: user.id, name, monster_name: monsterName })
+    .insert({ family_id: familyId, name, monster_name: monsterName })
     .select()
     .single();
   if (error) throw error;
   return data;
-}
-
-function generateInviteCode(): string {
-  // Exclude visually ambiguous characters (O, 0, I, 1, L)
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let suffix = '';
-  for (let i = 0; i < 4; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `TASKO-${suffix}`;
-}
-
-export async function createChildWithCode(familyName: string): Promise<ChildRow> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error('Niet ingelogd');
-
-  const invite_code = generateInviteCode();
-  const { data, error } = await supabase
-    .from('children')
-    .insert({ parent_id: user.id, name: familyName, monster_name: 'Monster', invite_code })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
-export async function getChildByInviteCode(code: string): Promise<ChildRow | null> {
-  const { data, error } = await supabase.rpc('get_child_by_invite_code', { code });
-  if (error) throw error;
-  return (data as ChildRow[])?.[0] ?? null;
 }
 
 export async function updateChildProfile(
@@ -87,6 +58,11 @@ export async function verifyChildPin(childId: string, pin: string): Promise<bool
   return data as boolean;
 }
 
+export async function deleteChild(childId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_child', { p_child_id: childId });
+  if (error) throw error;
+}
+
 export async function updateChild(id: string, updates: Partial<ChildRow>): Promise<ChildRow> {
   const { data, error } = await supabase
     .from('children')
@@ -98,13 +74,9 @@ export async function updateChild(id: string, updates: Partial<ChildRow>): Promi
   return data;
 }
 
-export async function applyXpToChild(
-  child: ChildRow,
-  amount: number,
-): Promise<ChildRow> {
+export async function applyXpToChild(child: ChildRow, amount: number): Promise<ChildRow> {
   let { xp, level } = child;
   xp += amount;
-  // Level-up loop — mirrors the xpToNextLevel curve from utils/xp.ts
   while (xp >= child.xp_to_next_level) {
     xp -= child.xp_to_next_level;
     level += 1;
