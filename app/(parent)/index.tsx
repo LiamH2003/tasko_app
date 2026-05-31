@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,8 +11,8 @@ import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
-import { getChildren } from '@/services/children';
-import { getRoutines } from '@/services/routines';
+import { useParentChildren } from '@/store/useParentChildren';
+import { getRoutinesForDate } from '@/services/routines';
 import { getTodayMoodForChild } from '@/services/mood';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
@@ -42,44 +42,54 @@ export default function ParentOverview() {
   const c = isDark ? darkTheme.colors : lightTheme.colors;
   const { session } = useAppStore();
 
-  const [children, setChildren]             = useState<ChildRow[]>([]);
+  const { children, childrenLoading, refreshChildren } = useParentChildren();
+  const [refreshing, setRefreshing] = useState(false);
   const [activeChildId, setActiveChildId]   = useState<string | null>(null);
   const [routines, setRoutines]             = useState<RoutineWithTasks[]>([]);
   const [todayMood, setTodayMood]           = useState<MoodKey | null>(null);
-  const [loading, setLoading]               = useState(true);
   const [childDataLoading, setChildDataLoading] = useState(false);
 
   const firstName = session?.user.user_metadata?.first_name
     ?? session?.user.email?.split('@')[0]
     ?? 'ouder';
 
-  const loadChildren = useCallback(async () => {
-    try {
-      const data = await getChildren();
-      setChildren(data);
-      setActiveChildId(prev =>
-        prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
-      );
-    } catch {
-      // show empty state
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Keep active child in sync when the shared list updates
+  useEffect(() => {
+    if (!children.length) return;
+    setActiveChildId(prev =>
+      prev && children.some(ch => ch.id === prev) ? prev : children[0].id
+    );
+  }, [children]);
 
-  useFocusEffect(useCallback(() => { loadChildren(); }, [loadChildren]));
+  useFocusEffect(useCallback(() => { refreshChildren(); }, [refreshChildren]));
 
   useEffect(() => {
     if (!activeChildId) return;
     setChildDataLoading(true);
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     Promise.all([
-      getRoutines(activeChildId),
+      getRoutinesForDate(activeChildId, today),
       getTodayMoodForChild(activeChildId),
     ])
       .then(([r, mood]) => { setRoutines(r); setTodayMood(mood); })
       .catch(() => {})
       .finally(() => setChildDataLoading(false));
   }, [activeChildId]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    await Promise.allSettled([
+      refreshChildren(),
+      ...(activeChildId ? [
+        getRoutinesForDate(activeChildId, today).then(setRoutines).catch(() => {}),
+        getTodayMoodForChild(activeChildId).then(setTodayMood).catch(() => {}),
+      ] : []),
+    ]);
+    setRefreshing(false);
+  }
 
   const activeChild = children.find(ch => ch.id === activeChildId) ?? null;
   const allTasks    = routines.flatMap(r => r.tasks);
@@ -107,7 +117,11 @@ export default function ParentOverview() {
 
       <Box style={{ height: insets.top + 8 }} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
 
         {/* ── Header ── */}
         <MotiView
@@ -129,7 +143,7 @@ export default function ParentOverview() {
         </MotiView>
 
         {/* ── Loading / empty ── */}
-        {loading ? (
+        {childrenLoading ? (
           <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
         ) : children.length === 0 ? (
           <MotiView

@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemePreferenceProvider, useThemePreference } from '@/store/useThemePreference';
+import { ChildrenProvider, useParentChildren } from '@/store/useParentChildren';
 import { PRIMARY } from '@/constants/palette';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -12,10 +13,11 @@ function TabIcon({ name, color, size }: { name: IconName; color: string; size: n
 }
 
 function EerlijkheidIcon({ color, size }: { color: string; size: number }) {
+  const { flagCount } = useParentChildren();
   return (
     <View>
       <Ionicons name="shield-outline" size={size} color={color} />
-      <View style={styles.alertDot} />
+      {flagCount > 0 && <View style={styles.alertDot} />}
     </View>
   );
 }
@@ -67,7 +69,9 @@ function ThemedTabs() {
 export default function ParentLayout() {
   return (
     <ThemePreferenceProvider>
-      <ThemedTabs />
+      <ChildrenProvider>
+        <ThemedTabs />
+      </ChildrenProvider>
     </ThemePreferenceProvider>
   );
 }

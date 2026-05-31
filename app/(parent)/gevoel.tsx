@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -8,7 +8,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useThemePreference } from '@/store/useThemePreference';
-import { getChildren } from '@/services/children';
+import { useParentChildren } from '@/store/useParentChildren';
 import { getMoodHistory } from '@/services/mood';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
@@ -81,10 +81,10 @@ export default function GevoelScreen() {
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
 
-  const [children,       setChildren]       = useState<ChildRow[]>([]);
+  const { children, childrenLoading, refreshChildren } = useParentChildren();
+  const [refreshing, setRefreshing] = useState(false);
   const [activeChildId,  setActiveChildId]  = useState<string | null>(null);
   const [entries,        setEntries]        = useState<MoodEntryRow[]>([]);
-  const [loading,        setLoading]        = useState(true);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [weekStart,      setWeekStart]      = useState(() => getMonday(new Date()));
 
@@ -93,7 +93,10 @@ export default function GevoelScreen() {
   const loadEntries = useCallback(async (childId: string) => {
     setEntriesLoading(true);
     try {
-      setEntries(await getMoodHistory(childId, 60));
+      // Fetch exactly 8 weeks back — matches the navigation cap in the UI
+      const earliest = addDays(getMonday(new Date()), -8 * 7);
+      const fromDate = `${earliest.getFullYear()}-${String(earliest.getMonth() + 1).padStart(2, '0')}-${String(earliest.getDate()).padStart(2, '0')}`;
+      setEntries(await getMoodHistory(childId, fromDate));
     } catch {
       setEntries([]);
     } finally {
@@ -101,17 +104,14 @@ export default function GevoelScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => {
-    getChildren()
-      .then(data => {
-        setChildren(data);
-        setActiveChildId(prev =>
-          prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []));
+  useEffect(() => {
+    if (!children.length) return;
+    setActiveChildId(prev =>
+      prev && children.some(ch => ch.id === prev) ? prev : children[0].id
+    );
+  }, [children]);
+
+  useFocusEffect(useCallback(() => { refreshChildren(); }, [refreshChildren]));
 
   useEffect(() => {
     if (activeChildId) loadEntries(activeChildId);
@@ -161,6 +161,15 @@ export default function GevoelScreen() {
   }
   const recentGroups = historyGroups.slice(0, 14);
 
+  async function onRefresh() {
+    setRefreshing(true);
+    await Promise.allSettled([
+      refreshChildren(),
+      activeChildId ? loadEntries(activeChildId) : Promise.resolve(),
+    ]);
+    setRefreshing(false);
+  }
+
   const activeChild = children.find(ch => ch.id === activeChildId) ?? null;
 
   return (
@@ -173,7 +182,11 @@ export default function GevoelScreen() {
 
       <Box style={{ height: insets.top + 8 }} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
 
         {/* Header */}
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 40 }}>
@@ -187,7 +200,7 @@ export default function GevoelScreen() {
           </View>
         </MotiView>
 
-        {loading ? (
+        {childrenLoading ? (
           <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
         ) : children.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>

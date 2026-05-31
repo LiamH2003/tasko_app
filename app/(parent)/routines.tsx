@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Modal, Pressable, TextInput, Alert,
+  ActivityIndicator, Modal, Pressable, TextInput, Alert, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,8 +10,8 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useThemePreference } from '@/store/useThemePreference';
-import { getChildren } from '@/services/children';
-import { getRoutinesForDate, createRoutine, addTask, deleteTask, deleteRoutine } from '@/services/routines';
+import { useParentChildren } from '@/store/useParentChildren';
+import { getRoutinesForDate, createRoutine, updateRoutine, addTask, deleteTask, deleteRoutine } from '@/services/routines';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
 import type { ChildRow, RoutineWithTasks } from '@/lib/database.types';
@@ -103,23 +103,27 @@ function pad(n: number) { return String(n).padStart(2, '0'); }
 // ── Routine card ──────────────────────────────────────────────────────────────
 
 function RoutineCard({
-  routine, c, onRefresh, onDelete,
+  routine, c, onRefresh, onDelete, onEdit,
 }: {
   routine: RoutineWithTasks;
   c: AppTheme['colors'];
   onRefresh: () => void;
   onDelete: (id: string) => void;
+  onEdit: (routine: RoutineWithTasks) => void;
 }) {
   const [expanded,   setExpanded]   = useState(false);
   const [newStep,    setNewStep]    = useState('');
   const [stepSaving, setStepSaving] = useState(false);
+  const [stepError,  setStepError]  = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   const tasks   = [...routine.tasks].sort((a, b) => a.sort_order - b.sort_order);
   const hasDays = routine.days_of_week && routine.days_of_week.length > 0;
 
   async function handleAddStep() {
     if (!newStep.trim() || stepSaving) return;
+    setStepError('');
     setStepSaving(true);
     try {
       const nextOrder = tasks.length === 0 ? 0 : Math.max(...tasks.map(t => t.sort_order)) + 1;
@@ -127,19 +131,21 @@ function RoutineCard({
       setNewStep('');
       onRefresh();
     } catch {
-      // leave input
+      setStepError('Kon stap niet opslaan. Probeer opnieuw.');
     } finally {
       setStepSaving(false);
     }
   }
 
   async function handleDeleteStep(taskId: string) {
+    setDeleteError('');
     setDeletingId(taskId);
     try {
       await deleteTask(taskId);
       onRefresh();
-    } catch {}
-    finally {
+    } catch {
+      setDeleteError('Kon stap niet verwijderen.');
+    } finally {
       setDeletingId(null);
     }
   }
@@ -206,7 +212,7 @@ function RoutineCard({
             <TextInput
               style={[rc.addInput, { color: c.textPrimary }]}
               value={newStep}
-              onChangeText={setNewStep}
+              onChangeText={t => { setNewStep(t); setStepError(''); }}
               placeholder="Nieuwe stap toevoegen..."
               placeholderTextColor={c.placeholder}
               onSubmitEditing={handleAddStep}
@@ -221,17 +227,33 @@ function RoutineCard({
               </TouchableOpacity>
             ) : null}
           </View>
+          {!!stepError && (
+            <Text style={rc.actionError}>{stepError}</Text>
+          )}
+          {!!deleteError && (
+            <Text style={rc.actionError}>{deleteError}</Text>
+          )}
 
-          {/* Delete routine */}
+          {/* Edit + Delete routine */}
           <View style={[rc.divider, { backgroundColor: c.glassCardBorder }]} />
-          <TouchableOpacity
-            style={rc.deleteRow}
-            onPress={() => onDelete(routine.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={13} color="#fc6b6b" />
-            <Text style={rc.deleteText}>Routine verwijderen</Text>
-          </TouchableOpacity>
+          <View style={rc.bottomRow}>
+            <TouchableOpacity
+              style={rc.editRow}
+              onPress={() => onEdit(routine)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={13} color={PRIMARY} />
+              <Text style={[rc.editText, { color: PRIMARY }]}>Routine bewerken</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={rc.deleteRow}
+              onPress={() => onDelete(routine.id)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="trash-outline" size={13} color="#fc6b6b" />
+              <Text style={rc.deleteText}>Verwijderen</Text>
+            </TouchableOpacity>
+          </View>
         </MotiView>
       )}
     </View>
@@ -245,18 +267,19 @@ export default function ParentRoutinesScreen() {
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
 
-  const [children,      setChildren]      = useState<ChildRow[]>([]);
+  const { children, childrenLoading, refreshChildren } = useParentChildren();
+  const [refreshing, setRefreshing] = useState(false);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
   const [routines,      setRoutines]      = useState<RoutineWithTasks[]>([]);
-  const [loading,         setLoading]         = useState(true);
   const [routinesLoading, setRoutinesLoading] = useState(false);
   const [routinesError,   setRoutinesError]   = useState<string | null>(null);
 
   // Day navigation
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Add-routine sheet
+  // Add/edit-routine sheet
   const [addOpen,          setAddOpen]          = useState(false);
+  const [editingRoutine,   setEditingRoutine]   = useState<RoutineWithTasks | null>(null);
   const [sheetChildIds,    setSheetChildIds]    = useState<string[]>([]);
   const [newName,          setNewName]          = useState('');
   const [useTime,          setUseTime]          = useState(false);
@@ -269,21 +292,14 @@ export default function ParentRoutinesScreen() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
-  const loadChildren = useCallback(async () => {
-    try {
-      const data = await getChildren();
-      setChildren(data);
-      setActiveChildId(prev =>
-        prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
-      );
-    } catch (e) {
-      console.error('[loadChildren]', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    if (!children.length) return;
+    setActiveChildId(prev =>
+      prev && children.some(ch => ch.id === prev) ? prev : children[0].id
+    );
+  }, [children]);
 
-  useFocusEffect(useCallback(() => { loadChildren(); }, [loadChildren]));
+  useFocusEffect(useCallback(() => { refreshChildren(); }, [refreshChildren]));
 
   const loadRoutines = useCallback(async (childId: string, date: Date) => {
     setRoutinesLoading(true);
@@ -306,6 +322,15 @@ export default function ParentRoutinesScreen() {
 
   function refresh() {
     if (activeChildId) loadRoutines(activeChildId, selectedDate);
+  }
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await Promise.allSettled([
+      refreshChildren(),
+      activeChildId ? loadRoutines(activeChildId, selectedDate) : Promise.resolve(),
+    ]);
+    setRefreshing(false);
   }
 
   function handleDelete(id: string) {
@@ -336,15 +361,20 @@ export default function ParentRoutinesScreen() {
     const dCmp  = new Date(d); dCmp.setHours(0, 0, 0, 0);
     if (dCmp >= limit) setSelectedDate(d);
   }
-  function nextDay() { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d); }
+  function nextDay() {
+    const d = new Date(selectedDate); d.setDate(d.getDate() + 1);
+    const limit = new Date(); limit.setDate(limit.getDate() + 14); limit.setHours(23, 59, 59, 999);
+    if (d <= limit) setSelectedDate(d);
+  }
 
   function toggleDay(d: number) {
     setSelectedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   }
 
-  // ── Add routine ────────────────────────────────────────────────────────────
+  // ── Add / edit routine ─────────────────────────────────────────────────────
 
   function openAdd() {
+    setEditingRoutine(null);
     setSheetChildIds(activeChildId ? [activeChildId] : []);
     setNewName('');
     setUseTime(false);
@@ -356,28 +386,54 @@ export default function ParentRoutinesScreen() {
     setAddOpen(true);
   }
 
+  function openEdit(routine: RoutineWithTasks) {
+    setEditingRoutine(routine);
+    setNewName(routine.name);
+    const hasTime = !!routine.scheduled_time;
+    setUseTime(hasTime);
+    if (hasTime) {
+      const [h, m] = routine.scheduled_time!.split(':').map(Number);
+      setTimeHour(h);
+      setTimeMinute(m);
+    } else {
+      setTimeHour(7); setTimeMinute(0);
+    }
+    const hasDays = routine.days_of_week?.length > 0;
+    setSpecificDays(hasDays);
+    setSelectedDays(hasDays ? [...routine.days_of_week] : []);
+    setAddError('');
+    setAddOpen(true);
+  }
+
   function toggleSheetChild(id: string) {
     setSheetChildIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   }
 
   async function handleAdd() {
-    if (!sheetChildIds.length || !newName.trim()) return;
+    if (!newName.trim()) return;
+    if (!editingRoutine && !sheetChildIds.length) return;
     setSaving(true);
     setAddError('');
     const scheduledTime = useTime ? `${pad(timeHour)}:${pad(timeMinute)}` : undefined;
     const emoji = pickEmoji(newName.trim());
     try {
-      const results = await Promise.allSettled(
-        sheetChildIds.map(childId =>
-          createRoutine(childId, newName.trim(), emoji, scheduledTime, selectedDays)
-        )
-      );
-      const failed = results.filter(r => r.status === 'rejected').length;
-      if (failed === sheetChildIds.length) {
-        setAddError('Opslaan mislukt. Probeer opnieuw.');
-        return;
+      if (editingRoutine) {
+        await updateRoutine(editingRoutine.id, {
+          name: newName.trim(),
+          emoji,
+          scheduled_time: scheduledTime ?? null,
+          days_of_week: specificDays ? selectedDays : [],
+        });
+      } else {
+        const results = await Promise.allSettled(
+          sheetChildIds.map(childId =>
+            createRoutine(childId, newName.trim(), emoji, scheduledTime, specificDays ? selectedDays : [])
+          )
+        );
+        const failed = results.filter(r => r.status === 'rejected').length;
+        if (failed === sheetChildIds.length) { setAddError('Opslaan mislukt. Probeer opnieuw.'); return; }
+        if (failed > 0) setAddError(`${failed} van ${sheetChildIds.length} routines mislukt.`);
       }
-      if (failed > 0) setAddError(`${failed} van ${sheetChildIds.length} routines mislukt.`);
       setAddOpen(false);
       if (activeChildId) loadRoutines(activeChildId, selectedDate);
     } catch {
@@ -411,7 +467,11 @@ export default function ParentRoutinesScreen() {
 
       <Box style={{ height: insets.top + 8 }} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
 
         {/* Header */}
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 40 }}>
@@ -428,7 +488,7 @@ export default function ParentRoutinesScreen() {
           </View>
         </MotiView>
 
-        {loading ? (
+        {childrenLoading ? (
           <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
         ) : children.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
@@ -543,7 +603,7 @@ export default function ParentRoutinesScreen() {
                     </View>
                     <View style={styles.groupCards}>
                       {items.map(routine => (
-                        <RoutineCard key={routine.id} routine={routine} c={c} onRefresh={refresh} onDelete={handleDelete} />
+                        <RoutineCard key={routine.id} routine={routine} c={c} onRefresh={refresh} onDelete={handleDelete} onEdit={openEdit} />
                       ))}
                     </View>
                   </View>
@@ -564,17 +624,21 @@ export default function ParentRoutinesScreen() {
               <View style={sh.handle} />
               <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
 
-                <Text style={[sh.title, { color: c.textPrimary }]}>Routine toevoegen</Text>
+                <Text style={[sh.title, { color: c.textPrimary }]}>
+                  {editingRoutine ? 'Routine bewerken' : 'Routine toevoegen'}
+                </Text>
                 <Text style={[sh.sub, { color: c.textMuted }]}>
-                  {sheetChildIds.length === 0
-                    ? 'Selecteer een kind'
-                    : sheetChildIds.length === 1
-                      ? `Voor ${children.find(ch => ch.id === sheetChildIds[0])?.name ?? 'dit kind'}`
-                      : `Voor ${sheetChildIds.length} kinderen`}
+                  {editingRoutine
+                    ? editingRoutine.name
+                    : sheetChildIds.length === 0
+                      ? 'Selecteer een kind'
+                      : sheetChildIds.length === 1
+                        ? `Voor ${children.find(ch => ch.id === sheetChildIds[0])?.name ?? 'dit kind'}`
+                        : `Voor ${sheetChildIds.length} kinderen`}
                 </Text>
 
-                {/* Child selector — only shown when 2+ real children */}
-                {children.length > 1 && (
+                {/* Child selector — only shown when adding (not editing) and 2+ children */}
+                {!editingRoutine && children.length > 1 && (
                   <>
                     <Text style={[sh.label, { color: c.textMuted }]}>VOOR WIE</Text>
                     <View style={sh.childRow}>
@@ -695,7 +759,7 @@ export default function ParentRoutinesScreen() {
                   <TouchableOpacity style={[sh.cancelBtn, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]} onPress={() => setAddOpen(false)} activeOpacity={0.8}>
                     <Text style={[sh.cancelText, { color: c.textMuted }]}>Annuleren</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[sh.saveBtn, (!newName.trim() || !sheetChildIds.length || (specificDays && !selectedDays.length)) && sh.saveBtnOff]} onPress={handleAdd} disabled={!newName.trim() || !sheetChildIds.length || (specificDays && !selectedDays.length) || saving} activeOpacity={0.85}>
+                  <TouchableOpacity style={[sh.saveBtn, (!newName.trim() || (!editingRoutine && !sheetChildIds.length) || (specificDays && !selectedDays.length)) && sh.saveBtnOff]} onPress={handleAdd} disabled={!newName.trim() || (!editingRoutine && !sheetChildIds.length) || (specificDays && !selectedDays.length) || saving} activeOpacity={0.85}>
                     {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={sh.saveText}>Opslaan</Text>}
                   </TouchableOpacity>
                 </View>
@@ -770,8 +834,12 @@ const rc = StyleSheet.create({
   stepDone:   { textDecorationLine: 'line-through' },
   addRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 10 },
   addInput: { flex: 1, fontSize: 13, padding: 0 },
+  bottomRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  editRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 7, flex: 1 },
+  editText:    { fontSize: 12, fontWeight: '500' },
   deleteRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
   deleteText:  { fontSize: 12, color: '#fc6b6b', fontWeight: '500' },
+  actionError: { fontSize: 11, color: '#fc6b6b', paddingHorizontal: 14, paddingBottom: 8 },
 });
 
 // Sheet

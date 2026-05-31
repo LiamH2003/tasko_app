@@ -1,34 +1,26 @@
 import { supabase } from '@/lib/supabase';
 import type { MoodEntryRow } from '@/lib/database.types';
 
-
+// Bug 5 & 7: uses server-side current_date (no timezone math) and bypasses RLS
 export async function getTodayMoodForChild(
   childId: string,
 ): Promise<MoodEntryRow['mood'] | null> {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const { data, error } = await supabase
-    .from('mood_entries')
-    .select('mood')
-    .eq('child_id', childId)
-    .gte('created_at', startOfDay.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('get_today_mood_for_child', {
+    p_child_id: childId,
+  });
   if (error) return null;
-  return (data?.mood as MoodEntryRow['mood']) ?? null;
+  return (data as MoodEntryRow['mood'] | null) ?? null;
 }
 
+// Bug 6: bypasses RLS via SECURITY DEFINER
 export async function getMoodHistory(
   childId: string,
-  limit = 30,
+  fromDate: string,
 ): Promise<MoodEntryRow[]> {
-  const { data, error } = await supabase
-    .from('mood_entries')
-    .select('*')
-    .eq('child_id', childId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const { data, error } = await supabase.rpc('get_mood_history', {
+    p_child_id: childId,
+    p_from_date: fromDate,
+  });
   if (error) throw error;
-  return data;
+  return (data as MoodEntryRow[]) ?? [];
 }

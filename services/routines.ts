@@ -1,37 +1,8 @@
 import { supabase } from '@/lib/supabase';
-import type { RoutineRow, TaskRow, RoutineWithTasks } from '@/lib/database.types';
+import type { RoutineWithTasks } from '@/lib/database.types';
 
-export async function getRoutines(childId: string): Promise<RoutineWithTasks[]> {
-  const { data, error } = await supabase
-    .from('routines')
-    .select('*, tasks(*)')
-    .eq('child_id', childId)
-    .order('created_at');
-  if (error) throw error;
-  return data as RoutineWithTasks[];
-}
-
-export async function createRoutine(
-  childId: string,
-  name: string,
-  emoji: string,
-  scheduledTime?: string,
-  daysOfWeek: number[] = [],
-): Promise<RoutineRow> {
-  const { data, error } = await supabase
-    .from('routines')
-    .insert({
-      child_id: childId,
-      name,
-      emoji,
-      scheduled_time: scheduledTime ?? null,
-      days_of_week: daysOfWeek,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
+// Bug 17: getRoutines (direct read, stale completed boolean) removed — use getRoutinesForDate.
+// Bug 16: completeTask / uncompleteTask (direct writes, bypass task_completions) removed.
 
 export async function getRoutinesForDate(
   childId: string,
@@ -45,22 +16,37 @@ export async function getRoutinesForDate(
   return (data as RoutineWithTasks[]) ?? [];
 }
 
-export async function updateRoutine(
-  id: string,
-  updates: Partial<RoutineRow>,
-): Promise<RoutineRow> {
-  const { data, error } = await supabase
-    .from('routines')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+// Bug 14: all writes now go through SECURITY DEFINER RPCs to bypass RLS.
+
+export async function createRoutine(
+  childId: string,
+  name: string,
+  emoji: string,
+  scheduledTime?: string,
+  daysOfWeek: number[] = [],
+): Promise<void> {
+  const { error } = await supabase.rpc('create_routine', {
+    p_child_id:       childId,
+    p_name:           name,
+    p_emoji:          emoji,
+    p_scheduled_time: scheduledTime ?? null,
+    p_days_of_week:   daysOfWeek,
+  });
   if (error) throw error;
-  return data;
 }
 
-export async function deleteRoutine(id: string): Promise<void> {
-  const { error } = await supabase.from('routines').delete().eq('id', id);
+// Bug 15: updateRoutine was dead code — now wired and uses an RPC.
+export async function updateRoutine(
+  id: string,
+  updates: { name: string; emoji: string; scheduled_time: string | null; days_of_week: number[] },
+): Promise<void> {
+  const { error } = await supabase.rpc('update_routine', {
+    p_routine_id:     id,
+    p_name:           updates.name,
+    p_emoji:          updates.emoji,
+    p_scheduled_time: updates.scheduled_time,
+    p_days_of_week:   updates.days_of_week,
+  });
   if (error) throw error;
 }
 
@@ -69,39 +55,22 @@ export async function addTask(
   title: string,
   emoji = '✅',
   sortOrder = 0,
-): Promise<TaskRow> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({ routine_id: routineId, title, emoji, sort_order: sortOrder })
-    .select()
-    .single();
+): Promise<void> {
+  const { error } = await supabase.rpc('add_task', {
+    p_routine_id: routineId,
+    p_title:      title,
+    p_emoji:      emoji,
+    p_sort_order: sortOrder,
+  });
   if (error) throw error;
-  return data;
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
-  const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+  const { error } = await supabase.rpc('delete_task', { p_task_id: taskId });
   if (error) throw error;
 }
 
-export async function completeTask(taskId: string): Promise<TaskRow> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ completed: true })
-    .eq('id', taskId)
-    .select()
-    .single();
+export async function deleteRoutine(id: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_routine', { p_routine_id: id });
   if (error) throw error;
-  return data;
-}
-
-export async function uncompleteTask(taskId: string): Promise<TaskRow> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ completed: false })
-    .eq('id', taskId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
 }

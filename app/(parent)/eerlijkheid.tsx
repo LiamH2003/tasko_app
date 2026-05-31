@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useThemePreference } from '@/store/useThemePreference';
-import { getChildren } from '@/services/children';
-import {
-  getCompletionsForParent, getDismissedFlags,
-  dismissHonestyFlag, detectFlags,
-} from '@/services/honesty';
+import { useParentChildren } from '@/store/useParentChildren';
+import { getHonestyFlags, dismissHonestyFlag } from '@/services/honesty';
 import type { HonestyFlag } from '@/services/honesty';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
@@ -151,10 +148,9 @@ export default function EerlijkheidScreen() {
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
 
-  const [children,      setChildren]      = useState<ChildRow[]>([]);
+  const { children, childrenLoading, refreshChildren, setFlagCount } = useParentChildren();
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
   const [flags,         setFlags]         = useState<HonestyFlag[]>([]);
-  const [loading,       setLoading]       = useState(true);
   const [flagsLoading,  setFlagsLoading]  = useState(false);
 
   // ── Data ──────────────────────────────────────────────────────────────────
@@ -162,29 +158,24 @@ export default function EerlijkheidScreen() {
   const loadFlags = useCallback(async (childId: string) => {
     setFlagsLoading(true);
     try {
-      const [completions, dismissed] = await Promise.all([
-        getCompletionsForParent(childId, 14),
-        getDismissedFlags(childId),
-      ]);
-      setFlags(detectFlags(completions, dismissed));
+      const result = await getHonestyFlags(childId);
+      setFlags(result);
+      setFlagCount(result.length);
     } catch {
       setFlags([]);
     } finally {
       setFlagsLoading(false);
     }
-  }, []);
+  }, [setFlagCount]);
 
-  useFocusEffect(useCallback(() => {
-    getChildren()
-      .then(data => {
-        setChildren(data);
-        setActiveChildId(prev =>
-          prev && data.some(ch => ch.id === prev) ? prev : (data[0]?.id ?? null)
-        );
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []));
+  useEffect(() => {
+    if (!children.length) return;
+    setActiveChildId(prev =>
+      prev && children.some(ch => ch.id === prev) ? prev : children[0].id
+    );
+  }, [children]);
+
+  useFocusEffect(useCallback(() => { refreshChildren(); }, [refreshChildren]));
 
   useEffect(() => {
     if (activeChildId) loadFlags(activeChildId);
@@ -194,12 +185,25 @@ export default function EerlijkheidScreen() {
 
   async function handleDismiss(flag: HonestyFlag) {
     if (!activeChildId) return;
-    setFlags(prev => prev.filter(f => !(f.type === flag.type && f.date === flag.date)));
+    const next = flags.filter(f => !(f.type === flag.type && f.date === flag.date));
+    setFlags(next);
+    setFlagCount(next.length);
     try {
       await dismissHonestyFlag(activeChildId, flag.type, flag.date);
     } catch {
-      // optimistic — if it fails it'll reappear on next load
+      // optimistic — reappears on next load if it fails
     }
+  }
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await Promise.allSettled([
+      refreshChildren(),
+      activeChildId ? loadFlags(activeChildId) : Promise.resolve(),
+    ]);
+    setRefreshing(false);
   }
 
   const activeChild = children.find(ch => ch.id === activeChildId) ?? null;
@@ -214,7 +218,11 @@ export default function EerlijkheidScreen() {
 
       <Box style={{ height: insets.top + 8 }} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
 
         {/* Header */}
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 40 }}>
@@ -228,7 +236,7 @@ export default function EerlijkheidScreen() {
           </View>
         </MotiView>
 
-        {loading ? (
+        {childrenLoading ? (
           <ActivityIndicator color={PRIMARY} style={{ marginTop: 48 }} />
         ) : children.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
