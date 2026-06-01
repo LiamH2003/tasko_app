@@ -118,8 +118,9 @@ function RoutineCard({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState('');
 
-  const tasks   = [...routine.tasks].sort((a, b) => a.sort_order - b.sort_order);
-  const hasDays = routine.days_of_week && routine.days_of_week.length > 0;
+  const tasks    = [...routine.tasks].sort((a, b) => a.sort_order - b.sort_order);
+  const hasDays  = routine.days_of_week && routine.days_of_week.length > 0;
+  const allDone  = tasks.length > 0 && tasks.every(t => t.completed);
 
   async function handleAddStep() {
     if (!newStep.trim() || stepSaving) return;
@@ -151,7 +152,7 @@ function RoutineCard({
   }
 
   return (
-    <View style={[rc.card, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+    <View style={[rc.card, { backgroundColor: c.glassCard, borderColor: allDone ? 'rgba(72,187,120,0.45)' : c.glassCardBorder }]}>
 
       {/* Header — tap to expand */}
       <TouchableOpacity style={rc.header} onPress={() => setExpanded(e => !e)} activeOpacity={0.8}>
@@ -182,7 +183,13 @@ function RoutineCard({
             )}
           </View>
         </View>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={c.textMuted} />
+        {allDone && (
+          <View style={rc.doneBadge}>
+            <Ionicons name="checkmark" size={11} color="#fff" />
+            <Text style={rc.doneBadgeText}>Klaar</Text>
+          </View>
+        )}
+        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={c.textMuted} style={{ marginLeft: 6 }} />
       </TouchableOpacity>
 
       {/* Expanded */}
@@ -882,7 +889,9 @@ const rc = StyleSheet.create({
   editText:    { fontSize: 12, fontWeight: '500' },
   deleteRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
   deleteText:  { fontSize: 12, color: '#fc6b6b', fontWeight: '500' },
-  actionError: { fontSize: 11, color: '#fc6b6b', paddingHorizontal: 14, paddingBottom: 8 },
+  actionError:   { fontSize: 11, color: '#fc6b6b', paddingHorizontal: 14, paddingBottom: 8 },
+  doneBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#48bb78', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  doneBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
 });
 
 // Sheet

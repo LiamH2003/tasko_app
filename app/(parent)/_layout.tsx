@@ -12,11 +12,11 @@ function TabIcon({ name, color, size }: { name: IconName; color: string; size: n
   return <Ionicons name={name} size={size} color={color} />;
 }
 
-function EerlijkheidIcon({ color, size }: { color: string; size: number }) {
+function MeldingenIcon({ color, size }: { color: string; size: number }) {
   const { flagCount } = useParentChildren();
   return (
     <View>
-      <Ionicons name="shield-outline" size={size} color={color} />
+      <Ionicons name="notifications-outline" size={size} color={color} />
       {flagCount > 0 && <View style={styles.alertDot} />}
     </View>
   );
@@ -56,7 +56,7 @@ function ThemedTabs() {
       />
       <Tabs.Screen
         name="eerlijkheid"
-        options={{ title: 'Eerlijkheid', tabBarIcon: ({ color, size }) => <EerlijkheidIcon color={color} size={size} /> }}
+        options={{ title: 'Meldingen', tabBarIcon: ({ color, size }) => <MeldingenIcon color={color} size={size} /> }}
       />
       <Tabs.Screen
         name="settings"
