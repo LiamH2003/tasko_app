@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -8,10 +8,11 @@ import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
-import { fetchChildRoutines, completeTask, uncompleteTask, getWeekCompletion } from '@/services/child-device';
+import { fetchChildRoutines, fetchChildProfile, completeTask, uncompleteTask, getWeekCompletion } from '@/services/child-device';
+import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
-import type { ChildRoutine, ChildTask, WeekDay } from '@/services/child-device';
+import type { ChildRoutine, ChildTask, WeekDay, ChildProfile } from '@/services/child-device';
 
 const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
@@ -203,7 +204,9 @@ export default function RoutinesScreen() {
   const [collapsedIds,  setCollapsedIds]  = useState<Set<string>>(new Set());
   const [activeFilter,  setActiveFilter]  = useState<Category | 'all'>('all');
   const [loading,       setLoading]       = useState(true);
-  const [loadError,    setLoadError]    = useState<string | null>(null);
+  const [loadError,     setLoadError]     = useState<string | null>(null);
+  const [levelUpData,   setLevelUpData]   = useState<{ newLevel: number; newStage: string; prevStage: string } | null>(null);
+  const profileRef = useRef<ChildProfile | null>(null);
 
   function toggleRoutine(id: string) {
     setCollapsedIds(prev => {
@@ -216,16 +219,25 @@ export default function RoutinesScreen() {
   const load = useCallback(async () => {
     if (!childId) return;
     setLoadError(null);
-    const [r, w] = await Promise.allSettled([
+    const [r, w, p] = await Promise.allSettled([
       fetchChildRoutines(childId),
       getWeekCompletion(childId),
+      fetchChildProfile(childId),
     ]);
     if (r.status === 'fulfilled') {
-      setRoutines(r.value ?? []);
+      const loaded = r.value ?? [];
+      setRoutines(loaded);
+      // Reset filter if the active category no longer contains any routines
+      setActiveFilter(prev =>
+        prev === 'all' || loaded.some(rt => getCategory(rt.scheduled_time) === prev)
+          ? prev
+          : 'all'
+      );
     } else {
       setLoadError((r.reason as Error)?.message ?? 'Laden mislukt');
     }
     if (w.status === 'fulfilled') setWeekDays(w.value ?? []);
+    if (p.status === 'fulfilled' && p.value) profileRef.current = p.value;
     setLoading(false);
   }, [childId]);
 
@@ -248,8 +260,21 @@ export default function RoutinesScreen() {
       wd.date === today ? { ...wd, done: Math.max(0, wd.done + delta) } : wd
     ));
     try {
-      if (task.completed) await uncompleteTask(task.id, childId);
-      else                await completeTask(task.id, childId);
+      if (task.completed) {
+        await uncompleteTask(task.id, childId);
+      } else {
+        await completeTask(task.id, childId);
+        // Detect level-up by comparing the fresh profile to the last known one
+        const updated = await fetchChildProfile(childId);
+        if (updated && profileRef.current && updated.level > profileRef.current.level) {
+          setLevelUpData({
+            newLevel:  updated.level,
+            newStage:  updated.stage,
+            prevStage: profileRef.current.stage,
+          });
+        }
+        if (updated) profileRef.current = updated;
+      }
     } catch {
       setRoutines(prev => prev.map(r => ({
         ...r,
@@ -263,8 +288,12 @@ export default function RoutinesScreen() {
 
   async function handleCompleteAll(routine: ChildRoutine) {
     if (!childId) return;
-    const today   = todayStr();
-    const allDone = routine.tasks.every(t => t.completed);
+    const today    = todayStr();
+    const allDone  = routine.tasks.every(t => t.completed);
+
+    // Snapshot for rollback
+    const prevRoutines = routines;
+    const prevWeekDays = weekDays;
 
     if (allDone) {
       const delta = routine.tasks.length;
@@ -276,8 +305,12 @@ export default function RoutinesScreen() {
       setWeekDays(prev => prev.map(wd =>
         wd.date === today ? { ...wd, done: Math.max(0, wd.done - delta) } : wd
       ));
-      for (const task of routine.tasks) {
-        uncompleteTask(task.id, childId).catch(() => {});
+      try {
+        await Promise.all(routine.tasks.map(t => uncompleteTask(t.id, childId)));
+      } catch {
+        setRoutines(prevRoutines);
+        setWeekDays(prevWeekDays);
+        Alert.alert('Niet gelukt', 'De routine kon niet worden hersteld. Probeer het opnieuw.');
       }
     } else {
       const incomplete = routine.tasks.filter(t => !t.completed);
@@ -289,8 +322,12 @@ export default function RoutinesScreen() {
       setWeekDays(prev => prev.map(wd =>
         wd.date === today ? { ...wd, done: wd.done + incomplete.length } : wd
       ));
-      for (const task of incomplete) {
-        completeTask(task.id, childId).catch(() => {});
+      try {
+        await Promise.all(incomplete.map(t => completeTask(t.id, childId)));
+      } catch {
+        setRoutines(prevRoutines);
+        setWeekDays(prevWeekDays);
+        Alert.alert('Niet gelukt', 'De routine kon niet worden voltooid. Probeer het opnieuw.');
       }
     }
   }
@@ -443,6 +480,16 @@ export default function RoutinesScreen() {
 
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      {levelUpData && (
+        <LevelUpOverlay
+          visible
+          newLevel={levelUpData.newLevel}
+          newStage={levelUpData.newStage}
+          prevStage={levelUpData.prevStage}
+          onDismiss={() => setLevelUpData(null)}
+        />
+      )}
     </Box>
   );
 }

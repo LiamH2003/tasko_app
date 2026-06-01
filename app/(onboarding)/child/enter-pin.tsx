@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -16,14 +16,42 @@ export default function EnterPinScreen() {
   const insets = useSafeAreaInsets();
   const { childId, childName } = useLocalSearchParams<{ childId: string; childName: string }>();
   const { setChildId } = useAppStore();
-  const [pin, setPin] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [attempts, setAttempts] = useState(0);
-  const [touched, setTouched] = useState(false);
+  const MAX_ATTEMPTS   = 5;
+  const LOCKOUT_SECS   = 30;
+
+  const [pin,          setPin]          = useState('');
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
+  const [attempts,     setAttempts]     = useState(0);
+  const [touched,      setTouched]      = useState(false);
+  const [lockoutSecs,  setLockoutSecs]  = useState(0);
+  const lockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (lockTimerRef.current) clearInterval(lockTimerRef.current); };
+  }, []);
+
+  function startLockout() {
+    setLockoutSecs(LOCKOUT_SECS);
+    setPin('');
+    lockTimerRef.current = setInterval(() => {
+      setLockoutSecs(s => {
+        if (s <= 1) {
+          clearInterval(lockTimerRef.current!);
+          lockTimerRef.current = null;
+          setAttempts(0);
+          setError('');
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }
+
+  const isLocked = lockoutSecs > 0;
 
   const handleVerify = async () => {
-    if (!childId) return;
+    if (!childId || isLocked) return;
     setError('');
     setLoading(true);
     try {
@@ -38,12 +66,13 @@ export default function EnterPinScreen() {
       if (!result) {
         const next = attempts + 1;
         setAttempts(next);
-        setError(
-          next >= 3
-            ? 'Onjuiste pincode. Vraag je ouder om hulp.'
-            : 'Onjuiste pincode. Probeer opnieuw.'
-        );
         setPin('');
+        if (next >= MAX_ATTEMPTS) {
+          startLockout();
+          setError(`Te veel pogingen. Wacht ${LOCKOUT_SECS} seconden.`);
+        } else {
+          setError(`Onjuiste pincode. Nog ${MAX_ATTEMPTS - next} ${MAX_ATTEMPTS - next === 1 ? 'poging' : 'pogingen'}.`);
+        }
         return;
       }
 
@@ -108,9 +137,11 @@ export default function EnterPinScreen() {
           </View>
         </MotiView>
 
-        {error ? (
+        {(error || isLocked) ? (
           <MotiView from={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: 12 }}>
-            <Text variant="errorText" style={{ textAlign: 'center' }}>{error}</Text>
+            <Text variant="errorText" style={{ textAlign: 'center' }}>
+              {isLocked ? `Te veel pogingen. Wacht nog ${lockoutSecs} seconden.` : error}
+            </Text>
           </MotiView>
         ) : null}
       </ScrollView>
@@ -122,9 +153,9 @@ export default function EnterPinScreen() {
         style={{ paddingHorizontal: 24, gap: 12, paddingBottom: Math.max(insets.bottom + 10, 24) }}
       >
         <TouchableOpacity
-          style={[styles.btnPrimary, { opacity: pin.length === 4 && !loading ? 1 : 0.4 }]}
+          style={[styles.btnPrimary, { opacity: pin.length === 4 && !loading && !isLocked ? 1 : 0.4 }]}
           onPress={handleVerify}
-          disabled={pin.length < 4 || loading}
+          disabled={pin.length < 4 || loading || isLocked}
           activeOpacity={0.85}
         >
           {loading

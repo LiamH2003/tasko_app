@@ -32,11 +32,13 @@ export async function dismissHonestyFlag(
   childId: string,
   flagType: string,
   flagDate: string,
+  routineName?: string,
 ): Promise<void> {
   const { error } = await supabase.rpc('dismiss_honesty_flag', {
-    p_child_id: childId,
-    p_flag_type: flagType,
-    p_flag_date: flagDate,
+    p_child_id:     childId,
+    p_flag_type:    flagType,
+    p_flag_date:    flagDate,
+    p_routine_name: routineName ?? null,
   });
   if (error) throw error;
 }

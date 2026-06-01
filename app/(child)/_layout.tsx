@@ -33,7 +33,7 @@ function ThemedTabs() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Overzicht',
           tabBarIcon: ({ color, size }) => <TabIcon name="home-outline" color={color} size={size} />,
         }}
       />

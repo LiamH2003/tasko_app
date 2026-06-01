@@ -23,8 +23,7 @@ export function ChildrenProvider({ children: node }: { children: ReactNode }) {
   const [children, setChildren]       = useState<ChildRow[]>([]);
   const [childrenLoading, setLoading] = useState(true);
   const [flagCount, setFlagCount]     = useState(0);
-  const inFlight         = useRef(false);
-  const flagsSeeded      = useRef(false);
+  const inFlight = useRef(false);
 
   const refreshChildren = useCallback(async () => {
     if (inFlight.current) return;
@@ -32,12 +31,14 @@ export function ChildrenProvider({ children: node }: { children: ReactNode }) {
     try {
       const kids = await getChildren();
       setChildren(kids);
-      // Seed the alert dot once per session so the tab badge is correct without visiting Eerlijkheid first
-      if (!flagsSeeded.current && kids.length > 0) {
-        flagsSeeded.current = true;
+      // Always re-fetch flag count so the badge stays accurate across sessions
+      // and when another device adds or dismisses flags.
+      if (kids.length > 0) {
         Promise.all(kids.map(k => getHonestyFlags(k.id).catch(() => [])))
           .then(results => setFlagCount(results.flat().length))
           .catch(() => {});
+      } else {
+        setFlagCount(0);
       }
     } catch { /* silent */ } finally {
       setLoading(false);

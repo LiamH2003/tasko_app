@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
@@ -200,13 +200,18 @@ export default function EerlijkheidScreen() {
 
   async function handleDismiss(flag: HonestyFlag) {
     if (!activeChildId) return;
-    const next = flags.filter(f => !(f.type === flag.type && f.date === flag.date));
+    const prevFlags = flags;
+    const next = flags.filter(f =>
+      !(f.type === flag.type && f.date === flag.date && f.routineName === flag.routineName)
+    );
     setFlags(next);
     setFlagCount(prev => Math.max(0, prev - 1));
     try {
-      await dismissHonestyFlag(activeChildId, flag.type, flag.date);
+      await dismissHonestyFlag(activeChildId, flag.type, flag.date, flag.routineName);
     } catch {
-      // optimistic — reappears on next load if it fails
+      setFlags(prevFlags);
+      setFlagCount(prev => prev + 1);
+      Alert.alert('Niet gelukt', 'De melding kon niet worden verwijderd. Probeer het opnieuw.');
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity, Switch,
   Modal, Pressable, TextInput, ActivityIndicator,
@@ -143,6 +143,15 @@ export default function SettingsScreen() {
   const [monsterSaving, setMonsterSaving] = useState(false);
   const [monsterError, setMonsterError] = useState('');
   const [monsterSaved, setMonsterSaved] = useState(false);
+  const nameTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const monsterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (nameTimerRef.current)    clearTimeout(nameTimerRef.current);
+      if (monsterTimerRef.current) clearTimeout(monsterTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -222,7 +231,7 @@ export default function SettingsScreen() {
       await updateChildName(childId, editName.trim());
       await setChildId(childId, editName.trim());
       setNameSaved(true);
-      setTimeout(() => setNameModal(false), 800);
+      nameTimerRef.current = setTimeout(() => setNameModal(false), 800);
     } catch {
       setNameError('Opslaan mislukt. Probeer opnieuw.');
     } finally {
@@ -247,7 +256,7 @@ export default function SettingsScreen() {
       await updateMonsterName(childId, editMonsterName.trim());
       setMonsterName(editMonsterName.trim());
       setMonsterSaved(true);
-      setTimeout(() => setMonsterModal(false), 800);
+      monsterTimerRef.current = setTimeout(() => setMonsterModal(false), 800);
     } catch {
       setMonsterError('Opslaan mislukt. Probeer opnieuw.');
     } finally {

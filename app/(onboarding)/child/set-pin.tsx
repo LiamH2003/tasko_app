@@ -51,6 +51,8 @@ export default function SetPinScreen() {
         await SecureStore.deleteItemAsync('pendingChildName');
         router.replace('/(child)');
       } else {
+        await SecureStore.deleteItemAsync('pendingChildId');
+        await SecureStore.deleteItemAsync('pendingChildName');
         router.push('/(onboarding)/child/welcome');
       }
     } catch (e: any) {

@@ -105,13 +105,14 @@ export default function ParentSettingsScreen() {
     setEditError('');
     setEditSaving(true);
     try {
+      const trimmedMonster = editMonsterName.trim() || null;
       await updateChildProfile(editChild.id, {
         name: editName.trim(),
-        monster_name: editMonsterName.trim() || undefined,
+        monster_name: trimmedMonster ?? undefined,
       });
       setChildren(prev => prev.map(ch =>
         ch.id === editChild.id
-          ? { ...ch, name: editName.trim(), monster_name: editMonsterName.trim() || ch.monster_name }
+          ? { ...ch, name: editName.trim(), monster_name: trimmedMonster ?? ch.monster_name }
           : ch
       ));
       setEditChild(null);

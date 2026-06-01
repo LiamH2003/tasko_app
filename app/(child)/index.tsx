@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
+import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,12 +77,16 @@ export default function HomeScreen() {
   const monsterName = profile?.monster_name ?? 'Monster';
 
   async function handleMood(key: string) {
+    const prev = selectedMood;
     setSelectedMood(key);
     setMoodOpen(false);
     if (!childId) return;
     try {
       await submitMood(childId, key);
-    } catch { /* non-fatal */ }
+    } catch {
+      setSelectedMood(prev);
+      Alert.alert('Niet gelukt', 'Je stemming kon niet worden opgeslagen. Probeer het opnieuw.');
+    }
   }
 
   if (loading) {
