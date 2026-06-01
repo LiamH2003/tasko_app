@@ -17,32 +17,13 @@ export type FamilyMemberProfile = {
   email: string | null;
 };
 
-function generateFamilyCode(): string {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let suffix = '';
-  for (let i = 0; i < 4; i++) {
-    suffix += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `TASKO-${suffix}`;
-}
-
 export async function createFamily(name: string): Promise<FamilyRow> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error('Niet ingelogd');
+  // Single atomic RPC — inserts family + family_member in one transaction
+  const { data, error } = await supabase.rpc('create_family_for_user', { p_name: name });
+  if (error) throw error;
+  const family = data as unknown as FamilyRow;
 
-  const { data: family, error: familyError } = await supabase
-    .from('families')
-    .insert({ name, created_by: user.id, family_code: generateFamilyCode() })
-    .select()
-    .single();
-  if (familyError) throw familyError;
-
-  const { error: memberError } = await supabase
-    .from('family_members')
-    .insert({ family_id: family.id, user_id: user.id, role: 'admin' });
-  if (memberError) throw memberError;
-
-  // Cache in user metadata so getMyFamily() always has a fallback
+  // Keep auth metadata in sync so getMyFamily() has a fast fallback
   await supabase.auth.updateUser({
     data: { family_name: name, family_code: family.family_code, family_id: family.id, role: 'admin' },
   });

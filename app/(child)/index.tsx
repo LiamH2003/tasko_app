@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,6 +40,7 @@ export default function HomeScreen() {
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
   const [loading, setLoading] = useState(true);
   const [moodOpen, setMoodOpen] = useState(false);
+  const lastFetchRef = useRef(0);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [quote, setQuote] = useState<string | null>(null);
 
@@ -63,7 +64,12 @@ export default function HomeScreen() {
     }
   }, [childId]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    const now = Date.now();
+    if (now - lastFetchRef.current < 15_000) return;
+    lastFetchRef.current = now;
+    load();
+  }, [load]));
 
   const allTasks = routines.flatMap(r => r.tasks);
   const doneCount = allTasks.filter(t => t.completed).length;

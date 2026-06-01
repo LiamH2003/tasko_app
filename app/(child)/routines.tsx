@@ -27,6 +27,7 @@ function getDayState(weekDay: WeekDay): 'done' | 'missed' | 'today' | 'future' {
   }
   if (day > today) return 'future';
   if (weekDay.done > 0) return 'done';
+  if (weekDay.total === 0) return 'future';
   return 'missed';
 }
 

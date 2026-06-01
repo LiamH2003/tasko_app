@@ -482,7 +482,12 @@ export default function ParentRoutinesScreen() {
                 {activeChild ? `${activeChild.name} · ${routines.length} routine${routines.length !== 1 ? 's' : ''}` : 'Dagelijkse routines'}
               </Text>
             </View>
-            <TouchableOpacity style={styles.addBtn} onPress={openAdd} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.addBtn, futureDate && { opacity: 0.35 }]}
+              onPress={futureDate ? undefined : openAdd}
+              disabled={futureDate}
+              activeOpacity={0.8}
+            >
               <Ionicons name="add" size={22} color="#fff" />
             </TouchableOpacity>
           </View>

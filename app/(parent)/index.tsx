@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { useThemePreference } from '@/store/useThemePreference';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getRoutinesForDate } from '@/services/routines';
 import { getTodayMoodForChild } from '@/services/mood';
+import { getFocusSessions, type FocusSession } from '@/services/focus';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildRow, RoutineWithTasks, MoodEntryRow } from '@/lib/database.types';
@@ -47,7 +48,12 @@ export default function ParentOverview() {
   const [activeChildId, setActiveChildId]   = useState<string | null>(null);
   const [routines, setRoutines]             = useState<RoutineWithTasks[]>([]);
   const [todayMood, setTodayMood]           = useState<MoodKey | null>(null);
+  const [focusSessions, setFocusSessions]   = useState<FocusSession[]>([]);
   const [childDataLoading, setChildDataLoading] = useState(false);
+
+  // Ref so the polling effect always reads the latest activeChildId without re-subscribing
+  const activeChildIdRef = useRef<string | null>(null);
+  useEffect(() => { activeChildIdRef.current = activeChildId; }, [activeChildId]);
 
   const firstName = session?.user.user_metadata?.first_name
     ?? session?.user.email?.split('@')[0]
@@ -63,6 +69,20 @@ export default function ParentOverview() {
 
   useFocusEffect(useCallback(() => { refreshChildren(); }, [refreshChildren]));
 
+  // Poll every 30 s while focused — child task and mood changes surface without a manual refresh
+  useFocusEffect(useCallback(() => {
+    const poll = setInterval(() => {
+      const id = activeChildIdRef.current;
+      if (!id) return;
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      getRoutinesForDate(id, today).then(setRoutines).catch(() => {});
+      getTodayMoodForChild(id).then(setTodayMood).catch(() => {});
+      getFocusSessions(id).then(setFocusSessions).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(poll);
+  }, []));
+
   useEffect(() => {
     if (!activeChildId) return;
     setChildDataLoading(true);
@@ -71,8 +91,9 @@ export default function ParentOverview() {
     Promise.all([
       getRoutinesForDate(activeChildId, today),
       getTodayMoodForChild(activeChildId),
+      getFocusSessions(activeChildId),
     ])
-      .then(([r, mood]) => { setRoutines(r); setTodayMood(mood); })
+      .then(([r, mood, focus]) => { setRoutines(r); setTodayMood(mood); setFocusSessions(focus); })
       .catch(() => {})
       .finally(() => setChildDataLoading(false));
   }, [activeChildId]);
@@ -86,6 +107,7 @@ export default function ParentOverview() {
       ...(activeChildId ? [
         getRoutinesForDate(activeChildId, today).then(setRoutines).catch(() => {}),
         getTodayMoodForChild(activeChildId).then(setTodayMood).catch(() => {}),
+        getFocusSessions(activeChildId).then(setFocusSessions).catch(() => {}),
       ] : []),
     ]);
     setRefreshing(false);
@@ -97,6 +119,10 @@ export default function ParentOverview() {
   const xpProgress  = activeChild
     ? Math.min(activeChild.xp / (activeChild.xp_to_next_level || 1), 1)
     : 0;
+
+  const todayPrefix = new Date().toISOString().slice(0, 10);
+  const todayFocus  = focusSessions.filter(s => s.completed_at.startsWith(todayPrefix));
+  const focusMinutes = Math.round(todayFocus.reduce((acc, s) => acc + s.duration_seconds, 0) / 60);
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -187,7 +213,7 @@ export default function ParentOverview() {
                         activeOpacity={0.8}
                       >
                         <Text style={[styles.childTabText, { color: isActive ? '#fff' : c.textMuted }]}>
-                          🧒 {child.name}
+                          {child.name}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -338,11 +364,47 @@ export default function ParentOverview() {
               )}
             </MotiView>
 
-            {/* ── Gevoel section ── */}
+            {/* ── Focus section ── */}
             <MotiView
               from={{ opacity: 0, translateY: 12 }}
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: 'timing', duration: 340, delay: 260 }}
+            >
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionHeader}>FOCUS VANDAAG</Text>
+              </View>
+
+              {childDataLoading ? (
+                <ActivityIndicator color={PRIMARY} style={{ marginVertical: 12 }} />
+              ) : todayFocus.length === 0 ? (
+                <View style={[styles.focusCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                  <Ionicons name="hourglass-outline" size={22} color={c.textMuted} />
+                  <Text style={[styles.focusEmpty, { color: c.textMuted }]}>
+                    {activeChild?.name ?? 'Je kind'} heeft vandaag nog niet gefocust.
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.focusCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+                  <View style={[styles.focusIconBox, { backgroundColor: primaryAlpha(0.08) }]}>
+                    <Ionicons name="timer-outline" size={20} color={PRIMARY} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.focusTitle, { color: c.textPrimary }]}>
+                      {focusMinutes} min gefocust
+                    </Text>
+                    <Text style={[styles.focusSub, { color: c.textMuted }]}>
+                      {todayFocus.length} sessie{todayFocus.length !== 1 ? 's' : ''} vandaag
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </MotiView>
+
+            {/* ── Gevoel section ── */}
+            <MotiView
+              from={{ opacity: 0, translateY: 12 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 340, delay: 320 }}
             >
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionHeader}>GEVOEL VANDAAG</Text>
@@ -468,6 +530,16 @@ const styles = StyleSheet.create({
     borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
   },
   moodEmpty: { fontSize: 13, flex: 1, lineHeight: 19 },
+
+  // Focus
+  focusCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
+  },
+  focusIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  focusTitle: { fontSize: 16, fontWeight: '700' },
+  focusSub:   { fontSize: 12, marginTop: 2 },
+  focusEmpty: { fontSize: 13, flex: 1, lineHeight: 19 },
 
   // Empty states
   emptyHero: { borderRadius: 24, padding: 36, borderWidth: 1, alignItems: 'center', gap: 12, marginBottom: 20 },

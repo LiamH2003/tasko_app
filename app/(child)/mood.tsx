@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
@@ -20,13 +21,26 @@ export default function MoodScreen() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const isFirstLoadRef = useRef(true);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!childId) { setLoadingInitial(false); return; }
-    getTodayMood(childId).then((mood) => {
-      if (mood) setSelected(mood as MoodType);
-    }).finally(() => setLoadingInitial(false));
-  }, [childId]);
+
+    if (isFirstLoadRef.current) {
+      // First visit: show the spinner while we read today's mood
+      getTodayMood(childId)
+        .then(mood => setSelected(mood ? mood as MoodType : null))
+        .finally(() => { setLoadingInitial(false); isFirstLoadRef.current = false; });
+    } else {
+      // Returning to tab: silently re-sync in case Home screen submitted a mood
+      getTodayMood(childId)
+        .then(mood => setSelected(mood ? mood as MoodType : null))
+        .catch(() => {});
+    }
+
+    // Reset the celebration screen when leaving so they return to the selector
+    return () => { setSaved(false); };
+  }, [childId]));
 
   async function handleSubmit() {
     if (!selected || !childId) return;
@@ -68,6 +82,9 @@ export default function MoodScreen() {
           <Text style={styles.savedEmoji}>🎉</Text>
           <Text style={styles.savedTitle}>Opgeslagen!</Text>
           <Text style={styles.savedSubtitle}>Je monster weet hoe je je voelt.</Text>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => setSaved(false)} activeOpacity={0.85}>
+            <Text style={styles.closeBtnText}>Sluiten</Text>
+          </TouchableOpacity>
         </MotiView>
       </Box>
     );
@@ -135,4 +152,11 @@ const styles = StyleSheet.create({
   savedEmoji: { fontSize: 64, marginBottom: 20 },
   savedTitle: { fontSize: 28, fontWeight: '700', color: '#1a1918', marginBottom: 8 },
   savedSubtitle: { fontSize: 15, color: '#6b6560', textAlign: 'center' },
+  closeBtn: {
+    marginTop: 28, paddingHorizontal: 36, paddingVertical: 13,
+    backgroundColor: PRIMARY, borderRadius: 14,
+    shadowColor: PRIMARY, shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10, shadowOpacity: 0.3, elevation: 5,
+  },
+  closeBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });

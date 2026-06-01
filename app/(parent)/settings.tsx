@@ -42,10 +42,7 @@ export default function ParentSettingsScreen() {
   const [children,  setChildren]  = useState<ChildRow[]>([]);
   const [family,    setFamily]    = useState<MyFamily | null>(null);
   const [members,   setMembers]   = useState<FamilyMemberProfile[]>([]);
-  const [myUserId,  setMyUserId]  = useState<string | null>(session?.user.id ?? null);
-  const [myRole,    setMyRole]    = useState<'admin' | 'parent' | null>(
-    (session?.user.user_metadata?.role as 'admin' | 'parent' | null) ?? null
-  );
+  const [myRole, setMyRole] = useState<'admin' | 'parent' | null>(null);
   const [loading,   setLoading]   = useState(true);
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -75,7 +72,6 @@ export default function ParentSettingsScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       const [kids, fam, mems] = await Promise.all([
         getChildren(),
         getMyFamily(),
@@ -84,14 +80,12 @@ export default function ParentSettingsScreen() {
       setChildren(kids);
       setFamily(fam);
       setMembers(mems);
-      if (user) {
-        setMyUserId(user.id);
-        setMyRole(mems.find(m => m.user_id === user.id)?.role ?? null);
-      }
+      const uid = session?.user.id;
+      if (uid) setMyRole(mems.find(m => m.user_id === uid)?.role ?? null);
     } catch (e) { console.error('[Settings] loadData failed:', e); } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session?.user.id]);
 
   useFocusEffect(useCallback(() => {
     loadData();
@@ -486,7 +480,7 @@ export default function ParentSettingsScreen() {
           ) : (
             <View style={[styles.listCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
               {members.map((m, i) => {
-                const isSelf = m.user_id === myUserId;
+                const isSelf = m.user_id === session?.user.id;
                 return (
                   <View key={m.user_id}>
                     {i > 0 && <View style={[styles.sep, { backgroundColor: c.glassCardBorder }]} />}
