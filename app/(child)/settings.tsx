@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity, Switch,
   Modal, Pressable, TextInput, ActivityIndicator,
@@ -163,11 +163,8 @@ export default function SettingsScreen() {
     SecureStore.setItemAsync('monsterSound', String(v));
   }
 
-  const hasLoadedRef = useRef(false);
-
   useEffect(() => {
-    if (!childId || hasLoadedRef.current) return;
-    hasLoadedRef.current = true;
+    if (!childId) return;
     fetchChildProfile(childId)
       .then(p => {
         if (p) {

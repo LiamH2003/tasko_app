@@ -74,8 +74,12 @@ export default function ParentOverview() {
       if (!id) return;
       const d = new Date();
       const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      getRoutinesForDate(id, today).then(setRoutines).catch(() => {});
-      getTodayMoodForChild(id).then(setTodayMood).catch(() => {});
+      getRoutinesForDate(id, today)
+        .then(r => { if (activeChildIdRef.current === id) setRoutines(r); })
+        .catch(() => {});
+      getTodayMoodForChild(id)
+        .then(m => { if (activeChildIdRef.current === id) setTodayMood(m); })
+        .catch(() => {});
     }, 30_000);
     return () => clearInterval(poll);
   }, []));

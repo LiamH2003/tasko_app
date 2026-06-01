@@ -9,6 +9,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useState } from 'react';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import type { FamilyChild } from '@/services/child-device';
 
 const STAGE_COLORS: Record<string, string> = {
@@ -107,10 +108,8 @@ export default function WhoAmIScreen() {
                   disabled={loadingId !== null}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.avatar, { backgroundColor: color + '33' }]}>
-                    <Text style={styles.avatarEmoji}>
-                      {child.stage === 'egg' ? '🥚' : child.stage === 'adult' ? '🐉' : '👾'}
-                    </Text>
+                  <View style={[styles.avatar, { backgroundColor: primaryAlpha(0.12) }]}>
+                    <MonsterSvg size={40} />
                   </View>
 
                   <View style={styles.info}>
@@ -159,8 +158,8 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    overflow: 'hidden',
   },
-  avatarEmoji: { fontSize: 26 },
   info: { flex: 1 },
   childName: { fontSize: 17, fontWeight: '600', color: '#1a1918' },
   childMeta: { fontSize: 12, color: '#8a8885', marginTop: 2 },

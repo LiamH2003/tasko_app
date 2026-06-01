@@ -8,27 +8,34 @@
 -- Bug 7: uncomplete_task_for_child is rewritten to delete the dated row,
 --        revert tasks.completed, and reverse the XP award.
 --
+-- NOTE: get_child_routines uses DROP + CREATE because the live function
+-- returns jsonb and CREATE OR REPLACE cannot change the return type.
+--
 -- Run in Supabase SQL Editor (Dashboard → SQL Editor).
 -- ============================================================
 
 
 -- ── get_child_routines ───────────────────────────────────────
-create or replace function get_child_routines(p_child_id uuid)
-returns json
+-- DROP first because the live function returns jsonb; CREATE OR REPLACE
+-- cannot change the return type from json to jsonb or vice-versa.
+drop function if exists get_child_routines(uuid);
+
+create function get_child_routines(p_child_id uuid)
+returns jsonb
 language sql
 security definer
 set search_path = public
 as $$
   select coalesce(
-    json_agg(
-      json_build_object(
+    jsonb_agg(
+      jsonb_build_object(
         'id',             r.id,
         'name',           r.name,
         'scheduled_time', r.scheduled_time,
         'tasks', (
           select coalesce(
-            json_agg(
-              json_build_object(
+            jsonb_agg(
+              jsonb_build_object(
                 'id',         t.id,
                 'title',      t.title,
                 'emoji',      t.emoji,
@@ -42,7 +49,7 @@ as $$
               )
               order by t.sort_order
             ),
-            '[]'::json
+            '[]'::jsonb
           )
           from tasks t
           where t.routine_id = r.id
@@ -50,7 +57,7 @@ as $$
       )
       order by r.created_at
     ),
-    '[]'::json
+    '[]'::jsonb
   )
   from routines r
   where r.child_id = p_child_id

@@ -3,11 +3,15 @@ import { supabase } from '@/lib/supabase';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type HonestyFlag = {
-  type: 'burst' | 'off_hours';
+  type: 'burst' | 'off_hours' | 'missed_window' | 'late_window';
   date: string;
   taskNames: string[];
   durationSeconds?: number;
   time?: string;
+  routineName?: string;
+  scheduledTime?: string;
+  windowMinutes?: number;
+  actualTime?: string;
 };
 
 // ── API ───────────────────────────────────────────────────────────────────────

@@ -24,6 +24,7 @@ export async function createRoutine(
   emoji: string,
   scheduledTime?: string,
   daysOfWeek: number[] = [],
+  windowMinutes = 15,
 ): Promise<void> {
   const { error } = await supabase.rpc('create_routine', {
     p_child_id:       childId,
@@ -31,6 +32,7 @@ export async function createRoutine(
     p_emoji:          emoji,
     p_scheduled_time: scheduledTime ?? null,
     p_days_of_week:   daysOfWeek,
+    p_window_minutes: windowMinutes,
   });
   if (error) throw error;
 }
@@ -38,7 +40,7 @@ export async function createRoutine(
 // Bug 15: updateRoutine was dead code — now wired and uses an RPC.
 export async function updateRoutine(
   id: string,
-  updates: { name: string; emoji: string; scheduled_time: string | null; days_of_week: number[] },
+  updates: { name: string; emoji: string; scheduled_time: string | null; days_of_week: number[]; window_minutes?: number },
 ): Promise<void> {
   const { error } = await supabase.rpc('update_routine', {
     p_routine_id:     id,
@@ -46,6 +48,7 @@ export async function updateRoutine(
     p_emoji:          updates.emoji,
     p_scheduled_time: updates.scheduled_time,
     p_days_of_week:   updates.days_of_week,
+    p_window_minutes: updates.window_minutes ?? 15,
   });
   if (error) throw error;
 }

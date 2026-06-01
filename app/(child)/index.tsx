@@ -47,18 +47,16 @@ export default function HomeScreen() {
   const load = useCallback(async () => {
     if (!childId) return;
     try {
-      const [p, r, mood, q] = await Promise.all([
+      const [p, r, mood, q] = await Promise.allSettled([
         fetchChildProfile(childId),
         fetchChildRoutines(childId),
         getTodayMood(childId),
         getDailyQuote(),
       ]);
-      setProfile(p);
-      setRoutines(r);
-      setSelectedMood(mood);
-      setQuote(q);
-    } catch {
-      // handled by empty state
+      if (p.status === 'fulfilled') setProfile(p.value);
+      if (r.status === 'fulfilled') setRoutines(r.value ?? []);
+      if (mood.status === 'fulfilled') setSelectedMood(mood.value);
+      if (q.status === 'fulfilled') setQuote(q.value);
     } finally {
       setLoading(false);
     }

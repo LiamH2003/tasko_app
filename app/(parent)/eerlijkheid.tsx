@@ -25,8 +25,10 @@ const FLAG_META: Record<HonestyFlag['type'], {
   title: string;
   badge: string;
 }> = {
-  burst:     { icon: 'flash-outline',  color: '#f6c644', title: 'Snelle afvinkactie', badge: 'Snelheid' },
-  off_hours: { icon: 'moon-outline',   color: '#b57be6', title: 'Nachtelijke activiteit', badge: 'Tijdstip' },
+  burst:         { icon: 'flash-outline',    color: '#f6c644', title: 'Snelle afvinkactie',    badge: 'Snelheid' },
+  off_hours:     { icon: 'moon-outline',     color: '#b57be6', title: 'Nachtelijke activiteit', badge: 'Tijdstip' },
+  missed_window: { icon: 'close-circle-outline', color: '#fc6b6b', title: 'Routine gemist',    badge: 'Gemist'   },
+  late_window:   { icon: 'time-outline',     color: '#f6c644', title: 'Routine te laat',       badge: 'Te laat'  },
 };
 
 const PROMPTS: Record<HonestyFlag['type'], (name: string) => string> = {
@@ -34,6 +36,10 @@ const PROMPTS: Record<HonestyFlag['type'], (name: string) => string> = {
     `Kies een rustig moment en vraag aan ${name} hoe het ging. Luister zonder te oordelen — eerlijkheid groeit door vertrouwen, niet door straf.`,
   off_hours: (name) =>
     `Vraag nieuwsgierig aan ${name} waarom de taak 's nachts werd afgevinkt. Er kan een goede reden zijn.`,
+  missed_window: (name) =>
+    `Vraag nieuwsgierig aan ${name} waarom de routine niet gelukt is. Misschien was het een drukke dag — of is de tijd niet meer passend.`,
+  late_window: (name) =>
+    `Kies een rustig moment en vraag aan ${name} of de tijd van de routine nog klopt. Kleine aanpassingen kunnen het makkelijker maken.`,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -54,7 +60,16 @@ function flagBody(flag: HonestyFlag): string {
     const more  = flag.taskNames.length > 3 ? ` +${flag.taskNames.length - 3}` : '';
     return `${flag.taskNames.length} taken afgevinkt in ${flag.durationSeconds} seconden: ${names}${more}.`;
   }
-  return `Taak "${flag.taskNames[0]}" afgevinkt om ${flag.time} 's nachts.`;
+  if (flag.type === 'off_hours') {
+    return `Taak "${flag.taskNames[0]}" afgevinkt om ${flag.time} 's nachts.`;
+  }
+  if (flag.type === 'missed_window') {
+    const names = (flag.taskNames ?? []).slice(0, 3).join(', ');
+    const more  = (flag.taskNames?.length ?? 0) > 3 ? ` +${flag.taskNames!.length - 3}` : '';
+    return `${flag.routineName} (${flag.scheduledTime} ±${flag.windowMinutes} min) niet voltooid: ${names}${more}.`;
+  }
+  // late_window
+  return `${flag.routineName} (${flag.scheduledTime} ±${flag.windowMinutes} min) afgerond om ${flag.actualTime}.`;
 }
 
 // ── FlagCard ──────────────────────────────────────────────────────────────────
@@ -299,9 +314,9 @@ export default function EerlijkheidScreen() {
                 </View>
               ) : (
                 <View style={styles.flagsList}>
-                  {flags.map(flag => (
+                  {flags.map((flag, i) => (
                     <FlagCard
-                      key={`${flag.type}_${flag.date}`}
+                      key={`${flag.type}_${flag.date}_${flag.routineName ?? flag.taskNames[0] ?? i}`}
                       flag={flag}
                       childName={activeChild?.name ?? 'je kind'}
                       c={c}

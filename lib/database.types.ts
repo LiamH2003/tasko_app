@@ -96,6 +96,7 @@ export type Database = {
           emoji: string;
           scheduled_time: string | null;
           days_of_week: number[];
+          window_minutes: number;
           created_at: string;
         };
         Insert: {
@@ -105,6 +106,7 @@ export type Database = {
           emoji?: string;
           scheduled_time?: string | null;
           days_of_week?: number[];
+          window_minutes?: number;
           created_at?: string;
         };
         Update: {
@@ -114,6 +116,7 @@ export type Database = {
           emoji?: string;
           scheduled_time?: string | null;
           days_of_week?: number[];
+          window_minutes?: number;
           created_at?: string;
         };
       };

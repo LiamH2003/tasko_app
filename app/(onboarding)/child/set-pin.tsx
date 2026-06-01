@@ -45,7 +45,10 @@ export default function SetPinScreen() {
       if (childId) await saveChildPin(childId, pin);
 
       if (paramChildId) {
-        await setChildId(paramChildId);
+        const pendingName = await SecureStore.getItemAsync('pendingChildName');
+        await setChildId(paramChildId, pendingName ?? undefined);
+        await SecureStore.deleteItemAsync('pendingChildId');
+        await SecureStore.deleteItemAsync('pendingChildName');
         router.replace('/(child)');
       } else {
         router.push('/(onboarding)/child/welcome');

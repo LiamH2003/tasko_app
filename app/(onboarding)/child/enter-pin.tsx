@@ -47,8 +47,9 @@ export default function EnterPinScreen() {
         return;
       }
 
-      await setChildId(childId);
+      await setChildId(childId, childName);
       await SecureStore.deleteItemAsync('pendingChildId');
+      await SecureStore.deleteItemAsync('pendingChildName');
       router.replace('/(child)');
     } catch (e: any) {
       setError(e.message ?? 'Er is iets misgegaan. Probeer opnieuw.');

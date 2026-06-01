@@ -162,7 +162,9 @@ function RoutineCard({
             {routine.scheduled_time ? (
               <View style={rc.metaChip}>
                 <Ionicons name="time-outline" size={10} color={PRIMARY} />
-                <Text style={[rc.metaText, { color: PRIMARY }]}>{routine.scheduled_time}</Text>
+                <Text style={[rc.metaText, { color: PRIMARY }]}>
+                  {routine.scheduled_time} ±{routine.window_minutes ?? 15} min
+                </Text>
               </View>
             ) : null}
             {hasDays ? (
@@ -289,6 +291,7 @@ export default function ParentRoutinesScreen() {
   const [timeMinute,       setTimeMinute]       = useState(0);
   const [specificDays,     setSpecificDays]     = useState(false);
   const [selectedDays,     setSelectedDays]     = useState<number[]>([]);
+  const [windowMinutes,    setWindowMinutes]    = useState(15);
   const [addError,         setAddError]         = useState('');
   const [saving,           setSaving]           = useState(false);
 
@@ -382,6 +385,7 @@ export default function ParentRoutinesScreen() {
     setUseTime(false);
     setTimeHour(7);
     setTimeMinute(0);
+    setWindowMinutes(15);
     setSpecificDays(false);
     setSelectedDays([]);
     setAddError('');
@@ -400,6 +404,7 @@ export default function ParentRoutinesScreen() {
     } else {
       setTimeHour(7); setTimeMinute(0);
     }
+    setWindowMinutes(routine.window_minutes ?? 15);
     const hasDays = routine.days_of_week?.length > 0;
     setSpecificDays(hasDays);
     setSelectedDays(hasDays ? [...routine.days_of_week] : []);
@@ -425,11 +430,12 @@ export default function ParentRoutinesScreen() {
           emoji,
           scheduled_time: scheduledTime ?? null,
           days_of_week: specificDays ? selectedDays : [],
+          window_minutes: windowMinutes,
         });
       } else {
         const results = await Promise.allSettled(
           sheetChildIds.map(childId =>
-            createRoutine(childId, newName.trim(), emoji, scheduledTime, specificDays ? selectedDays : [])
+            createRoutine(childId, newName.trim(), emoji, scheduledTime, specificDays ? selectedDays : [], windowMinutes)
           )
         );
         const failed = results.filter(r => r.status === 'rejected').length;
@@ -731,6 +737,25 @@ export default function ParentRoutinesScreen() {
                   </View>
                 )}
 
+                {/* Window selector — only when a time is set */}
+                {useTime && (
+                  <View style={sh.windowRow}>
+                    <Text style={[sh.label, { color: c.textMuted, marginBottom: 0 }]}>VENSTER</Text>
+                    <View style={sh.windowPills}>
+                      {[10, 15, 30, 60].map(min => (
+                        <TouchableOpacity
+                          key={min}
+                          style={[sh.windowPill, { backgroundColor: windowMinutes === min ? PRIMARY : c.glassCard, borderColor: windowMinutes === min ? PRIMARY : c.glassCardBorder }]}
+                          onPress={() => setWindowMinutes(min)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[sh.windowPillText, { color: windowMinutes === min ? '#fff' : c.textMuted }]}>±{min} min</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
                 {/* Days of week — every day by default, specific days opt-in */}
                 <View style={sh.timeToggleRow}>
                   <Text style={[sh.label, { color: c.textMuted, marginBottom: 0 }]}>HERHALING</Text>
@@ -893,6 +918,10 @@ const sh = StyleSheet.create({
 
   error:        { fontSize: 12, color: '#fc6b6b', marginBottom: 12 },
   daysWarning:  { fontSize: 12, color: '#f6c644', marginBottom: 12, marginTop: -10 },
+  windowRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  windowPills:    { flexDirection: 'row', gap: 6 },
+  windowPill:     { borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1.5 },
+  windowPillText: { fontSize: 11, fontWeight: '600' },
   actions:   { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, height: 50, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cancelText:{ fontSize: 14, fontWeight: '500' },
