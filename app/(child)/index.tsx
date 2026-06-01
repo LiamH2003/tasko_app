@@ -66,7 +66,7 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => {
     const now = Date.now();
-    if (now - lastFetchRef.current < 15_000) return;
+    if (now - lastFetchRef.current < 3_000) return;
     lastFetchRef.current = now;
     load();
   }, [load]));

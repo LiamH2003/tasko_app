@@ -160,13 +160,13 @@ export default function EerlijkheidScreen() {
     try {
       const result = await getHonestyFlags(childId);
       setFlags(result);
-      setFlagCount(result.length);
+      // Don't overwrite flagCount here — it holds the family total seeded by ChildrenProvider
     } catch {
       setFlags([]);
     } finally {
       setFlagsLoading(false);
     }
-  }, [setFlagCount]);
+  }, []);
 
   useEffect(() => {
     if (!children.length) return;
@@ -187,7 +187,7 @@ export default function EerlijkheidScreen() {
     if (!activeChildId) return;
     const next = flags.filter(f => !(f.type === flag.type && f.date === flag.date));
     setFlags(next);
-    setFlagCount(next.length);
+    setFlagCount(prev => Math.max(0, prev - 1));
     try {
       await dismissHonestyFlag(activeChildId, flag.type, flag.date);
     } catch {
@@ -233,6 +233,12 @@ export default function EerlijkheidScreen() {
                 {activeChild ? `${activeChild.name} · gedragsignalen` : 'Inzicht in eerlijk gedrag'}
               </Text>
             </View>
+            <TouchableOpacity
+              style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.planText}>Gratis plan</Text>
+            </TouchableOpacity>
           </View>
         </MotiView>
 
@@ -334,6 +340,8 @@ export default function EerlijkheidScreen() {
 const styles = StyleSheet.create({
   scroll:    { paddingHorizontal: 24, paddingTop: 8 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
+  planBadge: { borderWidth: 1.5, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, marginTop: 4 },
+  planText:  { fontSize: 11, color: PRIMARY, fontWeight: '500' },
   title:     { fontSize: 28, fontWeight: '700' },
   subtitle:  { fontSize: 13, marginTop: 4 },
 

@@ -14,7 +14,6 @@ import { useThemePreference } from '@/store/useThemePreference';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getRoutinesForDate } from '@/services/routines';
 import { getTodayMoodForChild } from '@/services/mood';
-import { getFocusSessions, type FocusSession } from '@/services/focus';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildRow, RoutineWithTasks, MoodEntryRow } from '@/lib/database.types';
@@ -48,7 +47,6 @@ export default function ParentOverview() {
   const [activeChildId, setActiveChildId]   = useState<string | null>(null);
   const [routines, setRoutines]             = useState<RoutineWithTasks[]>([]);
   const [todayMood, setTodayMood]           = useState<MoodKey | null>(null);
-  const [focusSessions, setFocusSessions]   = useState<FocusSession[]>([]);
   const [childDataLoading, setChildDataLoading] = useState(false);
 
   // Ref so the polling effect always reads the latest activeChildId without re-subscribing
@@ -78,7 +76,6 @@ export default function ParentOverview() {
       const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       getRoutinesForDate(id, today).then(setRoutines).catch(() => {});
       getTodayMoodForChild(id).then(setTodayMood).catch(() => {});
-      getFocusSessions(id).then(setFocusSessions).catch(() => {});
     }, 30_000);
     return () => clearInterval(poll);
   }, []));
@@ -91,9 +88,8 @@ export default function ParentOverview() {
     Promise.all([
       getRoutinesForDate(activeChildId, today),
       getTodayMoodForChild(activeChildId),
-      getFocusSessions(activeChildId),
     ])
-      .then(([r, mood, focus]) => { setRoutines(r); setTodayMood(mood); setFocusSessions(focus); })
+      .then(([r, mood]) => { setRoutines(r); setTodayMood(mood); })
       .catch(() => {})
       .finally(() => setChildDataLoading(false));
   }, [activeChildId]);
@@ -107,7 +103,6 @@ export default function ParentOverview() {
       ...(activeChildId ? [
         getRoutinesForDate(activeChildId, today).then(setRoutines).catch(() => {}),
         getTodayMoodForChild(activeChildId).then(setTodayMood).catch(() => {}),
-        getFocusSessions(activeChildId).then(setFocusSessions).catch(() => {}),
       ] : []),
     ]);
     setRefreshing(false);
@@ -119,10 +114,6 @@ export default function ParentOverview() {
   const xpProgress  = activeChild
     ? Math.min(activeChild.xp / (activeChild.xp_to_next_level || 1), 1)
     : 0;
-
-  const todayPrefix = new Date().toISOString().slice(0, 10);
-  const todayFocus  = focusSessions.filter(s => s.completed_at.startsWith(todayPrefix));
-  const focusMinutes = Math.round(todayFocus.reduce((acc, s) => acc + s.duration_seconds, 0) / 60);
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -212,6 +203,7 @@ export default function ParentOverview() {
                         onPress={() => setActiveChildId(child.id)}
                         activeOpacity={0.8}
                       >
+                        <View style={[styles.childTabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
                         <Text style={[styles.childTabText, { color: isActive ? '#fff' : c.textMuted }]}>
                           {child.name}
                         </Text>
@@ -269,25 +261,6 @@ export default function ParentOverview() {
                       </View>
                     </View>
                   </View>
-
-                  {/* Task progress footer */}
-                  {!childDataLoading && allTasks.length > 0 && (
-                    <>
-                      <View style={[styles.heroDivider, { backgroundColor: c.glassCardBorder }]} />
-                      <View style={styles.heroFooter}>
-                        <View style={styles.heroFooterLeft}>
-                          <View style={[styles.taskProgressDot, { backgroundColor: '#48bb78' }]} />
-                          <Text style={[styles.heroFooterText, { color: c.textMuted }]}>
-                            <Text style={{ color: '#48bb78', fontWeight: '700' }}>{doneCount}</Text>
-                            /{allTasks.length} taken klaar vandaag
-                          </Text>
-                        </View>
-                        <TouchableOpacity onPress={() => router.push('/(parent)/routines')} activeOpacity={0.7}>
-                          <Text style={styles.heroFooterLink}>Beheer →</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </>
-                  )}
                 </View>
               </MotiView>
             )}
@@ -300,7 +273,7 @@ export default function ParentOverview() {
             >
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionHeader}>ROUTINES VANDAAG</Text>
-                <TouchableOpacity onPress={() => router.push('/(parent)/routines')}>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/(parent)/routines', params: { childId: activeChildId ?? '' } })}>
                   <Text style={styles.sectionLink}>Alle routines →</Text>
                 </TouchableOpacity>
               </View>
@@ -312,89 +285,21 @@ export default function ParentOverview() {
                   <Text style={[styles.emptyBody, { color: c.textMuted }]}>
                     Nog geen taken voor {activeChild?.name ?? 'dit kind'}.
                   </Text>
-                  <TouchableOpacity onPress={() => router.push('/(parent)/routines')}>
+                  <TouchableOpacity onPress={() => router.push({ pathname: '/(parent)/routines', params: { childId: activeChildId ?? '' } })}>
                     <Text style={styles.sectionLink}>Voeg routines toe →</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <>
-                  {/* Stat chips */}
-                  <View style={styles.statsRow}>
-                    <View style={[styles.statChip, { backgroundColor: '#48bb7812', borderColor: '#48bb7840' }]}>
-                      <Ionicons name="checkmark-circle" size={18} color="#48bb78" />
-                      <Text style={[styles.statNum, { color: '#48bb78' }]}>{doneCount}</Text>
-                      <Text style={[styles.statLbl, { color: '#48bb78' }]}>Gedaan</Text>
-                    </View>
-                    <View style={[styles.statChip, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.2) }]}>
-                      <Ionicons name="ellipse-outline" size={18} color={PRIMARY} />
-                      <Text style={[styles.statNum, { color: PRIMARY }]}>{allTasks.length - doneCount}</Text>
-                      <Text style={[styles.statLbl, { color: PRIMARY }]}>Te doen</Text>
-                    </View>
+                <View style={styles.statsRow}>
+                  <View style={[styles.statChip, { backgroundColor: '#48bb7812', borderColor: '#48bb7840' }]}>
+                    <Ionicons name="checkmark-circle" size={18} color="#48bb78" />
+                    <Text style={[styles.statNum, { color: '#48bb78' }]}>{doneCount}</Text>
+                    <Text style={[styles.statLbl, { color: '#48bb78' }]}>Gedaan</Text>
                   </View>
-
-                  {/* Task list */}
-                  <View style={[styles.taskList, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                    {allTasks.map((t, i) => {
-                      const routineName = routines.find(r => r.id === t.routine_id)?.name ?? '';
-                      return (
-                        <View
-                          key={t.id}
-                          style={[
-                            styles.taskRow,
-                            i < allTasks.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.glassCardBorder },
-                          ]}
-                        >
-                          <View style={[styles.taskIconBox, { backgroundColor: t.completed ? '#48bb7820' : primaryAlpha(0.08) }]}>
-                            <Text style={styles.taskEmoji}>{t.emoji}</Text>
-                          </View>
-                          <View style={styles.taskMeta}>
-                            <Text style={[styles.taskTitle, { color: t.completed ? c.textMuted : c.textPrimary }, t.completed && styles.taskDone]}>
-                              {t.title}
-                            </Text>
-                            <Text style={[styles.taskSub, { color: c.textMuted }]}>{routineName}</Text>
-                          </View>
-                          <View style={[styles.taskCheck, { backgroundColor: t.completed ? '#48bb78' : c.glassInput, borderColor: t.completed ? '#48bb78' : c.glassCardBorder }]}>
-                            {t.completed && <Ionicons name="checkmark" size={12} color="#fff" />}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </>
-              )}
-            </MotiView>
-
-            {/* ── Focus section ── */}
-            <MotiView
-              from={{ opacity: 0, translateY: 12 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 340, delay: 260 }}
-            >
-              <View style={styles.sectionRow}>
-                <Text style={styles.sectionHeader}>FOCUS VANDAAG</Text>
-              </View>
-
-              {childDataLoading ? (
-                <ActivityIndicator color={PRIMARY} style={{ marginVertical: 12 }} />
-              ) : todayFocus.length === 0 ? (
-                <View style={[styles.focusCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                  <Ionicons name="hourglass-outline" size={22} color={c.textMuted} />
-                  <Text style={[styles.focusEmpty, { color: c.textMuted }]}>
-                    {activeChild?.name ?? 'Je kind'} heeft vandaag nog niet gefocust.
-                  </Text>
-                </View>
-              ) : (
-                <View style={[styles.focusCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                  <View style={[styles.focusIconBox, { backgroundColor: primaryAlpha(0.08) }]}>
-                    <Ionicons name="timer-outline" size={20} color={PRIMARY} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.focusTitle, { color: c.textPrimary }]}>
-                      {focusMinutes} min gefocust
-                    </Text>
-                    <Text style={[styles.focusSub, { color: c.textMuted }]}>
-                      {todayFocus.length} sessie{todayFocus.length !== 1 ? 's' : ''} vandaag
-                    </Text>
+                  <View style={[styles.statChip, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.2) }]}>
+                    <Ionicons name="ellipse-outline" size={18} color={PRIMARY} />
+                    <Text style={[styles.statNum, { color: PRIMARY }]}>{allTasks.length - doneCount}</Text>
+                    <Text style={[styles.statLbl, { color: PRIMARY }]}>Te doen</Text>
                   </View>
                 </View>
               )}
@@ -404,7 +309,7 @@ export default function ParentOverview() {
             <MotiView
               from={{ opacity: 0, translateY: 12 }}
               animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: 'timing', duration: 340, delay: 320 }}
+              transition={{ type: 'timing', duration: 340, delay: 260 }}
             >
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionHeader}>GEVOEL VANDAAG</Text>
@@ -460,7 +365,8 @@ const styles = StyleSheet.create({
   // Child tabs (multi-child only)
   tabScroll: { marginHorizontal: -24, marginBottom: 16 },
   tabScrollContent: { paddingHorizontal: 24, gap: 8 },
-  childTab: { borderRadius: 99, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1.5 },
+  childTab: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5 },
+  childTabDot: { width: 6, height: 6, borderRadius: 3 },
   childTabText: { fontSize: 13, fontWeight: '600' },
 
   // Monster hero card
@@ -484,12 +390,6 @@ const styles = StyleSheet.create({
   xpLabel: { fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
   xpValue: { fontSize: 13, fontWeight: '700' },
   xpMax: { fontSize: 11, fontWeight: '400' },
-  heroDivider: { height: 1 },
-  heroFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
-  heroFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  taskProgressDot: { width: 7, height: 7, borderRadius: 4 },
-  heroFooterText: { fontSize: 12 },
-  heroFooterLink: { fontSize: 12, color: PRIMARY, fontWeight: '600' },
 
   // Section rows
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
@@ -497,24 +397,10 @@ const styles = StyleSheet.create({
   sectionLink: { fontSize: 12, color: PRIMARY, fontWeight: '500' },
 
   // Stats
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   statChip: { flex: 1, borderRadius: 16, borderWidth: 1, paddingVertical: 14, alignItems: 'center', gap: 3 },
   statNum: { fontSize: 22, fontWeight: '800' },
   statLbl: { fontSize: 10, fontWeight: '500' },
-
-  // Task list
-  taskList: { borderRadius: 20, marginBottom: 20, borderWidth: 1, overflow: 'hidden' },
-  taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 12 },
-  taskIconBox: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  taskEmoji: { fontSize: 17 },
-  taskMeta: { flex: 1 },
-  taskTitle: { fontSize: 14, fontWeight: '600' },
-  taskDone: { textDecorationLine: 'line-through' },
-  taskSub: { fontSize: 11, marginTop: 1 },
-  taskCheck: {
-    width: 24, height: 24, borderRadius: 12,
-    borderWidth: 1.5, alignItems: 'center', justifyContent: 'center',
-  },
 
   // Mood
   moodCard: {
@@ -530,16 +416,6 @@ const styles = StyleSheet.create({
     borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
   },
   moodEmpty: { fontSize: 13, flex: 1, lineHeight: 19 },
-
-  // Focus
-  focusCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    borderRadius: 20, padding: 16, marginBottom: 20, borderWidth: 1,
-  },
-  focusIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  focusTitle: { fontSize: 16, fontWeight: '700' },
-  focusSub:   { fontSize: 12, marginTop: 2 },
-  focusEmpty: { fontSize: 13, flex: 1, lineHeight: 19 },
 
   // Empty states
   emptyHero: { borderRadius: 24, padding: 36, borderWidth: 1, alignItems: 'center', gap: 12, marginBottom: 20 },

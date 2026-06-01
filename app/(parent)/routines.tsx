@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Modal, Pressable, TextInput, Alert, RefreshControl,
@@ -267,9 +267,11 @@ export default function ParentRoutinesScreen() {
   const { isDark } = useThemePreference();
   const c = isDark ? darkTheme.colors : lightTheme.colors;
 
+  const { childId: paramChildId } = useLocalSearchParams<{ childId?: string }>();
+
   const { children, childrenLoading, refreshChildren } = useParentChildren();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [activeChildId, setActiveChildId] = useState<string | null>(paramChildId || null);
   const [routines,      setRoutines]      = useState<RoutineWithTasks[]>([]);
   const [routinesLoading, setRoutinesLoading] = useState(false);
   const [routinesError,   setRoutinesError]   = useState<string | null>(null);
@@ -483,12 +485,10 @@ export default function ParentRoutinesScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.addBtn, futureDate && { opacity: 0.35 }]}
-              onPress={futureDate ? undefined : openAdd}
-              disabled={futureDate}
+              style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
               activeOpacity={0.8}
             >
-              <Ionicons name="add" size={22} color="#fff" />
+              <Text style={styles.planText}>Gratis plan</Text>
             </TouchableOpacity>
           </View>
         </MotiView>
@@ -503,22 +503,32 @@ export default function ParentRoutinesScreen() {
           </View>
         ) : (
           <>
-            {/* Child tabs */}
-            {children.length > 1 && (
-              <MotiView from={{ opacity: 0, translateY: 10 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 80 }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
-                  {children.map((child) => {
-                    const isActive = child.id === activeChildId;
-                    return (
-                      <TouchableOpacity key={child.id} style={[styles.tab, { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder }]} onPress={() => setActiveChildId(child.id)} activeOpacity={0.8}>
-                        <View style={[styles.tabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
-                        <Text style={[styles.tabText, { color: isActive ? '#fff' : c.textMuted }]}>{child.name}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </MotiView>
-            )}
+            {/* Child tabs + add button */}
+            <MotiView from={{ opacity: 0, translateY: 10 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 80 }}>
+              <View style={styles.tabAddRow}>
+                {children.length > 1 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
+                    {children.map((child) => {
+                      const isActive = child.id === activeChildId;
+                      return (
+                        <TouchableOpacity key={child.id} style={[styles.tab, { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder }]} onPress={() => setActiveChildId(child.id)} activeOpacity={0.8}>
+                          <View style={[styles.tabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
+                          <Text style={[styles.tabText, { color: isActive ? '#fff' : c.textMuted }]}>{child.name}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+                <TouchableOpacity
+                  style={[styles.addBtn, futureDate && { opacity: 0.35 }]}
+                  onPress={futureDate ? undefined : openAdd}
+                  disabled={futureDate}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </MotiView>
 
             {/* Day navigator */}
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 100 }}>
@@ -785,10 +795,13 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   title:     { fontSize: 28, fontWeight: '700' },
   subtitle:  { fontSize: 13, marginTop: 4 },
-  addBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  addBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: PRIMARY, alignItems: 'center', justifyContent: 'center' },
+  planBadge: { borderWidth: 1.5, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, marginTop: 4 },
+  planText:  { fontSize: 11, color: PRIMARY, fontWeight: '500' },
 
-  tabScroll:  { marginHorizontal: -24, marginBottom: 16 },
-  tabContent: { paddingHorizontal: 24, gap: 8 },
+  tabAddRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  tabScroll:  { flex: 1 },
+  tabContent: { gap: 8 },
   tab:     { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1.5 },
   tabDot:  { width: 6, height: 6, borderRadius: 3 },
   tabText: { fontSize: 13, fontWeight: '600' },

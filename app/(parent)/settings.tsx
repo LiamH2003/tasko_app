@@ -300,8 +300,18 @@ export default function ParentSettingsScreen() {
 
         {/* Header */}
         <MotiView from={{ opacity: 0, translateY: 12 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 40 }}>
-          <Text style={[styles.pageTitle, { color: c.textPrimary }]}>Instellingen</Text>
-          <Text style={[styles.pageSub, { color: c.textMuted }]}>Beheer je gezin en account</Text>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pageTitle, { color: c.textPrimary }]}>Instellingen</Text>
+              <Text style={[styles.pageSub, { color: c.textMuted }]}>Beheer je gezin en account</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.planText}>Gratis plan</Text>
+            </TouchableOpacity>
+          </View>
         </MotiView>
 
         {/* ── GEZIN ── */}
@@ -597,14 +607,9 @@ export default function ParentSettingsScreen() {
                 <View style={[styles.settingIcon, { backgroundColor: primaryAlpha(0.08) }]}>
                   <Ionicons name="lock-closed-outline" size={17} color={resetSent ? '#48bb78' : PRIMARY} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.settingLabel, { color: c.textPrimary }]}>Wachtwoord wijzigen</Text>
-                  {resetSent && (
-                    <Text style={{ fontSize: 11, color: '#48bb78', marginTop: 2 }}>
-                      Link verstuurd naar {email}
-                    </Text>
-                  )}
-                </View>
+                <Text style={[styles.settingLabel, { color: resetSent ? '#48bb78' : c.textPrimary }]}>
+                  {resetSent ? `Link verstuurd naar ${email}` : 'Wachtwoord wijzigen'}
+                </Text>
                 <Ionicons
                   name={resetSent ? 'checkmark' : 'chevron-forward'}
                   size={16}
@@ -754,8 +759,11 @@ export default function ParentSettingsScreen() {
 
 const styles = StyleSheet.create({
   scroll:      { paddingHorizontal: 24, paddingTop: 8 },
+  headerRow:   { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 0 },
   pageTitle:   { fontSize: 28, fontWeight: '700', marginBottom: 4 },
   pageSub:     { fontSize: 13, marginBottom: 24 },
+  planBadge:   { borderWidth: 1.5, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, marginTop: 6 },
+  planText:    { fontSize: 11, color: PRIMARY, fontWeight: '500' },
   sectionHeader: { fontSize: 11, fontWeight: '600', color: PRIMARY, letterSpacing: 0.8, marginBottom: 10 },
 
   // Family identity card

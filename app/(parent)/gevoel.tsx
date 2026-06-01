@@ -197,6 +197,12 @@ export default function GevoelScreen() {
                 {activeChild ? `${activeChild.name} · stemming historiek` : 'Stemming van je kind'}
               </Text>
             </View>
+            <TouchableOpacity
+              style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.planText}>Gratis plan</Text>
+            </TouchableOpacity>
           </View>
         </MotiView>
 
@@ -352,6 +358,8 @@ export default function GevoelScreen() {
 const styles = StyleSheet.create({
   scroll:    { paddingHorizontal: 24, paddingTop: 8 },
   headerRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
+  planBadge: { borderWidth: 1.5, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, marginTop: 4 },
+  planText:  { fontSize: 11, color: PRIMARY, fontWeight: '500' },
   title:     { fontSize: 28, fontWeight: '700' },
   subtitle:  { fontSize: 13, marginTop: 4 },
 
