@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,8 @@ import { getRoutinesForDate } from '@/services/routines';
 import { getTodayMoodForChild } from '@/services/mood';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { STAGE_LABELS } from '@/utils/xp';
+import { PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow, RoutineWithTasks, MoodEntryRow } from '@/lib/database.types';
 
 type MoodKey = MoodEntryRow['mood'];
@@ -26,14 +28,6 @@ const MOOD_MAP: Record<MoodKey, { emoji: string; label: string; color: string }>
   okay:  { emoji: '😐', label: 'Neutraal', color: '#f6c644' },
   sad:   { emoji: '😒', label: 'Meh',      color: '#9ca3af' },
   angry: { emoji: '😔', label: 'Slecht',   color: '#fc6b6b' },
-};
-
-const STAGE_LABEL: Record<ChildRow['stage'], string> = {
-  egg:   'Ei',
-  baby:  'Baby',
-  child: 'Kind',
-  teen:  'Tiener',
-  adult: 'Volwassen',
 };
 
 export default function ParentOverview() {
@@ -159,7 +153,7 @@ export default function ParentOverview() {
             style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
             activeOpacity={0.8}
           >
-            <Text style={styles.planText}>Gratis plan</Text>
+            <Text style={styles.planText}>{PLAN_LABEL}</Text>
           </TouchableOpacity>
         </MotiView>
 
@@ -228,9 +222,12 @@ export default function ParentOverview() {
                 <View style={[styles.heroCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
                   <View style={styles.heroContent}>
 
-                    {/* Monster */}
+                    {/* Monster / avatar */}
                     <View style={[styles.heroMonsterBg, { backgroundColor: primaryAlpha(0.07) }]}>
-                      <MonsterSvg size={110} />
+                      {activeChild.avatar_url
+                        ? <Image source={{ uri: activeChild.avatar_url }} style={styles.heroAvatar} />
+                        : <MonsterSvg size={110} />
+                      }
                     </View>
 
                     {/* Info */}
@@ -249,7 +246,7 @@ export default function ParentOverview() {
                         </View>
                         <View style={[styles.heroBadge, { backgroundColor: primaryAlpha(0.08), borderColor: primaryAlpha(0.2) }]}>
                           <Ionicons name="sparkles-outline" size={10} color={PRIMARY} />
-                          <Text style={styles.heroBadgeText}>{STAGE_LABEL[activeChild.stage]}</Text>
+                          <Text style={styles.heroBadgeText}>{STAGE_LABELS[activeChild.stage]}</Text>
                         </View>
                       </View>
 
@@ -380,6 +377,7 @@ const styles = StyleSheet.create({
     width: 120, height: 120, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
   },
+  heroAvatar: { width: 90, height: 90, borderRadius: 14 },
   heroInfo: { flex: 1, gap: 6 },
   heroMonsterName: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
   heroChildTag: { fontSize: 12, marginTop: -2 },

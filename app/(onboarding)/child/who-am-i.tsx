@@ -10,15 +10,8 @@ import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useState } from 'react';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { STAGE_COLORS } from '@/utils/xp';
 import type { FamilyChild } from '@/services/child-device';
-
-const STAGE_COLORS: Record<string, string> = {
-  egg:   '#8a8885',
-  baby:  PRIMARY,
-  child: '#4a9e5c',
-  teen:  '#e8743c',
-  adult: '#9b6bff',
-};
 
 export default function WhoAmIScreen() {
   const insets = useSafeAreaInsets();

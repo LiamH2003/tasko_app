@@ -3,14 +3,7 @@ import { MotiView } from 'moti';
 import { Text } from '@/components/ui/primitives';
 import { MonsterSvg } from '@/components/monster/MonsterSvg';
 import { PRIMARY } from '@/constants/palette';
-
-const STAGE_LABELS: Record<string, string> = {
-  egg:   'Ei',
-  baby:  'Baby Tasko',
-  child: 'Jonge Tasko',
-  teen:  'Tasko',
-  adult: 'Meester Tasko',
-};
+import { STAGE_LABELS } from '@/utils/xp';
 
 // Fixed particle layout — deterministic so renders are stable
 const PARTICLES = [

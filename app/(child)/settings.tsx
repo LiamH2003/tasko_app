@@ -165,11 +165,11 @@ export default function SettingsScreen() {
 
   function handleSoundFx(v: boolean) {
     setSoundFx(v);
-    SecureStore.setItemAsync('soundFx', String(v));
+    SecureStore.setItemAsync('soundFx', String(v)).catch(() => {});
   }
   function handleMonsterSound(v: boolean) {
     setMonsterSound(v);
-    SecureStore.setItemAsync('monsterSound', String(v));
+    SecureStore.setItemAsync('monsterSound', String(v)).catch(() => {});
   }
 
   useEffect(() => {

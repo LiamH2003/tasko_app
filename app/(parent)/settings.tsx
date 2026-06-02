@@ -25,11 +25,9 @@ import {
 import { deleteAccount } from '@/services/auth';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { STAGE_COLORS } from '@/utils/xp';
+import { PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow } from '@/lib/database.types';
-
-const STAGE_COLORS: Record<string, string> = {
-  egg: '#8a8885', baby: PRIMARY, child: '#4a9e5c', teen: '#e8743c', adult: '#9b6bff',
-};
 
 
 export default function ParentSettingsScreen() {
@@ -42,8 +40,9 @@ export default function ParentSettingsScreen() {
   const [children,  setChildren]  = useState<ChildRow[]>([]);
   const [family,    setFamily]    = useState<MyFamily | null>(null);
   const [members,   setMembers]   = useState<FamilyMemberProfile[]>([]);
-  const [myRole, setMyRole] = useState<'admin' | 'parent' | null>(null);
-  const [loading,   setLoading]   = useState(true);
+  const [myRole,     setMyRole]     = useState<'admin' | 'parent' | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [loadError,  setLoadError]  = useState<string | null>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [codeVisible,  setCodeVisible]  = useState(false);
@@ -82,7 +81,7 @@ export default function ParentSettingsScreen() {
       setMembers(mems);
       const uid = session?.user.id;
       if (uid) setMyRole(mems.find(m => m.user_id === uid)?.role ?? null);
-    } catch (e) { console.error('[Settings] loadData failed:', e); } finally {
+    } catch { setLoadError('Instellingen konden niet worden geladen. Probeer opnieuw.'); } finally {
       setLoading(false);
     }
   }, [session?.user.id]);
@@ -310,7 +309,7 @@ export default function ParentSettingsScreen() {
               style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
               activeOpacity={0.8}
             >
-              <Text style={styles.planText}>Gratis plan</Text>
+              <Text style={styles.planText}>{PLAN_LABEL}</Text>
             </TouchableOpacity>
           </View>
         </MotiView>
@@ -420,7 +419,11 @@ export default function ParentSettingsScreen() {
         <MotiView from={{ opacity: 0, translateY: 16 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 340, delay: 140 }}>
           <Text style={styles.sectionHeader}>KINDEREN</Text>
 
-          {loading ? (
+          {loadError ? (
+            <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+              <Text style={[styles.emptyText, { color: '#fc6b6b' }]}>{loadError}</Text>
+            </View>
+          ) : loading ? (
             <ActivityIndicator color={PRIMARY} style={{ marginBottom: 20 }} />
           ) : children.length === 0 ? (
             <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
@@ -546,7 +549,7 @@ export default function ParentSettingsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[{ fontSize: 15, fontWeight: '600' }, { color: c.textPrimary }]}>Tasko Premium</Text>
-                <Text style={[{ fontSize: 11, marginTop: 2 }, { color: c.textMuted }]}>Momenteel: Gratis plan</Text>
+                <Text style={[{ fontSize: 11, marginTop: 2 }, { color: c.textMuted }]}>Momenteel: {PLAN_LABEL}</Text>
               </View>
             </View>
             {[

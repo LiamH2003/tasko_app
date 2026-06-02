@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Alert } from 'react-native';
+import { View, ScrollView, Modal, StyleSheet, TouchableOpacity, ActivityIndicator, Pressable, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [moodOpen, setMoodOpen] = useState(false);
   const lastFetchRef = useRef(0);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -68,6 +69,13 @@ export default function HomeScreen() {
     lastFetchRef.current = now;
     load();
   }, [load]));
+
+  async function onRefresh() {
+    setRefreshing(true);
+    lastFetchRef.current = 0;
+    await load();
+    setRefreshing(false);
+  }
 
   const allTasks = routines.flatMap(r => r.tasks);
   const doneCount = allTasks.filter(t => t.completed).length;
@@ -114,7 +122,12 @@ export default function HomeScreen() {
         />
       </View>
 
-      <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + 8 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />}
+      >
 
         {/* Header */}
         <MotiView
@@ -205,7 +218,7 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
         </MotiView>
-      </View>
+      </ScrollView>
 
       {/* Mood popup */}
       <Modal
@@ -250,7 +263,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24 },
+  container: { flexGrow: 1, paddingHorizontal: 24 },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between',

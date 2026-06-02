@@ -12,9 +12,8 @@ import { fetchChildRoutines, fetchChildProfile, completeTask, uncompleteTask, ge
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { DAYS_NL as DAYS } from '@/constants/locale';
 import type { ChildRoutine, ChildTask, WeekDay, ChildProfile } from '@/services/child-device';
-
-const DAYS = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
 
 type Category = 'ochtend' | 'middag' | 'avond' | 'overig';
 
@@ -83,13 +82,14 @@ function DayCircle({
 // ── Routine card ──────────────────────────────────────────────────────────────
 
 function RoutineCard({
-  routine, isExpanded, onToggle, onCompleteAll, onTaskToggle, c,
+  routine, isExpanded, onToggle, onCompleteAll, onTaskToggle, pendingTaskId, c,
 }: {
   routine: ChildRoutine;
   isExpanded: boolean;
   onToggle: () => void;
   onCompleteAll: () => void;
   onTaskToggle: (task: ChildTask) => void;
+  pendingTaskId: string | null;
   c: AppTheme['colors'];
 }) {
   const done     = routine.tasks.filter(t => t.completed).length;
@@ -164,7 +164,8 @@ function RoutineCard({
                 key={task.id}
                 style={styles.stepRow}
                 onPress={() => onTaskToggle(task)}
-                activeOpacity={0.55}
+                disabled={pendingTaskId === task.id}
+                activeOpacity={pendingTaskId === task.id ? 1 : 0.55}
               >
                 <View style={styles.dotWrap}>
                   <View style={[
@@ -205,6 +206,7 @@ export default function RoutinesScreen() {
   const [activeFilter,  setActiveFilter]  = useState<Category | 'all'>('all');
   const [loading,       setLoading]       = useState(true);
   const [loadError,     setLoadError]     = useState<string | null>(null);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [levelUpData,   setLevelUpData]   = useState<{ newLevel: number; newStage: string; prevStage: string } | null>(null);
   const profileRef = useRef<ChildProfile | null>(null);
 
@@ -249,7 +251,8 @@ export default function RoutinesScreen() {
   }
 
   async function handleToggle(task: ChildTask) {
-    if (!childId) return;
+    if (!childId || pendingTaskId === task.id) return;
+    setPendingTaskId(task.id);
     const today = todayStr();
     const delta = task.completed ? -1 : 1;
     setRoutines(prev => prev.map(r => ({
@@ -264,16 +267,20 @@ export default function RoutinesScreen() {
         await uncompleteTask(task.id, childId);
       } else {
         await completeTask(task.id, childId);
-        // Detect level-up by comparing the fresh profile to the last known one
+        // Detect level-up by comparing the fresh profile to the last known one.
+        // profileRef.current may be null on the very first tap if load() is still
+        // in-flight — in that case we still store the profile for the next check.
         const updated = await fetchChildProfile(childId);
-        if (updated && profileRef.current && updated.level > profileRef.current.level) {
-          setLevelUpData({
-            newLevel:  updated.level,
-            newStage:  updated.stage,
-            prevStage: profileRef.current.stage,
-          });
+        if (updated) {
+          if (profileRef.current && updated.level > profileRef.current.level) {
+            setLevelUpData({
+              newLevel:  updated.level,
+              newStage:  updated.stage,
+              prevStage: profileRef.current.stage,
+            });
+          }
+          profileRef.current = updated;
         }
-        if (updated) profileRef.current = updated;
       }
     } catch {
       setRoutines(prev => prev.map(r => ({
@@ -283,6 +290,8 @@ export default function RoutinesScreen() {
       setWeekDays(prev => prev.map(wd =>
         wd.date === today ? { ...wd, done: Math.max(0, wd.done - delta) } : wd
       ));
+    } finally {
+      setPendingTaskId(null);
     }
   }
 
@@ -324,6 +333,18 @@ export default function RoutinesScreen() {
       ));
       try {
         await Promise.all(incomplete.map(t => completeTask(t.id, childId)));
+        // Detect level-up after batch completion
+        const updated = await fetchChildProfile(childId);
+        if (updated) {
+          if (profileRef.current && updated.level > profileRef.current.level) {
+            setLevelUpData({
+              newLevel:  updated.level,
+              newStage:  updated.stage,
+              prevStage: profileRef.current.stage,
+            });
+          }
+          profileRef.current = updated;
+        }
       } catch {
         setRoutines(prevRoutines);
         setWeekDays(prevWeekDays);
@@ -450,6 +471,7 @@ export default function RoutinesScreen() {
                       onToggle={() => toggleRoutine(routine.id)}
                       onCompleteAll={() => handleCompleteAll(routine)}
                       onTaskToggle={handleToggle}
+                      pendingTaskId={pendingTaskId}
                       c={c}
                     />
                   ))}

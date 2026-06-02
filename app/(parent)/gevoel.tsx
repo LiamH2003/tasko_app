@@ -11,6 +11,7 @@ import { useThemePreference } from '@/store/useThemePreference';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getMoodHistory } from '@/services/mood';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PLAN_LABEL } from '@/constants/locale';
 import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { ChildRow, MoodEntryRow } from '@/lib/database.types';
 
@@ -201,7 +202,7 @@ export default function GevoelScreen() {
               style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
               activeOpacity={0.8}
             >
-              <Text style={styles.planText}>Gratis plan</Text>
+              <Text style={styles.planText}>{PLAN_LABEL}</Text>
             </TouchableOpacity>
           </View>
         </MotiView>

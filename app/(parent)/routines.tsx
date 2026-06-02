@@ -14,6 +14,7 @@ import { useParentChildren } from '@/store/useParentChildren';
 import { getRoutinesForDate, createRoutine, updateRoutine, addTask, deleteTask, deleteRoutine } from '@/services/routines';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { DAYS_NL, MONTHS_SHORT_NL as MONTHS_NL, PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow, RoutineWithTasks } from '@/lib/database.types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -44,8 +45,6 @@ function pickEmoji(name: string): string {
   return '📋';
 }
 
-const DAYS_NL  = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-const MONTHS_NL = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 const WEEKDAYS_NL = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -501,7 +500,7 @@ export default function ParentRoutinesScreen() {
               style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
               activeOpacity={0.8}
             >
-              <Text style={styles.planText}>Gratis plan</Text>
+              <Text style={styles.planText}>{PLAN_LABEL}</Text>
             </TouchableOpacity>
           </View>
         </MotiView>
