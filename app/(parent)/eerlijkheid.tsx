@@ -9,13 +9,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getHonestyFlags, dismissHonestyFlag } from '@/services/honesty';
 import type { HonestyFlag } from '@/services/honesty';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, SUCCESS, WARNING, ERROR, PURPLE } from '@/constants/palette';
 import { PLAN_LABEL } from '@/constants/locale';
-import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import type { AppTheme } from '@/constants/restyleTheme';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -28,10 +28,10 @@ const FLAG_META: Record<HonestyFlag['type'], {
   title: string;
   badge: string;
 }> = {
-  burst:         { icon: 'flash-outline',       color: '#f6c644', title: 'Snelle afvinkactie',    badge: 'Snelheid' },
-  off_hours:     { icon: 'moon-outline',         color: '#b57be6', title: 'Nachtelijke activiteit', badge: 'Tijdstip' },
-  missed_window: { icon: 'close-circle-outline', color: '#fc6b6b', title: 'Routine gemist',        badge: 'Gemist'   },
-  late_window:   { icon: 'time-outline',         color: '#f6c644', title: 'Routine te laat',        badge: 'Te laat'  },
+  burst:         { icon: 'flash-outline',       color: WARNING, title: 'Snelle afvinkactie',    badge: 'Snelheid' },
+  off_hours:     { icon: 'moon-outline',         color: PURPLE, title: 'Nachtelijke activiteit', badge: 'Tijdstip' },
+  missed_window: { icon: 'close-circle-outline', color: ERROR, title: 'Routine gemist',        badge: 'Gemist'   },
+  late_window:   { icon: 'time-outline',         color: WARNING, title: 'Routine te laat',        badge: 'Te laat'  },
 };
 
 const FLAG_TYPE_ORDER: HonestyFlag['type'][] = ['missed_window', 'late_window', 'burst', 'off_hours'];
@@ -208,7 +208,7 @@ function FlagDetailSheet({
               onPress={onDismiss}
               activeOpacity={0.8}
             >
-              <Ionicons name="trash-outline" size={15} color="#fc6b6b" />
+              <Ionicons name="trash-outline" size={15} color={ERROR} />
               <Text style={sheet.deleteBtnText}>Verwijder melding</Text>
             </TouchableOpacity>
           </Pressable>
@@ -222,8 +222,7 @@ function FlagDetailSheet({
 
 export default function EerlijkheidScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
 
   const { children, childrenLoading, refreshChildren, setFlagCount } = useParentChildren();
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
@@ -368,8 +367,8 @@ export default function EerlijkheidScreen() {
                 <ActivityIndicator color={PRIMARY} style={{ marginTop: 32 }} />
               ) : filteredFlags.length === 0 ? (
                 <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-                  <View style={[styles.emptyIconBox, { backgroundColor: '#48bb7812' }]}>
-                    <Ionicons name="checkmark-circle-outline" size={26} color="#48bb78" />
+                  <View style={[styles.emptyIconBox, { backgroundColor: `${SUCCESS}12` }]}>
+                    <Ionicons name="checkmark-circle-outline" size={26} color={SUCCESS} />
                   </View>
                   <Text style={[styles.emptyTitle, { color: c.textPrimary }]}>Geen meldingen</Text>
                   <Text style={[styles.emptyBody, { color: c.textMuted }]}>
@@ -467,5 +466,5 @@ const sheet = StyleSheet.create({
   bodyBox:   { borderRadius: 14, padding: 14, borderWidth: 1, marginBottom: 14 },
   bodyText:  { fontSize: 14, lineHeight: 21 },
   deleteBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 14, paddingVertical: 14, borderWidth: 1 },
-  deleteBtnText: { fontSize: 14, fontWeight: '600', color: '#fc6b6b' },
+  deleteBtnText: { fontSize: 14, fontWeight: '600', color: ERROR },
 });

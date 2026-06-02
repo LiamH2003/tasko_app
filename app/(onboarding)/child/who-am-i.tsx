@@ -9,7 +9,7 @@ import { BackButton } from '@/components/ui/BackButton';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useState } from 'react';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { STAGE_COLORS } from '@/utils/xp';
 import type { FamilyChild } from '@/services/child-device';
 

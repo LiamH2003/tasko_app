@@ -6,15 +6,15 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { fetchChildProfile } from '@/services/child-device';
 import type { ChildProfile } from '@/services/child-device';
 import { stageForLevel } from '@/utils/xp';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import type { AppTheme } from '@/constants/restyleTheme';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const STAGES = [
@@ -28,8 +28,7 @@ const STAGES = [
 export default function TaskoScreen() {
   const insets = useSafeAreaInsets();
   const { childId } = useAppStore();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
 
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +134,7 @@ export default function TaskoScreen() {
               <Text style={styles.cardLabel}>ENERGIE</Text>
               <Text style={[styles.xpFraction, { color: c.textMuted }]}>{xp} / {xpToNext} XP</Text>
             </View>
-            <ProgressBar progress={xpProgress} color="#48bb78" height={7} />
+            <ProgressBar progress={xpProgress} color={SUCCESS} height={7} />
             <Text style={[styles.xpHint, { color: c.textMuted }]}>Nog {xpLeft} XP tot de volgende evolutie</Text>
           </View>
 

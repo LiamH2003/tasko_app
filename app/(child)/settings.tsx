@@ -11,15 +11,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
 import {
   fetchChildProfile, updateChildName, updateMonsterName,
   uploadChildAvatar, updateChildAvatar,
 } from '@/services/child-device';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { useTheme } from '@shopify/restyle';
+import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -113,7 +114,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { isDark, toggleTheme } = useThemePreference();
   const { childId, childName, setChildId, clearChildId } = useAppStore();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
   const s = isDark ? darkScreenStyles : lightScreenStyles;
   const sh = isDark ? darkSheetStyles : lightSheetStyles;
 
@@ -569,7 +570,7 @@ function makeSheetStyles(c: AppTheme['colors']) {
     input: { fontSize: 16, padding: 0 },
     monsterPreview: { alignItems: 'center', gap: 6, marginBottom: 16 },
     monsterName: { fontSize: 16, fontWeight: '700' },
-    success: { fontSize: 12, color: '#48bb78', fontWeight: '500', textAlign: 'center', marginBottom: 12 },
+    success: { fontSize: 12, color: SUCCESS, fontWeight: '500', textAlign: 'center', marginBottom: 12 },
     error: { fontSize: 12, color: '#e53e3e', marginBottom: 8 },
     btn: {
       height: 52, backgroundColor: PRIMARY, borderRadius: 16,

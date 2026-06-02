@@ -17,6 +17,9 @@ export const lightTheme = createTheme({
     inputBg:        'rgba(255,255,255,0.7)',
     transparent:    'transparent',
     error:          '#fc6b6b',
+    success:        '#48bb78',
+    warning:        '#f6c644',
+    purple:         '#b57be6',
     // Child screen glass tokens
     glassCard:      'rgba(255,255,255,0.82)',
     glassCardBorder:'rgba(255,255,255,0.90)',

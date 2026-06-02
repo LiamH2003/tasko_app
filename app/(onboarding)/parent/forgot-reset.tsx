@@ -10,7 +10,7 @@ import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, ERROR } from '@/constants/palette';
 
 export default function ForgotResetScreen() {
   const insets = useSafeAreaInsets();
@@ -139,7 +139,7 @@ export default function ForgotResetScreen() {
               <Text variant="label" marginBottom="sm" style={{ marginTop: 16 }}>HERHAAL WACHTWOORD</Text>
               <Box style={[styles.inputBox, {
                 borderColor: confirm.length > 0
-                  ? (passwordsMatch ? PRIMARY : '#fc6b6b')
+                  ? (passwordsMatch ? PRIMARY : ERROR)
                   : primaryAlpha(0.3),
               }]}>
                 <TextInput
@@ -161,7 +161,7 @@ export default function ForgotResetScreen() {
               {confirm.length > 0 && (
                 <Text style={[styles.requirementText, {
                   marginTop: 6,
-                  color: passwordsMatch ? PRIMARY : '#fc6b6b',
+                  color: passwordsMatch ? PRIMARY : ERROR,
                 }]}>
                   {passwordsMatch ? 'Wachtwoorden komen overeen' : 'Wachtwoorden komen niet overeen'}
                 </Text>

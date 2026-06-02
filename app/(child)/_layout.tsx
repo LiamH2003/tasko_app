@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemePreferenceProvider, useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
+import { ThemePreferenceProvider } from '@/store/useThemePreference';
 import { PRIMARY } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -11,22 +13,22 @@ function TabIcon({ name, color, size }: { name: IoniconsName; color: string; siz
 }
 
 function ThemedTabs() {
-  const { isDark } = useThemePreference();
+  const { colors } = useTheme<AppTheme>();
 
   const screenOptions = useMemo(() => ({
     headerShown: false,
     tabBarStyle: {
-      backgroundColor: isDark ? 'rgba(15,21,32,0.98)' : 'rgba(255,255,255,0.97)',
-      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+      backgroundColor: colors.tabBarBg,
+      borderTopColor: colors.tabBarBorder,
       borderTopWidth: 1,
       height: 60,
       paddingBottom: 8,
       paddingTop: 6,
     },
     tabBarActiveTintColor: PRIMARY,
-    tabBarInactiveTintColor: isDark ? '#6b7280' : '#8a8885',
+    tabBarInactiveTintColor: colors.tabBarInactive,
     tabBarLabelStyle: { fontSize: 10 },
-  }), [isDark]);
+  }), [colors]);
 
   return (
     <Tabs screenOptions={screenOptions}>

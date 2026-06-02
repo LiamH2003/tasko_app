@@ -7,10 +7,10 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { logFocusSession } from '@/services/child-device';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 
 const SUBJECTS = ['Wiskunde', 'Lezen', 'Frans', 'Tekenen', 'Andere'];
 const PRESETS  = [10, 15, 20, 25, 30];
@@ -61,9 +61,8 @@ function NumberInput({
 
 export default function FocusScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
+  const { colors: c } = useTheme<AppTheme>();
   const { childId } = useAppStore();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
 
   const [subject, setSubject] = useState('');
   const [duration, setDuration] = useState(20);
@@ -484,7 +483,7 @@ const styles = StyleSheet.create({
     shadowColor: PRIMARY, shadowOpacity: 0.22, shadowRadius: 20,
     shadowOffset: { width: 0, height: 0 }, elevation: 10,
   },
-  timerOuterDone: { borderColor: '#48bb78', shadowColor: '#48bb78' },
+  timerOuterDone: { borderColor: SUCCESS, shadowColor: SUCCESS },
   timerText: { fontSize: 36, fontWeight: '700', letterSpacing: 2 },
   timerStatus: { fontSize: 11, color: '#8a8885', marginTop: 3 },
 

@@ -6,14 +6,14 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { fetchChildProfile, fetchChildRoutines, submitMood, getTodayMood, getDailyQuote } from '@/services/child-device';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 import type { ChildProfile, ChildRoutine } from '@/services/child-device';
 
 const MOODS = [
@@ -33,8 +33,7 @@ function getGreeting() {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
   const { childId, childName } = useAppStore();
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [routines, setRoutines] = useState<ChildRoutine[]>([]);
@@ -180,13 +179,13 @@ export default function HomeScreen() {
                 <Text style={styles.link}>Mijn monster →</Text>
               </TouchableOpacity>
             </View>
-            <ProgressBar progress={xpProgress} color="#48bb78" height={7} />
+            <ProgressBar progress={xpProgress} color={SUCCESS} height={7} />
           </View>
 
           {/* Stat cards */}
           <View style={styles.statsRow}>
             {[
-              { value: doneCount,       label: 'Gedaan',  color: '#48bb78' },
+              { value: doneCount,       label: 'Gedaan',  color: SUCCESS },
               { value: todoCount,       label: 'Te doen', color: PRIMARY },
               { value: allTasks.length, label: 'Totaal',  color: '#8a8885' },
             ].map((s) => (

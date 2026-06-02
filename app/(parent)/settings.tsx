@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { useAppStore } from '@/store/useAppStore';
 import { useThemePreference } from '@/store/useThemePreference';
 import { supabase } from '@/lib/supabase';
@@ -23,8 +23,9 @@ import {
   type MyFamily, type FamilyMemberProfile,
 } from '@/services/families';
 import { deleteAccount } from '@/services/auth';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { useTheme } from '@shopify/restyle';
+import { PRIMARY, primaryAlpha, SUCCESS, ERROR } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 import { STAGE_COLORS } from '@/utils/xp';
 import { PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow } from '@/lib/database.types';
@@ -33,7 +34,7 @@ import type { ChildRow } from '@/lib/database.types';
 export default function ParentSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { isDark, toggleTheme } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
   const { session, signOut } = useAppStore();
 
   // ── Data ─────────────────────────────────────────────────────────────────
@@ -421,7 +422,7 @@ export default function ParentSettingsScreen() {
 
           {loadError ? (
             <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-              <Text style={[styles.emptyText, { color: '#fc6b6b' }]}>{loadError}</Text>
+              <Text style={[styles.emptyText, { color: ERROR }]}>{loadError}</Text>
             </View>
           ) : loading ? (
             <ActivityIndicator color={PRIMARY} style={{ marginBottom: 20 }} />
@@ -464,11 +465,11 @@ export default function ParentSettingsScreen() {
                           <Ionicons name="lock-open-outline" size={15} color={c.textMuted} />
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[styles.smallBtn, { backgroundColor: '#fc6b6b14', borderColor: '#fc6b6b30' }]}
+                          style={[styles.smallBtn, { backgroundColor: `${ERROR}14`, borderColor: `${ERROR}30` }]}
                           onPress={() => handleDeleteChild(child)}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="trash-outline" size={15} color="#fc6b6b" />
+                          <Ionicons name="trash-outline" size={15} color={ERROR} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -524,11 +525,11 @@ export default function ParentSettingsScreen() {
                       </View>
                       {isAdmin && !isSelf && (
                         <TouchableOpacity
-                          style={[styles.smallBtn, { backgroundColor: '#fc6b6b14', borderColor: '#fc6b6b30' }]}
+                          style={[styles.smallBtn, { backgroundColor: `${ERROR}14`, borderColor: `${ERROR}30` }]}
                           onPress={() => handleRemoveMember(m)}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="person-remove-outline" size={15} color="#fc6b6b" />
+                          <Ionicons name="person-remove-outline" size={15} color={ERROR} />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -609,15 +610,15 @@ export default function ParentSettingsScreen() {
             ) : (
               <TouchableOpacity style={styles.settingRow} onPress={handlePasswordReset} disabled={resetSent} activeOpacity={0.8}>
                 <View style={[styles.settingIcon, { backgroundColor: primaryAlpha(0.08) }]}>
-                  <Ionicons name="lock-closed-outline" size={17} color={resetSent ? '#48bb78' : PRIMARY} />
+                  <Ionicons name="lock-closed-outline" size={17} color={resetSent ? SUCCESS : PRIMARY} />
                 </View>
-                <Text style={[styles.settingLabel, { color: resetSent ? '#48bb78' : c.textPrimary }]}>
+                <Text style={[styles.settingLabel, { color: resetSent ? SUCCESS : c.textPrimary }]}>
                   {resetSent ? `Link verstuurd naar ${email}` : 'Wachtwoord wijzigen'}
                 </Text>
                 <Ionicons
                   name={resetSent ? 'checkmark' : 'chevron-forward'}
                   size={16}
-                  color={resetSent ? '#48bb78' : c.textMuted}
+                  color={resetSent ? SUCCESS : c.textMuted}
                 />
               </TouchableOpacity>
             )}
@@ -647,7 +648,7 @@ export default function ParentSettingsScreen() {
             onPress={signOut}
             activeOpacity={0.8}
           >
-            <Ionicons name="log-out-outline" size={18} color="#fc6b6b" />
+            <Ionicons name="log-out-outline" size={18} color={ERROR} />
             <Text style={styles.signOutText}>Uitloggen</Text>
           </TouchableOpacity>
         </MotiView>
@@ -683,7 +684,7 @@ export default function ParentSettingsScreen() {
               <Text style={[sh.title, { color: c.textPrimary }]}>Kind bewerken</Text>
               <Text style={[sh.sub, { color: c.textMuted }]}>{editChild?.name}</Text>
               <Text style={[sh.fieldLabel, { color: c.textMuted }]}>NAAM KIND</Text>
-              <View style={[sh.inputWrap, { backgroundColor: c.glassInput, borderColor: editError ? '#fc6b6b' : primaryAlpha(0.2) }]}>
+              <View style={[sh.inputWrap, { backgroundColor: c.glassInput, borderColor: editError ? ERROR : primaryAlpha(0.2) }]}>
                 <TextInput
                   style={[sh.input, { color: c.textPrimary }]}
                   value={editName}
@@ -731,7 +732,7 @@ export default function ParentSettingsScreen() {
               <View style={sh.handle} />
               <Text style={[sh.title, { color: c.textPrimary }]}>Gezinsnaam bewerken</Text>
               <Text style={[sh.fieldLabel, { color: c.textMuted }]}>NAAM VAN HET GEZIN</Text>
-              <View style={[sh.inputWrap, { backgroundColor: c.glassInput, borderColor: editFamError ? '#fc6b6b' : primaryAlpha(0.2) }]}>
+              <View style={[sh.inputWrap, { backgroundColor: c.glassInput, borderColor: editFamError ? ERROR : primaryAlpha(0.2) }]}>
                 <TextInput
                   style={[sh.input, { color: c.textPrimary }]}
                   value={editFamName}
@@ -833,7 +834,7 @@ const styles = StyleSheet.create({
 
   // Bottom actions
   signOutBtn:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: 1, marginBottom: 10 },
-  signOutText: { fontSize: 14, color: '#fc6b6b', fontWeight: '500' },
+  signOutText: { fontSize: 14, color: ERROR, fontWeight: '500' },
   deleteAcctBtn: { alignItems: 'center', paddingVertical: 10 },
   deleteAcctText: { fontSize: 12, color: 'rgba(252,107,107,0.5)' },
 });
@@ -853,5 +854,5 @@ const sh = StyleSheet.create({
   saveBtn:    { flex: 2, height: 50, backgroundColor: PRIMARY, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   saveBtnDim: { backgroundColor: primaryAlpha(0.35) },
   saveText:   { fontSize: 14, color: '#fff', fontWeight: '700' },
-  errorText:  { fontSize: 12, color: '#fc6b6b', marginTop: -14, marginBottom: 14 },
+  errorText:  { fontSize: 12, color: ERROR, marginTop: -14, marginBottom: 14 },
 });

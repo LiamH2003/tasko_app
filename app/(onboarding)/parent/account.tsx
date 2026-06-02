@@ -11,7 +11,7 @@ import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { signUp } from '@/services/auth';
 import { signInWithProvider } from '@/services/oauth';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, ERROR } from '@/constants/palette';
 
 export default function ParentAccountScreen() {
   const insets = useSafeAreaInsets();
@@ -30,9 +30,9 @@ export default function ParentAccountScreen() {
   const confirmValid = confirmPassword.length > 0 && password.trim() === confirmPassword.trim();
   const canContinue = emailValid && passwordValid && confirmValid;
 
-  const emailBorder = !touched.email || email.length === 0 ? primaryAlpha(0.3) : emailValid ? PRIMARY : '#fc6b6b';
+  const emailBorder = !touched.email || email.length === 0 ? primaryAlpha(0.3) : emailValid ? PRIMARY : ERROR;
   const passwordBorder = !touched.password || password.length === 0 ? primaryAlpha(0.3) : passwordValid ? PRIMARY : primaryAlpha(0.3);
-  const confirmBorder = !touched.confirm || confirmPassword.length === 0 ? primaryAlpha(0.3) : confirmValid ? PRIMARY : '#fc6b6b';
+  const confirmBorder = !touched.confirm || confirmPassword.length === 0 ? primaryAlpha(0.3) : confirmValid ? PRIMARY : ERROR;
 
   const handleSocialRegister = async (provider: 'google' | 'facebook') => {
     setError('');
@@ -155,7 +155,7 @@ export default function ParentAccountScreen() {
                     <Ionicons
                       name={emailValid ? 'checkmark-circle' : 'close-circle'}
                       size={18}
-                      color={emailValid ? PRIMARY : '#fc6b6b'}
+                      color={emailValid ? PRIMARY : ERROR}
                     />
                   )}
                 </Box>
@@ -213,7 +213,7 @@ export default function ParentAccountScreen() {
                 {touched.confirm && confirmPassword.length > 0 && (
                   <Text style={[styles.requirementText, {
                     marginTop: 6,
-                    color: confirmValid ? PRIMARY : '#fc6b6b',
+                    color: confirmValid ? PRIMARY : ERROR,
                   }]}>
                     {confirmValid ? 'Wachtwoorden komen overeen' : 'Wachtwoorden komen niet overeen'}
                   </Text>
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 14, color: '#1a1918', padding: 0 },
   requirementRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   requirementText: { fontSize: 12, lineHeight: 16 },
-  fieldError: { fontSize: 12, color: '#fc6b6b', marginTop: 6 },
+  fieldError: { fontSize: 12, color: ERROR, marginTop: 6 },
   btnPrimary: {
     height: 52, backgroundColor: PRIMARY, borderRadius: 16,
     alignItems: 'center', justifyContent: 'center',

@@ -1,23 +1,23 @@
 import { Modal, View, TouchableOpacity, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
 import { Text } from '@/components/ui/primitives';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
-import { PRIMARY } from '@/constants/palette';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
+import { PRIMARY, SUCCESS, WARNING, PURPLE } from '@/constants/palette';
 import { STAGE_LABELS } from '@/utils/xp';
 
 // Fixed particle layout — deterministic so renders are stable
 const PARTICLES = [
   { x: 0,    y: -130, size: 10, color: '#4ecdc4', delay: 220 },
-  { x: 90,   y: -95,  size:  8, color: '#f6c644', delay: 260 },
-  { x: 128,  y: 0,    size: 12, color: '#48bb78', delay: 240 },
+  { x: 90,   y: -95,  size:  8, color: WARNING, delay: 260 },
+  { x: 128,  y: 0,    size: 12, color: SUCCESS, delay: 240 },
   { x: 90,   y: 95,   size:  7, color: '#f0ece8', delay: 280 },
-  { x: 0,    y: 128,  size: 10, color: '#b57be6', delay: 220 },
+  { x: 0,    y: 128,  size: 10, color: PURPLE, delay: 220 },
   { x: -90,  y: 95,   size:  8, color: '#4ecdc4', delay: 300 },
-  { x: -128, y: 0,    size: 11, color: '#f6c644', delay: 250 },
-  { x: -90,  y: -95,  size:  7, color: '#48bb78', delay: 270 },
+  { x: -128, y: 0,    size: 11, color: WARNING, delay: 250 },
+  { x: -90,  y: -95,  size:  7, color: SUCCESS, delay: 270 },
   { x: 50,   y: -115, size:  6, color: '#f0ece8', delay: 310 },
-  { x: -50,  y: -115, size:  6, color: '#b57be6', delay: 290 },
-  { x: 115,  y: 50,   size:  5, color: '#f6c644', delay: 330 },
+  { x: -50,  y: -115, size:  6, color: PURPLE, delay: 290 },
+  { x: 115,  y: 50,   size:  5, color: WARNING, delay: 330 },
   { x: -115, y: 50,   size:  5, color: '#4ecdc4', delay: 320 },
 ];
 

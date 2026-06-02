@@ -7,15 +7,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { MonsterSvg } from '@/components/monster/MonsterSvg';
+import { MonsterSvg } from '@/components/ui/MonsterSvg';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { useAppStore } from '@/store/useAppStore';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getRoutinesForDate } from '@/services/routines';
 import { getTodayMoodForChild } from '@/services/mood';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import { PRIMARY, primaryAlpha, SUCCESS, WARNING, ERROR } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 import { STAGE_LABELS } from '@/utils/xp';
 import { PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow, RoutineWithTasks, MoodEntryRow } from '@/lib/database.types';
@@ -23,17 +23,16 @@ import type { ChildRow, RoutineWithTasks, MoodEntryRow } from '@/lib/database.ty
 type MoodKey = MoodEntryRow['mood'];
 
 const MOOD_MAP: Record<MoodKey, { emoji: string; label: string; color: string }> = {
-  great: { emoji: '😁', label: 'Super',    color: '#48bb78' },
+  great: { emoji: '😁', label: 'Super',    color: SUCCESS },
   good:  { emoji: '🙂', label: 'Goed',     color: PRIMARY   },
-  okay:  { emoji: '😐', label: 'Neutraal', color: '#f6c644' },
+  okay:  { emoji: '😐', label: 'Neutraal', color: WARNING },
   sad:   { emoji: '😒', label: 'Meh',      color: '#9ca3af' },
-  angry: { emoji: '😔', label: 'Slecht',   color: '#fc6b6b' },
+  angry: { emoji: '😔', label: 'Slecht',   color: ERROR },
 };
 
 export default function ParentOverview() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
   const { session } = useAppStore();
 
   const { children, childrenLoading, refreshChildren } = useParentChildren();
@@ -258,7 +257,7 @@ export default function ParentOverview() {
                             <Text style={[styles.xpMax, { color: c.textMuted }]}>/{activeChild.xp_to_next_level}</Text>
                           </Text>
                         </View>
-                        <ProgressBar progress={xpProgress} color="#48bb78" height={5} />
+                        <ProgressBar progress={xpProgress} color={SUCCESS} height={5} />
                       </View>
                     </View>
                   </View>
@@ -292,10 +291,10 @@ export default function ParentOverview() {
                 </View>
               ) : (
                 <View style={styles.statsRow}>
-                  <View style={[styles.statChip, { backgroundColor: '#48bb7812', borderColor: '#48bb7840' }]}>
-                    <Ionicons name="checkmark-circle" size={18} color="#48bb78" />
-                    <Text style={[styles.statNum, { color: '#48bb78' }]}>{doneCount}</Text>
-                    <Text style={[styles.statLbl, { color: '#48bb78' }]}>Gedaan</Text>
+                  <View style={[styles.statChip, { backgroundColor: `${SUCCESS}12`, borderColor: `${SUCCESS}40` }]}>
+                    <Ionicons name="checkmark-circle" size={18} color={SUCCESS} />
+                    <Text style={[styles.statNum, { color: SUCCESS }]}>{doneCount}</Text>
+                    <Text style={[styles.statLbl, { color: SUCCESS }]}>Gedaan</Text>
                   </View>
                   <View style={[styles.statChip, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.2) }]}>
                     <Ionicons name="ellipse-outline" size={18} color={PRIMARY} />

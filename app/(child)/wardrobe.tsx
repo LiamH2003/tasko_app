@@ -7,7 +7,7 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { BackButton } from '@/components/ui/BackButton';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
 import { useTheme } from '@shopify/restyle';
 import type { AppTheme } from '@/constants/restyleTheme';
 
@@ -22,7 +22,7 @@ const WARDROBE = [
 
 const BADGE_COLORS = {
   active:   { bg: PRIMARY,                   color: '#fff'    },
-  unlocked: { bg: '#48bb78',                 color: '#fff'    },
+  unlocked: { bg: SUCCESS,                   color: '#fff'    },
   locked:   { bg: 'rgba(255,255,255,0.7)',   color: '#8a8885' },
 };
 

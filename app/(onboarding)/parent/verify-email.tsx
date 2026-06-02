@@ -10,7 +10,7 @@ import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { AnimatedFloat } from '@/components/ui/AnimatedFloat';
 import { supabase } from '@/lib/supabase';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
 
 export default function ParentVerifyEmailScreen() {
   const insets = useSafeAreaInsets();
@@ -160,7 +160,7 @@ export default function ParentVerifyEmailScreen() {
         </MotiView>
 
         {error ? <Text variant="errorText" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>{error}</Text> : null}
-        {resendSent ? <Text variant="subtitle" style={{ alignSelf: 'flex-start', color: '#48bb78', fontSize: 12, marginBottom: 8 }}>Nieuwe code verstuurd!</Text> : null}
+        {resendSent ? <Text variant="subtitle" style={{ alignSelf: 'flex-start', color: SUCCESS, fontSize: 12, marginBottom: 8 }}>Nieuwe code verstuurd!</Text> : null}
 
         {/* Info card */}
         <MotiView

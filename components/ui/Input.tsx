@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Box, Text } from './primitives';
-import { primaryAlpha } from '@/constants/palette';
+import { primaryAlpha, ERROR } from '@/constants/palette';
 
 interface InputProps {
   label?: string;
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   inputError: {
-    borderColor: '#fc6b6b',
+    borderColor: ERROR,
   },
   input: {
     flex: 1,

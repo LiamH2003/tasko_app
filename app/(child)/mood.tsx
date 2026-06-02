@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { MoodSelector } from '@/components/mood/MoodSelector';
+import { MoodSelector } from '@/components/ui/MoodSelector';
 import { useAppStore } from '@/store/useAppStore';
 import { submitMood, getTodayMood } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';

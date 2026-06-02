@@ -9,11 +9,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getRoutinesForDate, createRoutine, updateRoutine, addTask, deleteTask, deleteRoutine } from '@/services/routines';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { PRIMARY, primaryAlpha, SUCCESS, WARNING, ERROR } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 import { DAYS_NL, MONTHS_SHORT_NL as MONTHS_NL, PLAN_LABEL } from '@/constants/locale';
 import type { ChildRow, RoutineWithTasks } from '@/lib/database.types';
 
@@ -199,12 +199,12 @@ function RoutineCard({
             <View key={task.id}>
               <View style={[rc.divider, { backgroundColor: c.glassCardBorder }]} />
               <View style={rc.stepRow}>
-                <View style={[rc.stepBullet, { backgroundColor: task.completed ? '#48bb78' : c.textMuted }]} />
+                <View style={[rc.stepBullet, { backgroundColor: task.completed ? SUCCESS : c.textMuted }]} />
                 <Text style={[rc.stepTitle, { color: task.completed ? c.textMuted : c.textPrimary }, task.completed && rc.stepDone]} numberOfLines={2}>
                   {task.title}
                 </Text>
                 {deletingId === task.id ? (
-                  <ActivityIndicator size="small" color="#fc6b6b" style={{ width: 20 }} />
+                  <ActivityIndicator size="small" color={ERROR} style={{ width: 20 }} />
                 ) : (
                   <TouchableOpacity hitSlop={10} onPress={() => handleDeleteStep(task.id)}>
                     <Ionicons name="close" size={16} color={c.textMuted} />
@@ -258,7 +258,7 @@ function RoutineCard({
               onPress={() => onDelete(routine.id)}
               activeOpacity={0.7}
             >
-              <Ionicons name="trash-outline" size={13} color="#fc6b6b" />
+              <Ionicons name="trash-outline" size={13} color={ERROR} />
               <Text style={rc.deleteText}>Verwijderen</Text>
             </TouchableOpacity>
           </View>
@@ -272,8 +272,7 @@ function RoutineCard({
 
 export default function ParentRoutinesScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
 
   const { childId: paramChildId } = useLocalSearchParams<{ childId?: string }>();
 
@@ -568,10 +567,10 @@ export default function ParentRoutinesScreen() {
                   <Text style={[styles.statNum, { color: c.textPrimary }]}>{routines.length}</Text>
                   <Text style={[styles.statLbl, { color: c.textMuted }]}>Routines</Text>
                 </View>
-                <View style={[styles.statChip, { backgroundColor: '#48bb7812', borderColor: '#48bb7840' }]}>
-                  <Ionicons name="checkmark-circle" size={14} color="#48bb78" />
-                  <Text style={[styles.statNum, { color: '#48bb78' }]}>{doneCount}</Text>
-                  <Text style={[styles.statLbl, { color: '#48bb78' }]}>Gedaan</Text>
+                <View style={[styles.statChip, { backgroundColor: `${SUCCESS}12`, borderColor: `${SUCCESS}40` }]}>
+                  <Ionicons name="checkmark-circle" size={14} color={SUCCESS} />
+                  <Text style={[styles.statNum, { color: SUCCESS }]}>{doneCount}</Text>
+                  <Text style={[styles.statLbl, { color: SUCCESS }]}>Gedaan</Text>
                 </View>
                 <View style={[styles.statChip, { backgroundColor: primaryAlpha(0.06), borderColor: primaryAlpha(0.2) }]}>
                   <Ionicons name="ellipse-outline" size={14} color={PRIMARY} />
@@ -591,9 +590,9 @@ export default function ParentRoutinesScreen() {
 
             {/* Routine list */}
             {!!routinesError && (
-              <View style={[styles.errorNote, { backgroundColor: '#fc6b6b18', borderColor: '#fc6b6b40' }]}>
-                <Ionicons name="warning-outline" size={14} color="#fc6b6b" />
-                <Text style={[styles.errorText, { color: '#fc6b6b' }]} numberOfLines={3}>{routinesError}</Text>
+              <View style={[styles.errorNote, { backgroundColor: `${ERROR}18`, borderColor: `${ERROR}40` }]}>
+                <Ionicons name="warning-outline" size={14} color={ERROR} />
+                <Text style={[styles.errorText, { color: ERROR }]} numberOfLines={3}>{routinesError}</Text>
               </View>
             )}
             {routinesLoading ? (
@@ -887,9 +886,9 @@ const rc = StyleSheet.create({
   editRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 7, flex: 1 },
   editText:    { fontSize: 12, fontWeight: '500' },
   deleteRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
-  deleteText:  { fontSize: 12, color: '#fc6b6b', fontWeight: '500' },
-  actionError:   { fontSize: 11, color: '#fc6b6b', paddingHorizontal: 14, paddingBottom: 8 },
-  doneBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#48bb78', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
+  deleteText:  { fontSize: 12, color: ERROR, fontWeight: '500' },
+  actionError:   { fontSize: 11, color: ERROR, paddingHorizontal: 14, paddingBottom: 8 },
+  doneBadge:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: SUCCESS, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
   doneBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
 });
 
@@ -924,8 +923,8 @@ const sh = StyleSheet.create({
   dayPill:  { flex: 1, borderRadius: 10, paddingVertical: 9, borderWidth: 1.5, alignItems: 'center', marginHorizontal: 2 },
   dayPillText: { fontSize: 12, fontWeight: '700' },
 
-  error:        { fontSize: 12, color: '#fc6b6b', marginBottom: 12 },
-  daysWarning:  { fontSize: 12, color: '#f6c644', marginBottom: 12, marginTop: -10 },
+  error:        { fontSize: 12, color: ERROR, marginBottom: 12 },
+  daysWarning:  { fontSize: 12, color: WARNING, marginBottom: 12, marginTop: -10 },
   windowRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   windowPills:    { flexDirection: 'row', gap: 6 },
   windowPill:     { borderRadius: 99, paddingHorizontal: 11, paddingVertical: 7, borderWidth: 1.5 },

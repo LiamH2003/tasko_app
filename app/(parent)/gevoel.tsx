@@ -7,12 +7,12 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { useParentChildren } from '@/store/useParentChildren';
 import { getMoodHistory } from '@/services/mood';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, primaryAlpha, SUCCESS, WARNING, ERROR } from '@/constants/palette';
 import { PLAN_LABEL } from '@/constants/locale';
-import { lightTheme, darkTheme } from '@/constants/restyleTheme';
+import type { AppTheme } from '@/constants/restyleTheme';
 import type { ChildRow, MoodEntryRow } from '@/lib/database.types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -20,11 +20,11 @@ import type { ChildRow, MoodEntryRow } from '@/lib/database.types';
 type MoodKey = MoodEntryRow['mood'];
 
 const MOOD_META: Record<MoodKey, { emoji: string; label: string; color: string }> = {
-  great: { emoji: '😁', label: 'Super',    color: '#48bb78' },
+  great: { emoji: '😁', label: 'Super',    color: SUCCESS },
   good:  { emoji: '🙂', label: 'Goed',     color: PRIMARY   },
-  okay:  { emoji: '😐', label: 'Neutraal', color: '#f6c644' },
+  okay:  { emoji: '😐', label: 'Neutraal', color: WARNING },
   sad:   { emoji: '😒', label: 'Meh',      color: '#9ca3af' },
-  angry: { emoji: '😔', label: 'Slecht',   color: '#fc6b6b' },
+  angry: { emoji: '😔', label: 'Slecht',   color: ERROR },
 };
 
 const MOOD_ORDER: MoodKey[] = ['great', 'good', 'okay', 'sad', 'angry'];
@@ -79,8 +79,7 @@ function timeStr(iso: string): string {
 
 export default function GevoelScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
 
   const { children, childrenLoading, refreshChildren } = useParentChildren();
   const [refreshing, setRefreshing] = useState(false);

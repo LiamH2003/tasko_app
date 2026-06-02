@@ -7,11 +7,11 @@ import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
-import { useThemePreference } from '@/store/useThemePreference';
+import { useTheme } from '@shopify/restyle';
 import { fetchChildRoutines, fetchChildProfile, completeTask, uncompleteTask, getWeekCompletion } from '@/services/child-device';
 import { LevelUpOverlay } from '@/components/ui/LevelUpOverlay';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
-import { lightTheme, darkTheme, type AppTheme } from '@/constants/restyleTheme';
+import { PRIMARY, primaryAlpha, SUCCESS, ERROR } from '@/constants/palette';
+import type { AppTheme } from '@/constants/restyleTheme';
 import { DAYS_NL as DAYS } from '@/constants/locale';
 import type { ChildRoutine, ChildTask, WeekDay, ChildProfile } from '@/services/child-device';
 
@@ -70,7 +70,7 @@ function DayCircle({
         state === 'missed' && styles.dayMissed,
       ]}>
         {state === 'done'   && <Ionicons name="checkmark" size={14} color="#fff" />}
-        {state === 'missed' && <Ionicons name="close"     size={12} color="#fc6b6b" />}
+        {state === 'missed' && <Ionicons name="close"     size={12} color={ERROR} />}
       </View>
       <Text style={[styles.dayLabel, { color: c.textMuted }, state === 'today' && { color: PRIMARY }]}>
         {label}
@@ -114,7 +114,7 @@ function RoutineCard({
                 <Text style={[styles.timeChipText, { color: PRIMARY }]}>{routine.scheduled_time}</Text>
               </View>
             ) : null}
-            <Text style={[styles.cardProgressText, { color: allDone ? '#48bb78' : c.textMuted }]}>
+            <Text style={[styles.cardProgressText, { color: allDone ? SUCCESS : c.textMuted }]}>
               {allDone ? 'Klaar!' : `${done} van ${total}`}
             </Text>
           </View>
@@ -146,7 +146,7 @@ function RoutineCard({
           styles.progressFill,
           {
             width: `${Math.round(progress * 100)}%` as any,
-            backgroundColor: allDone ? '#48bb78' : PRIMARY,
+            backgroundColor: allDone ? SUCCESS : PRIMARY,
           },
         ]} />
       </View>
@@ -171,7 +171,7 @@ function RoutineCard({
                   <View style={[
                     styles.dot,
                     task.completed
-                      ? { backgroundColor: '#48bb78', borderColor: '#48bb78' }
+                      ? { backgroundColor: SUCCESS, borderColor: SUCCESS }
                       : { backgroundColor: 'transparent', borderColor: primaryAlpha(0.35) },
                   ]}>
                     {task.completed && <Ionicons name="checkmark" size={8} color="#fff" />}
@@ -197,8 +197,7 @@ function RoutineCard({
 
 export default function RoutinesScreen() {
   const insets = useSafeAreaInsets();
-  const { isDark } = useThemePreference();
-  const c = isDark ? darkTheme.colors : lightTheme.colors;
+  const { colors: c } = useTheme<AppTheme>();
   const { childId } = useAppStore();
   const [routines,     setRoutines]     = useState<ChildRoutine[]>([]);
   const [weekDays,     setWeekDays]     = useState<WeekDay[]>([]);
@@ -483,7 +482,7 @@ export default function RoutinesScreen() {
 
         {loadError && (
           <View style={[styles.emptyCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            <Text style={[styles.emptyTitle, { color: '#fc6b6b' }]}>Laden mislukt</Text>
+            <Text style={[styles.emptyTitle, { color: ERROR }]}>Laden mislukt</Text>
             <Text style={[styles.emptyBody,  { color: c.textMuted }]}>{loadError}</Text>
           </View>
         )}
@@ -535,7 +534,7 @@ const styles = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
   },
-  dayDone:   { backgroundColor: '#48bb78', borderColor: '#48bb78' },
+  dayDone:   { backgroundColor: SUCCESS, borderColor: SUCCESS },
   dayToday:  { backgroundColor: 'transparent', borderColor: PRIMARY, borderWidth: 2 },
   dayMissed: { backgroundColor: 'rgba(252,107,107,0.08)', borderColor: 'rgba(252,107,107,0.3)' },
   dayLabel:  { fontSize: 11 },
@@ -569,7 +568,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
   },
-  completeBtnDone: { backgroundColor: '#48bb78', borderColor: '#48bb78' },
+  completeBtnDone: { backgroundColor: SUCCESS, borderColor: SUCCESS },
 
   // Progress bar
   progressTrack: { height: 3, marginHorizontal: 16, marginBottom: 0, borderRadius: 1.5, overflow: 'hidden' },
