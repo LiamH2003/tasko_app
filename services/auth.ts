@@ -44,31 +44,30 @@ export async function deleteAccount(): Promise<void> {
   try { await supabase.auth.signOut(); } catch { /* already gone */ }
 }
 
-// Looks up a family by its family_code and links the current (authenticated) user as a parent member.
-// Returns the family name for display on the success screen.
+// Joins an existing family by invite code using a SECURITY DEFINER RPC — mirrors the
+// atomic pattern of createFamily(). The RPC handles the DB lookup + insert in one
+// transaction; auth metadata is synced client-side afterwards.
 export async function joinFamilyByCode(code: string, parentName: string): Promise<string> {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) throw new Error('Niet ingelogd');
+  const { data, error } = await supabase.rpc('join_family_by_code', { p_code: code });
+  if (error) {
+    if (error.message.includes('Onbekende code'))
+      throw new Error('Onbekende code. Controleer de code bij je partner.');
+    if (error.message.includes('al lid'))
+      throw new Error('Je bent al lid van dit gezin.');
+    throw error;
+  }
 
-  const { data: families, error: familyError } = await supabase
-    .from('families')
-    .select('id, name')
-    .eq('family_code', code)
-    .limit(1);
-  if (familyError) throw familyError;
-  if (!families || families.length === 0)
-    throw new Error('Onbekende code. Controleer de code bij je partner.');
-
-  const { id: familyId, name: familyName } = families[0];
-
-  const { error: memberError } = await supabase
-    .from('family_members')
-    .insert({ family_id: familyId, user_id: user.id, role: 'parent' });
-  if (memberError) throw memberError;
+  const result = data as { family_id: string; family_name: string; family_code: string };
 
   await supabase.auth.updateUser({
-    data: { first_name: parentName, family_name: familyName, family_code: code, family_id: familyId, role: 'parent' },
+    data: {
+      first_name:  parentName,
+      family_name: result.family_name,
+      family_code: result.family_code,
+      family_id:   result.family_id,
+      role:        'parent',
+    },
   });
 
-  return familyName;
+  return result.family_name;
 }
