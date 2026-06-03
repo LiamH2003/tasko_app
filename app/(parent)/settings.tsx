@@ -448,6 +448,19 @@ export default function ParentSettingsScreen() {
                         <Text style={[styles.childMetaText, { color: c.textMuted }]}>
                           Niveau {child.level} · {child.xp} XP
                         </Text>
+                        {child.invite_code ? (
+                          <TouchableOpacity
+                            onPress={() => Clipboard.setStringAsync(child.invite_code!)}
+                            activeOpacity={0.7}
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}
+                          >
+                            <Ionicons name="key-outline" size={11} color={c.textMuted} />
+                            <Text style={[styles.childMetaText, { color: c.textMuted, fontFamily: 'monospace' }]}>
+                              {child.invite_code}
+                            </Text>
+                            <Ionicons name="copy-outline" size={11} color={c.textMuted} />
+                          </TouchableOpacity>
+                        ) : null}
                       </View>
                       <View style={styles.childBtns}>
                         <TouchableOpacity

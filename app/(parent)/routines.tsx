@@ -496,10 +496,12 @@ export default function ParentRoutinesScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.planBadge, { backgroundColor: primaryAlpha(0.06), borderColor: PRIMARY }]}
+              style={[styles.addBtn, futureDate && { opacity: 0.35 }]}
+              onPress={futureDate ? undefined : openAdd}
+              disabled={futureDate}
               activeOpacity={0.8}
             >
-              <Text style={styles.planText}>{PLAN_LABEL}</Text>
+              <Ionicons name="add" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
         </MotiView>
@@ -514,32 +516,22 @@ export default function ParentRoutinesScreen() {
           </View>
         ) : (
           <>
-            {/* Child tabs + add button */}
-            <MotiView from={{ opacity: 0, translateY: 10 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 80 }}>
-              <View style={styles.tabAddRow}>
-                {children.length > 1 && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
-                    {children.map((child) => {
-                      const isActive = child.id === activeChildId;
-                      return (
-                        <TouchableOpacity key={child.id} style={[styles.tab, { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder }]} onPress={() => setActiveChildId(child.id)} activeOpacity={0.8}>
-                          <View style={[styles.tabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
-                          <Text style={[styles.tabText, { color: isActive ? '#fff' : c.textMuted }]}>{child.name}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
-                <TouchableOpacity
-                  style={[styles.addBtn, futureDate && { opacity: 0.35 }]}
-                  onPress={futureDate ? undefined : openAdd}
-                  disabled={futureDate}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="add" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </MotiView>
+            {/* Child tabs (multi-child only) */}
+            {children.length > 1 && (
+              <MotiView from={{ opacity: 0, translateY: 10 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 80 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll} contentContainerStyle={styles.tabContent}>
+                  {children.map((child) => {
+                    const isActive = child.id === activeChildId;
+                    return (
+                      <TouchableOpacity key={child.id} style={[styles.tab, { backgroundColor: isActive ? PRIMARY : c.glassCard, borderColor: isActive ? PRIMARY : c.glassCardBorder }]} onPress={() => setActiveChildId(child.id)} activeOpacity={0.8}>
+                        <View style={[styles.tabDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.55)' : primaryAlpha(0.3) }]} />
+                        <Text style={[styles.tabText, { color: isActive ? '#fff' : c.textMuted }]}>{child.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </MotiView>
+            )}
 
             {/* Day navigator */}
             <MotiView from={{ opacity: 0, translateY: 8 }} animate={{ opacity: 1, translateY: 0 }} transition={{ type: 'timing', duration: 300, delay: 100 }}>

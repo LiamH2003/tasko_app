@@ -3,7 +3,7 @@ import {
   View, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,7 @@ import { Box, Text } from '@/components/ui/primitives';
 import { BackButton } from '@/components/ui/BackButton';
 import { StepBar } from '@/components/ui/StepBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
-import { updateChildProfile } from '@/services/children';
+import { addChild } from '@/services/child-device';
 import { PRIMARY, primaryAlpha } from '@/constants/palette';
 
 const MIN_AGE = 6;
@@ -20,6 +20,7 @@ const MAX_AGE = 18;
 
 export default function ChildProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { familyId } = useLocalSearchParams<{ familyId: string }>();
   const [name, setName] = useState('');
   const [age, setAge] = useState(9);
   const [loading, setLoading] = useState(false);
@@ -28,11 +29,15 @@ export default function ChildProfileScreen() {
   const canContinue = name.trim().length >= 2;
 
   const handleContinue = async () => {
+    if (!familyId) {
+      setError('Er ontbreekt informatie. Ga terug en probeer opnieuw.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      const childId = await SecureStore.getItemAsync('pendingChildId');
-      if (childId) await updateChildProfile(childId, { name: name.trim() });
+      const childId = await addChild(familyId, name.trim());
+      await SecureStore.setItemAsync('pendingChildId', childId);
       await SecureStore.setItemAsync('pendingChildName', name.trim());
       router.push('/(onboarding)/child/monster-select');
     } catch (e: any) {

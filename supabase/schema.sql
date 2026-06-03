@@ -92,9 +92,47 @@ create policy "Parents can manage mood entries for their children"
     child_id in (select id from children where parent_id = auth.uid())
   );
 
+-- ── Families ─────────────────────────────────────────────────
+create table if not exists families (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  family_code text not null unique,
+  created_by  uuid references auth.users on delete set null,
+  created_at  timestamptz not null default now()
+);
+
+alter table families enable row level security;
+
+create policy "Family members can read their family"
+  on families for select
+  using (
+    id in (select family_id from family_members where user_id = auth.uid())
+  );
+
+-- ── Family members ────────────────────────────────────────────
+create table if not exists family_members (
+  id         uuid primary key default gen_random_uuid(),
+  family_id  uuid references families on delete cascade not null,
+  user_id    uuid references auth.users on delete cascade not null,
+  role       text not null default 'parent'
+             check (role in ('admin', 'parent')),
+  joined_at  timestamptz not null default now(),
+  unique (family_id, user_id)
+);
+
+alter table family_members enable row level security;
+
+create policy "Users can read their own family membership"
+  on family_members for select
+  using (
+    family_id in (select family_id from family_members where user_id = auth.uid())
+  );
+
 -- ── Role grants ──────────────────────────────────────────────
 -- RLS policies control which rows; grants control table access at all.
 grant select, insert, update, delete on table children      to authenticated;
 grant select, insert, update, delete on table routines      to authenticated;
 grant select, insert, update, delete on table tasks         to authenticated;
 grant select, insert, update, delete on table mood_entries  to authenticated;
+grant select, insert, update, delete on table families      to authenticated;
+grant select, insert, update, delete on table family_members to authenticated;

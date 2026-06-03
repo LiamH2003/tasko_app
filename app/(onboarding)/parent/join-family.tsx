@@ -20,7 +20,7 @@ export default function JoinFamilyScreen() {
   const [error, setError] = useState('');
   const inputRef = useRef<TextInput | null>(null);
 
-  const canContinue = parentName.trim().length > 0 && code.length === 4;
+  const canContinue = parentName.trim().length > 0 && code.length === 6;
 
   return (
     <Box flex={1} backgroundColor="background">
@@ -100,10 +100,10 @@ export default function JoinFamilyScreen() {
                 <TextInput
                   ref={inputRef}
                   value={code}
-                  onChangeText={(t) => setCode(t.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase())}
+                  onChangeText={(t) => setCode(t.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase())}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
-                  maxLength={4}
+                  maxLength={6}
                   autoCapitalize="characters"
                   autoCorrect={false}
                   caretHidden
@@ -112,7 +112,7 @@ export default function JoinFamilyScreen() {
                 <Box flexDirection="row" alignItems="center" gap="sm" pointerEvents="none">
                   <Text style={styles.prefix}>TASKO–</Text>
                   <Box flexDirection="row" gap="sm" style={{ flex: 1 }}>
-                    {Array.from({ length: 4 }).map((_, i) => (
+                    {Array.from({ length: 6 }).map((_, i) => (
                       <MotiView
                         key={i}
                         animate={{
@@ -156,7 +156,7 @@ export default function JoinFamilyScreen() {
             setError('');
             setLoading(true);
             try {
-              const familyName = await joinFamilyByCode(`TASKO-${code}`, parentName.trim());
+              const familyName = await joinFamilyByCode(code, parentName.trim());
               router.push({
                 pathname: '/(onboarding)/parent/success',
                 params: { parentName: parentName.trim(), familyName, inviteCode: '', joined: 'true' },

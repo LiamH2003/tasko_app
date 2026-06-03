@@ -51,8 +51,8 @@ export default function SetPinScreen() {
         await SecureStore.deleteItemAsync('pendingChildName');
         router.replace('/(child)');
       } else {
-        await SecureStore.deleteItemAsync('pendingChildId');
-        await SecureStore.deleteItemAsync('pendingChildName');
+        // Leave pendingChildId/pendingChildName in SecureStore —
+        // welcome.tsx reads them to call setChildId before routing to /(child).
         router.push('/(onboarding)/child/welcome');
       }
     } catch (e: any) {

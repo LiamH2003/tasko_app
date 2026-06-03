@@ -31,7 +31,7 @@ export default function ForgotResetScreen() {
     setError('');
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.updateUser({ password });
+      const { error: err } = await supabase.auth.updateUser({ password: password.trim() });
       if (err) throw err;
       router.replace('/(onboarding)/parent/forgot-success');
     } catch (e: any) {

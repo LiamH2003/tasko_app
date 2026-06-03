@@ -96,6 +96,7 @@ export type FamilyChild = {
 };
 
 export type FamilyData = {
+  family_id: string;
   family_name: string;
   children: FamilyChild[];
 };
@@ -147,6 +148,15 @@ export async function logFocusSession(childId: string, durationSeconds: number, 
     p_subject: subject || null,
   });
   if (error) throw error;
+}
+
+export async function addChild(familyId: string, name: string): Promise<string> {
+  const { data, error } = await supabase.rpc('add_child', {
+    p_family_id: familyId,
+    p_name: name,
+  });
+  if (error) throw error;
+  return data as string;
 }
 
 export async function updateChildAvatar(childId: string, avatarUrl: string): Promise<void> {

@@ -20,22 +20,21 @@ export default function ChildLoginScreen() {
   const [error, setError] = useState('');
   const inputRef = useRef<TextInput | null>(null);
 
-  const canContinue = code.length === 4;
-  const fullCode = `TASKO-${code}`;
+  const canContinue = code.length === 6;
 
   const handleContinue = async () => {
     setError('');
     setLoading(true);
     try {
-      const family = await getFamilyByCode(fullCode);
-      if (!family || family.children.length === 0) {
+      const family = await getFamilyByCode(code);
+      if (!family) {
         setError('Ongeldige code. Controleer de code bij je ouder.');
         return;
       }
       router.push({
         pathname: '/(onboarding)/child/who-am-i',
         params: {
-          code: fullCode,
+          familyId: family.family_id,
           familyName: family.family_name,
           children: JSON.stringify(family.children),
         },
@@ -97,19 +96,18 @@ export default function ChildLoginScreen() {
                 <TextInput
                   ref={inputRef}
                   value={code}
-                  onChangeText={(t) => setCode(t.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase())}
+                  onChangeText={(t) => setCode(t.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase())}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
-                  maxLength={4}
+                  maxLength={6}
                   autoCapitalize="characters"
                   autoCorrect={false}
                   caretHidden
                   style={styles.overlayInput}
                 />
                 <Box flexDirection="row" alignItems="center" gap="sm" pointerEvents="none">
-                  <Text style={styles.prefix}>TASKO–</Text>
                   <Box flexDirection="row" gap="sm" style={{ flex: 1 }}>
-                    {Array.from({ length: 4 }).map((_, i) => (
+                    {Array.from({ length: 6 }).map((_, i) => (
                       <MotiView
                         key={i}
                         animate={{
@@ -173,9 +171,6 @@ const styles = StyleSheet.create({
     borderRadius: 20, padding: 20,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: 'rgba(255,255,255,0.82)',
-  },
-  prefix: {
-    fontSize: 18, fontWeight: '700', color: '#1a1918',
   },
   codeBox: {
     flex: 1, height: 60, borderRadius: 14,

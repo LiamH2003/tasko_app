@@ -51,6 +51,13 @@ function RootNavigator() {
 
       if (onboardingComplete && !inParent && !inForgotFlow) {
         router.replace('/(parent)');
+      } else if (!onboardingComplete && inOnboarding && !inForgotFlow) {
+        // Logged-in parent with incomplete onboarding stuck on login/account screen
+        // — resume from the family setup step
+        const page = segments[2] as string | undefined;
+        if (page === 'login' || page === 'account') {
+          router.replace('/(onboarding)/parent/family-choice');
+        }
       }
     } else {
       // No session → always send to onboarding

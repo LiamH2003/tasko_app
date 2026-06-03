@@ -59,6 +59,7 @@ export type Database = {
           stage: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
           pin_code: string | null;
           avatar_url: string | null;
+          invite_code: string | null;
           created_at: string;
         };
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           stage?: 'egg' | 'baby' | 'child' | 'teen' | 'adult';
           pin_code?: string | null;
           avatar_url?: string | null;
+          invite_code?: string | null;
           created_at?: string;
         };
         Update: {

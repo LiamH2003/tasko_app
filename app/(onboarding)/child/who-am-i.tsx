@@ -15,13 +15,21 @@ import type { FamilyChild } from '@/services/child-device';
 
 export default function WhoAmIScreen() {
   const insets = useSafeAreaInsets();
-  const { familyName, children: childrenJson } = useLocalSearchParams<{
+  const { familyId, familyName, children: childrenJson } = useLocalSearchParams<{
+    familyId: string;
     familyName: string;
     children: string;
   }>();
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const children: FamilyChild[] = childrenJson ? JSON.parse(childrenJson) : [];
+
+  const handleRegister = () => {
+    router.push({
+      pathname: '/(onboarding)/child/profile',
+      params: { familyId },
+    });
+  };
 
   const handleSelect = async (child: FamilyChild) => {
     setLoadingId(child.id);
@@ -81,7 +89,11 @@ export default function WhoAmIScreen() {
           style={{ marginTop: 24, marginBottom: 20 }}
         >
           <Text variant="title" marginBottom="xs">Wie ben ik?</Text>
-          <Text variant="subtitle">Tik op jouw naam om in te loggen</Text>
+          <Text variant="subtitle">
+            {children.length > 0
+              ? 'Tik op jouw naam om in te loggen'
+              : 'Nog niemand geregistreerd in dit gezin.'}
+          </Text>
         </MotiView>
 
         <Box gap="sm">
@@ -126,6 +138,25 @@ export default function WhoAmIScreen() {
             );
           })}
         </Box>
+
+        <MotiView
+          from={{ opacity: 0, translateY: 12 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 320, delay: 120 + children.length * 60 + 80 }}
+          style={{ marginTop: children.length > 0 ? 16 : 0 }}
+        >
+          <TouchableOpacity
+            style={[styles.registerBtn, loadingId !== null && { opacity: 0.4 }]}
+            onPress={handleRegister}
+            disabled={loadingId !== null}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="person-add-outline" size={18} color={PRIMARY} />
+            <Text style={styles.registerText}>
+              {children.length > 0 ? 'Ik sta er niet bij' : 'Doe nu mee!'}
+            </Text>
+          </TouchableOpacity>
+        </MotiView>
       </ScrollView>
     </Box>
   );
@@ -168,4 +199,11 @@ const styles = StyleSheet.create({
     backgroundColor: primaryAlpha(0.08),
     alignItems: 'center', justifyContent: 'center',
   },
+  registerBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, paddingVertical: 14, borderRadius: 16,
+    borderWidth: 1.5, borderColor: primaryAlpha(0.3),
+    backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+  registerText: { fontSize: 14, fontWeight: '600', color: PRIMARY },
 });
