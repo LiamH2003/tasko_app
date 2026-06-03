@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
-import { MonsterSvg } from '@/components/ui/MonsterSvg';
+import { CompanionView3D } from '@/components/ui/CompanionView3D';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
@@ -152,7 +152,7 @@ export default function HomeScreen() {
           transition={{ type: 'spring', damping: 14, stiffness: 100, delay: 100 }}
           style={styles.monsterSection}
         >
-          <MonsterSvg size={160} />
+          <CompanionView3D size={220} />
           <Text style={[styles.monsterName, { color: c.textPrimary }]}>{monsterName}</Text>
           {quote ? (
             <View style={[styles.quoteCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
@@ -161,63 +161,64 @@ export default function HomeScreen() {
           ) : null}
         </MotiView>
 
-        {/* Bottom section */}
-        <MotiView
-          from={{ opacity: 0, translateY: 16 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: 'timing', duration: 340, delay: 200 }}
-          style={[styles.bottomSection, { paddingBottom: Math.max(insets.bottom + 8, 16) }]}
-        >
-          {/* XP bar */}
-          <View style={[styles.xpCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
-            <View style={styles.xpRow}>
-              <Text style={[styles.xpLabel, { color: c.textMuted }]}>
-                <Text style={styles.xpAmount}>{profile?.xp ?? 0}</Text>
-                {' / '}{profile?.xp_to_next_level ?? 100} EXP
-              </Text>
-              <TouchableOpacity onPress={() => router.push('/(child)/tasko')}>
-                <Text style={styles.link}>Mijn monster →</Text>
-              </TouchableOpacity>
-            </View>
-            <ProgressBar progress={xpProgress} color={SUCCESS} height={7} />
-          </View>
-
-          {/* Stat cards */}
-          <View style={styles.statsRow}>
-            {[
-              { value: doneCount,       label: 'Gedaan',  color: SUCCESS },
-              { value: todoCount,       label: 'Te doen', color: PRIMARY },
-              { value: allTasks.length, label: 'Totaal',  color: '#8a8885' },
-            ].map((s) => (
-              <TouchableOpacity
-                key={s.label}
-                style={[styles.statCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}
-                onPress={() => router.push('/(child)/routines')}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.statNumber, { color: s.color }]}>{s.value}</Text>
-                <Text style={[styles.statLabel, { color: c.textMuted }]}>{s.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Mood button */}
-          <TouchableOpacity
-            style={styles.moodBtn}
-            onPress={() => setMoodOpen(true)}
-            activeOpacity={0.85}
-          >
-            {selectedMood ? (
-              <Text style={styles.moodBtnText}>
-                {MOODS.find(m => m.key === selectedMood)?.emoji}{' '}
-                {MOODS.find(m => m.key === selectedMood)?.label} (tik om te wijzigen)
-              </Text>
-            ) : (
-              <Text style={styles.moodBtnText}>😊 Hoe voel je je vandaag?</Text>
-            )}
-          </TouchableOpacity>
-        </MotiView>
       </ScrollView>
+
+      {/* Bottom section — pinned above the tab bar */}
+      <MotiView
+        from={{ opacity: 0, translateY: 16 }}
+        animate={{ opacity: 1, translateY: 0 }}
+        transition={{ type: 'timing', duration: 340, delay: 200 }}
+        style={[styles.bottomSection, { paddingBottom: insets.bottom + 20, paddingHorizontal: 24 }]}
+      >
+        {/* XP bar */}
+        <View style={[styles.xpCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
+          <View style={styles.xpRow}>
+            <Text style={[styles.xpLabel, { color: c.textMuted }]}>
+              <Text style={styles.xpAmount}>{profile?.xp ?? 0}</Text>
+              {' / '}{profile?.xp_to_next_level ?? 100} EXP
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(child)/tasko')}>
+              <Text style={styles.link}>Mijn monster →</Text>
+            </TouchableOpacity>
+          </View>
+          <ProgressBar progress={xpProgress} color={SUCCESS} height={7} />
+        </View>
+
+        {/* Stat cards */}
+        <View style={styles.statsRow}>
+          {[
+            { value: doneCount,       label: 'Gedaan',  color: SUCCESS },
+            { value: todoCount,       label: 'Te doen', color: PRIMARY },
+            { value: allTasks.length, label: 'Totaal',  color: '#8a8885' },
+          ].map((s) => (
+            <TouchableOpacity
+              key={s.label}
+              style={[styles.statCard, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}
+              onPress={() => router.push('/(child)/routines')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.statNumber, { color: s.color }]}>{s.value}</Text>
+              <Text style={[styles.statLabel, { color: c.textMuted }]}>{s.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Mood button */}
+        <TouchableOpacity
+          style={styles.moodBtn}
+          onPress={() => setMoodOpen(true)}
+          activeOpacity={0.85}
+        >
+          {selectedMood ? (
+            <Text style={styles.moodBtnText}>
+              {MOODS.find(m => m.key === selectedMood)?.emoji}{' '}
+              {MOODS.find(m => m.key === selectedMood)?.label} (tik om te wijzigen)
+            </Text>
+          ) : (
+            <Text style={styles.moodBtnText}>😊 Hoe voel je je vandaag?</Text>
+          )}
+        </TouchableOpacity>
+      </MotiView>
 
       {/* Mood popup */}
       <Modal
@@ -278,9 +279,9 @@ const styles = StyleSheet.create({
   levelText: { fontSize: 12, color: '#1a1918', fontWeight: '500' },
 
   monsterSection: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8,
+    alignItems: 'center', justifyContent: 'center', gap: 8, marginVertical: 12, marginTop: 36,
   },
-  monsterName: { fontSize: 18, fontWeight: '700', color: '#1a1918' },
+  monsterName: { fontSize: 18, fontWeight: '700', color: '#1a1918', marginTop: -40 },
   quoteCard: {
     backgroundColor: 'rgba(255,255,255,0.82)', borderRadius: 16,
     paddingHorizontal: 18, paddingVertical: 12,

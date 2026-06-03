@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti';
 import { Box, Text } from '@/components/ui/primitives';
 import { MonsterSvg } from '@/components/ui/MonsterSvg';
+import { CompanionView3D } from '@/components/ui/CompanionView3D';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AnimatedBlob } from '@/components/ui/AnimatedBlob';
 import { useAppStore } from '@/store/useAppStore';
@@ -15,7 +16,7 @@ import { fetchChildProfile } from '@/services/child-device';
 import type { ChildProfile } from '@/services/child-device';
 import { stageForLevel } from '@/utils/xp';
 import type { AppTheme } from '@/constants/restyleTheme';
-import { PRIMARY, primaryAlpha } from '@/constants/palette';
+import { PRIMARY, SUCCESS, primaryAlpha } from '@/constants/palette';
 
 const STAGES = [
   { stage: 'egg',   label: 'Ei',        minLevel: 1  },
@@ -110,8 +111,10 @@ export default function TaskoScreen() {
           transition={{ type: 'spring', damping: 14, stiffness: 100, delay: 80 }}
           style={styles.monsterSection}
         >
-          <MonsterSvg size={150} />
-          <View style={styles.nameRow}>
+          <View style={{ marginTop: 8 }}>
+            <CompanionView3D size={200} />
+          </View>
+          <View style={[styles.nameRow, { marginTop: -40 }]}>
             <Text style={[styles.monsterName, { color: c.textPrimary }]}>{monsterName}</Text>
             <View style={[styles.levelBadge, { backgroundColor: c.glassCard, borderColor: c.glassCardBorder }]}>
               <Ionicons name="trophy-outline" size={12} color={PRIMARY} />
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13 },
 
   monsterSection: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6,
+    flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 32, gap: 2,
   },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   monsterName: { fontSize: 22, fontWeight: '700' },

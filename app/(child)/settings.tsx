@@ -20,6 +20,7 @@ import {
 } from '@/services/child-device';
 import { useTheme } from '@shopify/restyle';
 import { PRIMARY, primaryAlpha, SUCCESS } from '@/constants/palette';
+import { lightTheme, darkTheme } from '@/constants/restyleTheme';
 import type { AppTheme } from '@/constants/restyleTheme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
